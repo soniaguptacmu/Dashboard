@@ -83,7 +83,8 @@ def register(request):
         #return HttpResponse(template.render()) 
 
     if request.method == 'POST':
-        is_fail = False;
+        not_complete = False
+        username_exists = False
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '').strip()
         first_name = request.POST.get('firstName', '').strip()
@@ -97,36 +98,29 @@ def register(request):
 
 
         if (not username) or (not password) or (not email) or (not role) or role == "0" or (not first_name) or (not last_name):
-            is_fail = True;
+            not_complete = True
         
         elif role != "1" and institute_id.length == 0:
-            is_fail = True;
+            not_complete = True
         
         elif role != "1" and role != "2" and classes.length == 0:
-            is_fail = True;
+            not_complete = True
         
 
-        if not is_fail:
+        if not not_complete:
             user = Users.objects.get(username=username)
             except ObjectDoesNotExist:
                         #print("Username not exist");
-            is_fail = True;
+            username_exists = True
 
             #Code for username already exists
-            code = 
-            title = 'The username already exists'
-            message = 'The username already exists'
-            data = {'username': username}
-            response_object = construct_response(code, title, message, data)
-
-
             
-
+            
 
         number_of_failed_attempts = 0;
         create_date = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
-        if is_fail:
+        if not_complete:
             #registration info not complete
             code = 
 
@@ -134,8 +128,12 @@ def register(request):
             message = 'The username/password are required'
             data = {'username': username} 
             response_object["autoComplete"] = {'username': username,'email': email, 'role': role, 'institute': institute_id, 'classes': classes}
-
-
+        elif username_exists:
+            code = 
+            title = 'The username already exists'
+            message = 'The username already exists'
+            data = {'username': username}
+            response_object = construct_response(code, title, message, data)
         else:
             #role in user table?
             new_user = Users(username=username, password=password, first_name=first_name, last_name=last_name, email = email, number_of_failed_attempts = number_of_failed_attempts, create_date=create_date)
