@@ -95,21 +95,31 @@ def register(request):
         institute_id = request.POST.get('instituteId', [])
         classes = request.POST.get('classes', [])
 
-        if((not username) or (not password) or (not email) or (not role) or role == "0" or (not first_name) or (not last_name)) {
-            is_fail = True;
-        }
-        elif(role != "1" and institute_id.length == 0) {
-            is_fail = True;
-        }
-        elif(role != "1" and role != "2" and classes.length == 0) {
-            is_fail = True;
-        }
 
-        if (not is_fail):
+        if (not username) or (not password) or (not email) or (not role) or role == "0" or (not first_name) or (not last_name):
+            is_fail = True;
+        
+        elif role != "1" and institute_id.length == 0:
+            is_fail = True;
+        
+        elif role != "1" and role != "2" and classes.length == 0:
+            is_fail = True;
+        
+
+        if not is_fail:
             user = Users.objects.get(username=username)
             except ObjectDoesNotExist:
                         #print("Username not exist");
             is_fail = True;
+
+            #Code for username already exists
+            code = 
+            title = 'The username already exists'
+            message = 'The username already exists'
+            data = {'username': username}
+            response_object = construct_response(code, title, message, data)
+
+
             
 
 
