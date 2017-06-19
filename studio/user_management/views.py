@@ -95,7 +95,7 @@ def register(request):
         institute_id = request.POST.get('instituteId', [])
         classes = request.POST.get('classes', [])
 
-        if(!username or !password or !email or !role or role == "0" or !first_name or !last_name) {
+        if((not username) or (not password) or (not email) or (not role) or role == "0" or (not first_name) or (not last_name)) {
             is_fail = True;
         }
         elif(role != "1" && institute_id.length == 0) {
