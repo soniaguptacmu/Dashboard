@@ -98,14 +98,14 @@ def register(request):
         if((not username) or (not password) or (not email) or (not role) or role == "0" or (not first_name) or (not last_name)) {
             is_fail = True;
         }
-        elif(role != "1" && institute_id.length == 0) {
+        elif(role != "1" and institute_id.length == 0) {
             is_fail = True;
         }
-        elif(role != "1" && role != "2" && classes.length == 0) {
+        elif(role != "1" and role != "2" and classes.length == 0) {
             is_fail = True;
         }
 
-        if !is_fail:
+        if (not is_fail):
             user = Users.objects.get(username=username)
             except ObjectDoesNotExist:
                         #print("Username not exist");
