@@ -104,3 +104,4 @@ ENV/
 */.DS_Store
 .sass-cache/
 *.css.map
+node_modules/
