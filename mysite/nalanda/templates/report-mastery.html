@@ -1,7 +1,96 @@
-{% extends "__base_sidebar.html" %}
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=EDGE">
 
-{% block content %}
+	<!-- jquery -->
+    <script type="text/javascript" src="../static/node_modules/jquery/dist/jquery.min.js"></script>
+	<!-- bootstrap -->
+    <script type="text/javascript" src="../static/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="../static/node_modules/bootstrap/dist/css/bootstrap.min.css" media="all">
+    <!-- jquery validation -->
+    <script type="text/javascript" src="../static/node_modules/jquery-validation/dist/jquery.validate.min.js"></script>
+    <!-- jquery fancytree -->
+    <script type="text/javascript" src="../static/node_modules/jquery.fancytree/dist/jquery.fancytree-all-deps.min.js"></script>
+    <link rel="stylesheet" href="../static/node_modules/jquery.fancytree/dist/skin-lion/ui.fancytree.min.css" media="all">
+    <!-- jquery datatables -->
+    <script type="text/javascript" src="../static/node_modules/datatables/media/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="../static/node_modules/datatables/media/css/jquery.dataTables.min.css" media="all">
+    
+    <script type="text/javascript" src="../static/js/common.js"></script>
+    <link rel="stylesheet" href="../static/css/main.css" media="all">
+    
+    <title>Report Mastery</title>
+</head>
 
-<!-- content goes here -->
+<body class="">
+    <header id="masthead" class="site-header">
+        <div class="inner">
+            <h1 class="site-title"><a class="site-title-link" href="/">Nalanda Project</a></h1>
+            <span style="color:#ffffff">Current User: {{ "current_user" }}</span>
+            <a href="/logout" class="log-out" title="Log Out"><i class="glyphicon glyphicon-log-out"></i> Log Out</a>
+        </div>
+    </header>
+    <div id="main" class="site-main">
+	    <div class="content-area">
+			<div id="primary" class="site-content">
+				<div class="report-header">
+					<h1 class="page-title">Mastery Report</h1>
+					<div class="btn-group" role="group" aria-label="...">
+					  <button type="button" class="btn btn-default">Left</button>
+					  <button type="button" class="btn btn-default">Middle</button>
+					  <button type="button" class="btn btn-default">Right</button>
+					</div>
+				</div>
+				<div class="report-settings">
+					<div class="dropdown">
+						<button class="btn btn-default" type="button" data-toggle="dropdown">
+							Topic: Everything
+							<span class="caret"></span>
+						</button>
+						<div class="dropdown-menu">
+							<div id="topics-tree"></div>
+						</div>
+					</div>
+					<div class="dates">
+						
+					</div>
+				</div>
+    		</div>
+		</div>
+		<div id="secondary" class="site-sidebar">
+		    <ul class="site-navigation">
+		        <li class="heading">Admin</li>
+		        <li class="navigation-item current "><a href="/admin-users"><i class="glyphicon glyphicon-user"></i>&nbsp; Users</a></li>
+		        <li class="heading">Reports</li>
+		        <li class="navigation-item "><a href="/reports-mastery">Mastery</a></li>
+		    </ul>
+		</div>	
+    </div> <!-- .site-main -->
+    <footer id="colophon" class="site-footer">
+        &copy; 2017 Carnegie Mellon University
+    </footer>
+    <script>
+		$(function(){
+			$("#topics-tree").fancytree({
+				checkbox: false,
+				selectMode: 1,
+				source: [  // Typically we would load using ajax instead...
+					{title: "Node 1"},
+					{title: "Node 2"},
+					{title: "Folder 3", folder: true, expanded: true, children: [
+						{title: "Node 3.1", key: "id3.1"},
+						{title: "Node 3.2"}
+					]},
+					{title: "Folder 4", folder: true, children: [
+						{title: "Node 4.1"},
+						{title: "Node 4.2"}
+					]}
+				],
+			});
+		});
+    </script>
+</body>
+</html>
 
-{% endblock %}
