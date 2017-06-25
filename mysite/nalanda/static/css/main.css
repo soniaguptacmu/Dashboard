@@ -203,7 +203,7 @@ body {
     position: absolute;
     top: auto;
     margin: 10px 2px 7px 10px;
-    width:16px;
+    width: 16px;
     height: 16px;
     text-align:center;
 }
@@ -234,4 +234,53 @@ body {
     border-top: 1px dotted #eee;
     padding:10px 30px 10px;
     font-size:12px;
+}
+
+/* mastery */
+
+.report-header {
+    margin: 0 0 20px;
+}
+
+.report-header .page-title {
+    float: left;
+    margin: 0;
+    padding: 0;
+}
+
+.report-header .report-types {
+    float: right;
+}
+
+.report-settings {
+    margin: 15px 0;
+}
+
+.report-settings .topic {
+    width: auto;
+    padding-left: 2px;
+}
+
+input.daterangepicker {
+    top: 0;
+    left: 0;
+    margin-top: 0;
+    margin-left: 100px;
+    padding-right: 15px;
+}
+
+.datepicker-title {
+    padding: 5px 0;
+}
+
+.topic-dropdown {
+   display: none; 
+}
+
+.topic-dropdown.shown {
+    display: block;
+}
+
+.report-breadcrumb {
+    margin: 15px 0;
 }
