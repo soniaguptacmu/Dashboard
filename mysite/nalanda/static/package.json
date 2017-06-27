@@ -10,9 +10,11 @@
     "bootstrap-datepicker": "^1.6.4",
     "bootstrap-daterangepicker": "^2.1.25",
     "datatables": "^1.10.13",
+    "font-awesome": "^4.7.0",
     "jquery": "^3.2.1",
     "jquery-validation": "^1.16.0",
     "jquery.fancytree": "^2.23.0",
+    "moment": "^2.18.1",
     "toastr": "^2.1.2"
   }
 }

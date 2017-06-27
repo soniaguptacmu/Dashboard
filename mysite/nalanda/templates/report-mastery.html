@@ -1,0 +1,321 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=EDGE">
+
+    <!-- jquery -->
+    <script type="text/javascript" src="../static/node_modules/jquery/dist/jquery.min.js"></script>
+    <!-- bootstrap -->
+    <script type="text/javascript" src="../static/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="../static/node_modules/bootstrap/dist/css/bootstrap.min.css" media="all">
+    <!-- jquery validation -->
+    <script type="text/javascript" src="../static/node_modules/jquery-validation/dist/jquery.validate.min.js"></script>
+    <!-- jquery fancytree -->
+    <script type="text/javascript" src="../static/node_modules/jquery.fancytree/dist/jquery.fancytree-all-deps.min.js"></script>
+    <link rel="stylesheet" href="../static/node_modules/jquery.fancytree/dist/skin-lion/ui.fancytree.min.css" media="all">
+    <!-- jquery datatables -->
+    <script type="text/javascript" src="../static/node_modules/datatables/media/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="../static/node_modules/datatables/media/css/jquery.dataTables.min.css" media="all">
+    <!-- bootstrap daterangepicker -->
+    <script type="text/javascript" src="../static/node_modules/moment/min/moment.min.js"></script>
+    <script type="text/javascript" src="../static/node_modules/bootstrap-daterangepicker/daterangepicker.js"></script>
+    <link rel="stylesheet" type="text/css" href="../static/node_modules/bootstrap-daterangepicker/daterangepicker.css">
+    <!-- font awesome -->
+    <link rel="stylesheet" href="../static/node_modules/font-awesome/css/font-awesome.min.css">
+
+    <script type="text/javascript" src="../static/js/common.js"></script>
+    <link rel="stylesheet" href="../static/css/main.css" media="all">
+
+    <title>Report Mastery</title>
+</head>
+
+<body class="">
+    <header id="masthead" class="site-header">
+        <div class="inner">
+            <h1 class="site-title"><a class="site-title-link" href="/">Nalanda Project</a></h1>
+            <span style="color:#ffffff">Current User: {{ "current_user" }}</span>
+            <a href="/logout" class="log-out" title="Log Out"><i class="glyphicon glyphicon-log-out"></i> Log Out</a>
+        </div>
+    </header>
+    <div id="main" class="site-main">
+        <div class="content-area">
+            <div id="primary" class="site-content">
+                <div class="report-header">
+                    <h1 class="page-title">Mastery Report</h1>
+                    <div class="btn-group report-types" role="group" aria-label="...">
+                        <button type="button" class="btn btn-default"><i class="fa fa-table" aria-hidden="true"></i> Table</button>
+                        <button type="button" class="btn btn-default"><i class="fa fa-align-left" aria-hidden="true"></i> Compare</button>
+                        <button type="button" class="btn btn-default">Performance</button>
+                    </div>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="report-settings row">
+                    <div class="topic col-md-6">
+                        <button class="btn btn-default" type="button">
+                            Topic: Everything
+                            <span class="caret"></span>
+                        </button>
+                        <div class="topic-dropdown -Dshown">
+                            <div id="topics-tree"></div>
+                        </div>
+                    </div>
+                    <div class="dates col-md-6">
+                        <div class="datepicker-title">Data Range:</div>
+                        <input class="daterangepicker" name="daterange">
+                    </div>
+                </div>
+                <div class="report-breadcrumb">
+
+                </div>
+                <div class="report-content">
+                    <div class="table-view">
+                        <table id="data-table" class="display" cellspacing="0" width="100%">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <!-- metric columns -->
+                                    <th class="trend-column">Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- data rows -->
+                            </tbody>
+                        </table>
+                        <table id="aggregation-table" class="display" cellspacing="0" width="100%">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <!-- metric columns -->
+                                    <th class="trend-column">Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- data rows -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th>Name</th>
+                                    <!-- metric columns -->
+                                    <th class="trend-column">Trend</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <div class="compare-view">
+
+                    </div>
+                    <div class="performance-view">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="secondary" class="site-sidebar">
+            <ul class="site-navigation">
+                <li class="heading">Admin</li>
+                <li class="navigation-item current "><a href="/admin-users"><i class="glyphicon glyphicon-user"></i>&nbsp; Users</a></li>
+                <li class="heading">Reports</li>
+                <li class="navigation-item "><a href="/reports-mastery">Mastery</a></li>
+            </ul>
+        </div>
+    </div>
+    <!-- .site-main -->
+    <footer id="colophon" class="site-footer">
+        &copy; 2017 Carnegie Mellon University
+    </footer>
+    <script>
+        var table;
+        var aggregationTable;
+        var setBreadcrumb = function(data) {
+            $('.report-breadcrumb').html('');
+            var len = data.breadcrumb.length;
+            for (idx in data.breadcrumb) {
+                var o = data.breadcrumb[idx];
+                appendBreadcrumbItem(o.parentName, o.parentLevel, o.parentId, idx == len - 1);
+            }
+        };
+        var appendBreadcrumbItem = function(name, level, id, isLast) {
+            var html;
+            if (isLast) {
+                html = "<span class='breadcrumb-text'>" + name + "</span>";
+            } else {
+                html = "<a class='breadcrumb-link' href='/report-mastery?parentLevel='" + level + "&parentId=" + id + ">" + name + "</a>";
+                if (!isLast) {
+                    html += " > ";
+                }
+            }
+            
+            $('.report-breadcrumb').append(html);
+        };
+        var setTopics = function(data) {
+
+        };
+        var drawTrendButtonHTML = function() {
+            return "<button class='btn btn-default'><i class='fa fa-line-chart' aria-hidden='true'></i></button>";
+        };
+        var setTableMeta = function(data) {
+            // insert columns
+            for (idx in data.metrics) {
+                $('#data-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
+                $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
+            }
+            // initialize tables
+            table = $('#data-table').DataTable({
+            });
+            aggregationTable = $('#aggregation-table').DataTable({
+                "paging": false,
+                "ordering": false,
+                "info": false,
+                "bFilter": false,
+                "fnDrawCallback": function(oSettings) {
+                    $(oSettings.nTHead).hide();
+                }
+            });
+            // insert placeholder rows for data table
+            for (idx in data.rows) {
+                var array = [data.rows[idx].name];
+                var nItems = data.metrics.length;
+                while (nItems--) {
+                    array.push("");
+                }
+                array.push(drawTrendButtonHTML());
+                var rowNode = table.row.add(array).draw(false).node();
+                var rowId = 'row-' + data.rows[idx].id;
+                $(rowNode).attr('id', rowId);
+            }
+        };
+        var setTableData = function(data) {
+            // update data rows
+            for (idx in data.rows) {
+                var array = data.rows[idx].values;
+                array.unshift(data.rows[idx].name);
+                array.push(drawTrendButtonHTML());
+                table.row("#row-" + data.rows[idx].id).data(array).draw(false);
+            }
+            // add aggregation rows
+            for (idx in data.aggregation) {
+                var array = data.aggregation[idx].values;
+                array.unshift(data.aggregation[idx].name);
+                array.push(drawTrendButtonHTML());
+                aggregationTable.row.add(array).draw(false);
+            }
+        };
+        
+        $(function() {
+            setBreadcrumb({
+                "breadcrumb": [{
+                    "parentName": "All Regions",
+                    "parentLevel": 0,
+                    "parentId": 0
+                }, {
+                    "parentName": "East Sector",
+                    "parentLevel": 1,
+                    "parentId": 10
+                }, {
+                    "parentName": "Suffolk County Charter School",
+                    "parentLevel": 2,
+                    "parentId": 25
+                }]
+            });
+            setTableMeta({
+                "metrics": [{
+                    "displayName": "% exercise completed",
+                    "toolTip": "help text goes here"
+                }, {
+                    "displayName": "% exercise correct",
+                    "toolTip": "help text goes here"
+                }, {
+                    "displayName": "# attempts",
+                    "toolTip": "help text goes here"
+                }, {
+                    "displayName": "% students completed the topic",
+                    "toolTip": "help text goes here"
+                }],
+                "rows": [{
+                    "id": 1,
+                    "name": "East sector"
+                }, {
+                    "id": 2,
+                    "name": "West sector"
+                }, {
+                    "id": 3,
+                    "name": "North sector"
+                }]
+            });
+            setTableData({
+                "rows": [{
+                    "id": 1,
+                    "name": "East Sector",
+                    "values": [
+                        "30%",
+                        "25%",
+                        1,
+                        "10%"
+                    ]
+                }, {
+                    "id": 2,
+                    "name": "West Sector",
+                    "values": [
+                        "30%",
+                        "25%",
+                        1,
+                        "10%"
+                    ]
+                }, {
+                    "id": 3,
+                    "name": "North Sector",
+                    "values": [
+                        "30%",
+                        "25%",
+                        1,
+                        "10%"
+                    ]
+                }],
+                "aggregation": [{
+                    "name": "Average",
+                    "values": [
+                        "30.75%",
+                        "28.75%",
+                        2.75,
+                        "10%"
+                    ]
+                }]
+            });
+
+            $("#topics-tree").fancytree({
+                checkbox: false,
+                selectMode: 1,
+                source: [ // Typically we would load using ajax instead...
+                    {
+                        title: "Node 1"
+                    }, {
+                        title: "Node 2"
+                    }, {
+                        title: "Folder 3",
+                        folder: true,
+                        expanded: true,
+                        children: [{
+                            title: "Node 3.1",
+                            key: "id3.1"
+                        }, {
+                            title: "Node 3.2"
+                        }]
+                    }, {
+                        title: "Folder 4",
+                        folder: true,
+                        children: [{
+                            title: "Node 4.1"
+                        }, {
+                            title: "Node 4.2"
+                        }]
+                    }
+                ],
+            });
+            $('.daterangepicker').daterangepicker();
+        });
+    </script>
+</body>
+
+</html>

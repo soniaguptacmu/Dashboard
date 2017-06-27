@@ -1,0 +1,13 @@
+{% include "_header.html" %}
+
+<div class="content-area">
+    <div id="primary" class="site-content">
+        {% block content %}
+        {% endblock %}
+    </div>
+</div>
+
+{% block sidebar %}
+{% endblock %}
+
+{% include "_footer.html" %}
