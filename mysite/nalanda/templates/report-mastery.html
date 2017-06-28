@@ -24,7 +24,9 @@
     <link rel="stylesheet" type="text/css" href="../static/node_modules/bootstrap-daterangepicker/daterangepicker.css">
     <!-- font awesome -->
     <link rel="stylesheet" href="../static/node_modules/font-awesome/css/font-awesome.min.css">
-
+    <!-- google charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    
     <script type="text/javascript" src="../static/js/common.js"></script>
     <link rel="stylesheet" href="../static/css/main.css" media="all">
 
@@ -53,8 +55,9 @@
                 </div>
                 <div class="report-settings row">
                     <div class="topic col-md-6">
+                        Topic: 
                         <button class="btn btn-default" type="button">
-                            Topic: Everything
+                            Everything
                             <span class="caret"></span>
                         </button>
                         <div class="topic-dropdown -Dshown">
@@ -102,6 +105,9 @@
                                 </tr>
                             </tfoot>
                         </table>
+                        <div id="trend-chart">
+                            <div class="chart-container"></div>
+                        </div>
                     </div>
                     <div class="compare-view">
 
@@ -115,9 +121,9 @@
         <div id="secondary" class="site-sidebar">
             <ul class="site-navigation">
                 <li class="heading">Admin</li>
-                <li class="navigation-item current "><a href="/admin-users"><i class="glyphicon glyphicon-user"></i>&nbsp; Users</a></li>
+                <li class="navigation-item"><a href="/admin-users"><i class="glyphicon glyphicon-user"></i>&nbsp; Users</a></li>
                 <li class="heading">Reports</li>
-                <li class="navigation-item "><a href="/reports-mastery">Mastery</a></li>
+                <li class="navigation-item current"><a href="/report-mastery">Mastery</a></li>
             </ul>
         </div>
     </div>
@@ -152,8 +158,8 @@
         var setTopics = function(data) {
 
         };
-        var drawTrendButtonHTML = function() {
-            return "<button class='btn btn-default'><i class='fa fa-line-chart' aria-hidden='true'></i></button>";
+        var drawTrendButtonHTML = function(itemId) {
+            return "<button class='btn btn-default draw-trend-button' onclick='drawTrendChart(" + itemId + ")'><i class='fa fa-line-chart' aria-hidden='true'></i></button>";
         };
         var setTableMeta = function(data) {
             // insert columns
@@ -201,6 +207,9 @@
                 array.push(drawTrendButtonHTML());
                 aggregationTable.row.add(array).draw(false);
             }
+        };
+        var drawTrendChart = function(itemId) {
+            $('.chart-container')
         };
         
         $(function() {
