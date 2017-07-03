@@ -1,4 +1,4 @@
-from django.shortcuts import render, HttpResponse, redirect
+from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from django.template import Context, loader
 from django.core.exceptions import ObjectDoesNotExist
 from nalanda.models import Users,UserInfoSchool, UserInfoClass, UserRoleCollectionMapping
@@ -6,6 +6,10 @@ from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.contrib.auth import logout
 from django.utils import timezone
 from django.db.utils import DatabaseError, Error, OperationalError
+import simplejson as json
+import codecs
+
+
 
 
 
@@ -95,11 +99,12 @@ def login_view(request):
         
         print(response_object)
         print(is_success)
-        if is_success:
-            response = redirect(baseURL, response_object)
-        else:
-            response = redirect(baseURL + 'login', response_object)
-        return response
+        #if is_success:
+            #response = redirect(baseURL, response_object)
+
+        #else:
+            #response = redirect(baseURL + 'login', response_object)
+        return response_object
 
 
 @csrf_exempt
@@ -182,10 +187,15 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
             code = 1005
             title = 'The username already exists'
             message = 'The username already exists'
-            
+        
+        role_id = int(role_id)  
+        if not institute_id:
+            institute_id = ""
+        else:
+            institute_id = int(institute_id)
 
         if not_complete or username_exists:
-            autoComplete = {'username': username,'email': email, 'role': role_id, 'institute': institute_id, 'classes': classes}
+            autoComplete = {'username': username, 'firstName': first_name, 'lastName': last_name, 'email': email, 'role': role_id, 'instituteId': institute_id, 'classes': classes}
             institutes = get_school_and_classes()
             data = {'autoComplete': autoComplete, 'institutes': institutes}   
             is_success = False
@@ -195,18 +205,18 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
             create_date = timezone.now()
             new_user = Users(username=username, password=password, first_name=first_name, last_name=last_name, email=email, number_of_failed_attempts=number_of_failed_attempts, create_date=create_date, role_id=role_id)
             new_user.save()
-            if role_id == "1":
+            if role_id == '1':
                 user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user)
                 user_role_collection_mapping.save()
-            elif role_id == "2":
-                school = UserInfoSchool.objects.filter(school_id=institute_id)
+            elif role_id == '2':
+                school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if not school:
                     print("institute_id", institute_id, " school not exists")
                 else:
                     user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0])
                     user_role_collection_mapping.save()
             elif role_id == "3":
-                school = UserInfoSchool.objects.filter(school_id=institute_id)
+                school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if not school:
                     print("institute_id", institute_id, " school not exists")
                 else:
@@ -224,6 +234,7 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
             is_success = True
         response_object = construct_response(code, title, message, data)
         return response_object, is_success
+
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -234,10 +245,12 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
         return response_object, is_success
     except OperationalError:
         print("Operation Error")
+   
     except Error:
        print("Error")
     except:
         print("Error occurred")
+
 
 @csrf_exempt
 def register_view(request):
@@ -262,46 +275,50 @@ def register_view(request):
         last_name = request.POST.get('lastName', '').strip()
         email = request.POST.get('email', '').strip()
         role_id = request.POST.get('role', '').strip()
-        institute_id = request.POST.get('instituteId', [])
+        institute_id = request.POST.get('instituteId', '').strip()
         classes = request.POST.get('classes', [])
 
         response_object, is_success = register_post(username, password, first_name, last_name, email, role_id, institute_id, classes)
 
         print(response_object)
         print(is_success)
-        return HttpResponse("yes")
-        '''
-        if is_success:
-            response = redirect(baseURL, response_object)
-        else:
-            response = redirect(baseURL + 'register', response_object)
-        return response
-        '''
+        return response_object
+       
+        #if is_success:
+            #response = redirect(baseURL, response_object)
+        #else:
+            #response = redirect(baseURL + 'register', response_object)
+        #return response
+ 
 
 def admin_approve_pending_users_post(users):
-    '''
-    users = []
-    user1 = {"username": "larry","classes": [1,2]}
-    user2 = {"username": "vivek","classes":[]}
-    user3 = {"username": "peter","classes": []}
-    users.append(user1)
-    users.append(user2)
-    users.append(user3)
-    '''
-    try:
+  
+    #users = []
+    #user1 = {"username": "larry","classes": [1,2]}
+    #user2 = {"username": "vivek","classes":[]}
+    #user3 = {"username": "peter","classes": []}
+    #users.append(user1)
+    #users.append(user2)
+    #users.append(user3)
+
+    #try:
         code = 0
         title = ''
         message = ''
         data = {}
+        
 
-        if not users:
+
+        if len(users) == 0:
             print("No users to approve")
         else:
-            for i in range(len(users)):
+            for i in users:
                 username = users[i]["username"]
+                #print(users[i])
                 result = Users.objects.filter(username=username)
                 if not result:
-                    print("Username", username, "doesn't exist, cannot approve")
+                    #print("Username", username, "doesn't exist, cannot approve")
+                    print("")
                 else:
                     result[0].is_active = True
                     result[0].update_date = timezone.now()
@@ -334,7 +351,9 @@ def admin_approve_pending_users_post(users):
                                     mapping[0].approver_id = 1
                                     mapping[0].save()
         response_object = construct_response(code, title, message, data) 
+       
         return response_object
+'''
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -342,35 +361,40 @@ def admin_approve_pending_users_post(users):
         data = {} 
         is_success = False
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object
     except OperationalError:
         print("Operation Error")
     except Error:
        print("Error")
     except:
         print("Error occurred")
+'''
    
 
 
 @csrf_exempt
 def admin_approve_pending_users_view(request):
     if request.method == 'POST':
-        users = request.POST.get('users', [])
-        response_object = admin_approve_pending_users_post(users)
+        users_json_obj = json.loads(request.POST.get('users', []))
+        
+        #users_json_obj = get_object_or_404(request.users)
+   
+        response_object = admin_approve_pending_users_post(users_json_obj)
 
         print(response_object)
-        return HttpResponse("Yes")
+        return response_object
+        #return HttpResponse("Yes")
 
 def admin_disapprove_pending_users_post(users): 
-    '''
-    users = []
-    user1 = {"username": "larry","classes": [1,2]}
-    user2 = {"username": "vivek","classes":[]}
-    user3 = {"username": "peter","classes": []}
-    users.append(user1)
-    users.append(user2)
-    users.append(user3)
-    '''
+
+    #users = []
+    #user1 = {"username": "larry","classes": [1,2]}
+    #user2 = {"username": "vivek","classes":[]}
+    #user3 = {"username": "peter","classes": []}
+    #users.append(user1)
+    #users.append(user2)
+    #users.append(user3)
+
     code = 0
     title = ''
     message = ''
@@ -383,7 +407,8 @@ def admin_disapprove_pending_users_post(users):
                 username = users[i]["username"]
                 result = Users.objects.filter(username=username)
                 if not result:
-                    print("Username", username, "doesn't exist, cannot disapprove")
+                    #print("Username", username, "doesn't exist, cannot disapprove")
+                    print("")
                 else:
                     result[0].update_date = timezone.now()
                     result[0].save()
@@ -427,7 +452,9 @@ def admin_disapprove_pending_users_post(users):
 @csrf_exempt
 def admin_disapprove_pending_users_view(request):
     if request.method == 'POST':
+
         users = request.POST.get('users', [])
+        print(request.POST.get('users', []))
         response_object = admin_disapprove_pending_users_post(users)
 
         print(response_object)
