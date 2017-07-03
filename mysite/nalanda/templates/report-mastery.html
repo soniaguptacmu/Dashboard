@@ -106,7 +106,7 @@
                             </tfoot>
                         </table>
                         <div id="trend-chart">
-                            <div class="chart-container"></div>
+                            <div id="chart-container" class="chart-container"></div>
                         </div>
                     </div>
                     <div class="compare-view">
@@ -142,6 +142,7 @@
                 appendBreadcrumbItem(o.parentName, o.parentLevel, o.parentId, idx == len - 1);
             }
         };
+        
         var appendBreadcrumbItem = function(name, level, id, isLast) {
             var html;
             if (isLast) {
@@ -155,12 +156,15 @@
             
             $('.report-breadcrumb').append(html);
         };
+        
         var setTopics = function(data) {
 
         };
+        
         var drawTrendButtonHTML = function(itemId) {
             return "<button class='btn btn-default draw-trend-button' onclick='drawTrendChart(" + itemId + ")'><i class='fa fa-line-chart' aria-hidden='true'></i></button>";
         };
+        
         var setTableMeta = function(data) {
             // insert columns
             for (idx in data.metrics) {
@@ -186,33 +190,112 @@
                 while (nItems--) {
                     array.push("");
                 }
-                array.push(drawTrendButtonHTML());
+                array.push(drawTrendButtonHTML(data.rows[idx].id));
                 var rowNode = table.row.add(array).draw(false).node();
                 var rowId = 'row-' + data.rows[idx].id;
                 $(rowNode).attr('id', rowId);
             }
         };
+        
         var setTableData = function(data) {
             // update data rows
             for (idx in data.rows) {
                 var array = data.rows[idx].values;
                 array.unshift(data.rows[idx].name);
-                array.push(drawTrendButtonHTML());
+                array.push(drawTrendButtonHTML(data.rows[idx].id));
                 table.row("#row-" + data.rows[idx].id).data(array).draw(false);
             }
             // add aggregation rows
             for (idx in data.aggregation) {
                 var array = data.aggregation[idx].values;
                 array.unshift(data.aggregation[idx].name);
-                array.push(drawTrendButtonHTML());
+                array.push('');
                 aggregationTable.row.add(array).draw(false);
             }
         };
+        
+        var dismissTrendChart = function() {
+            $('#chart-container').html('');
+        };
+        
+        var getTrendData = function(itemId) {
+            var data = {
+                "series": [
+                    {
+                        "name": "% exercise completed",
+                        "isPercentage": true
+                    },{
+                        "name": "% exercise correct",
+                        "isPercentage": true
+                    },{
+                        "name": "# attempts",
+                        "isPercentage": false
+                    }
+                ],
+                "data": [
+                    [1496941452, 15, 15, 2],
+                    [1497042452, 32, 20, 5],
+                    [1497143452, 45, 30, 12],
+                    [1497344452, 52, 45, 14],
+                    [1497945452, 65, 64, 18],
+                    [1499246452, 77, 77, 21],
+                    [1499347452, 80, 78, 23],
+                    [1499448452, 99, 79, 25],
+                    [1499949452, 100, 95, 30]
+                ]
+            };
+            
+            for (idx in data.data) {
+                var timestamp = data.data[idx][0];
+                var dateObject = new Date(timestamp * 1000);
+                data.data[idx][0] = dateObject;
+            }
+            
+            console.log(data);
+            
+            return data;
+        };
+        
         var drawTrendChart = function(itemId) {
-            $('.chart-container')
+            dismissTrendChart();
+            var trendData = getTrendData(itemId);
+            var chartData = new google.visualization.DataTable();
+            
+            var options = {
+                chart: {
+                    title: 'Trend'
+                },
+                width: 900,
+                height: 500,
+                series: {
+                    
+                },
+                axes: {
+                    y: {
+                        percentage: {label: 'Percentage'},
+                        number: {label: 'Number'}
+                    }
+                }
+            };
+            
+            chartData.addColumn('date', 'Date');
+            var seriesIndex = 0;
+            for (idx in trendData.series) {
+                var dict = trendData.series[idx];
+                var type = dict.isPercentage ? 'percentage' : 'number';
+                chartData.addColumn('number', dict.name);
+                options.series[seriesIndex++] = {axis: type};
+            }
+            
+            chartData.addRows(trendData.data);
+            
+            var chartContainer = document.getElementById('chart-container');
+            var chart = new google.charts.Line(chartContainer);
+            chart.draw(chartData, options);
         };
         
         $(function() {
+            google.charts.load('current', {'packages':['line', 'corechart']});
             setBreadcrumb({
                 "breadcrumb": [{
                     "parentName": "All Regions",
@@ -228,6 +311,7 @@
                     "parentId": 25
                 }]
             });
+            
             setTableMeta({
                 "metrics": [{
                     "displayName": "% exercise completed",
@@ -253,6 +337,7 @@
                     "name": "North sector"
                 }]
             });
+            
             setTableData({
                 "rows": [{
                     "id": 1,
@@ -322,9 +407,9 @@
                     }
                 ],
             });
+            
             $('.daterangepicker').daterangepicker();
         });
     </script>
 </body>
-
 </html>
