@@ -56,11 +56,11 @@
                 <div class="report-settings row">
                     <div class="topic col-md-6">
                         Topic: 
-                        <button class="btn btn-default" type="button">
+                        <button class="btn btn-default" type="button" onclick="toggleTopicDropdown();">
                             Everything
                             <span class="caret"></span>
                         </button>
-                        <div class="topic-dropdown -Dshown">
+                        <div id="topic-dropdown-container" class="topic-dropdown">
                             <div id="topics-tree"></div>
                         </div>
                     </div>
@@ -146,11 +146,11 @@
         var appendBreadcrumbItem = function(name, level, id, isLast) {
             var html;
             if (isLast) {
-                html = "<span class='breadcrumb-text'>" + name + "</span>";
+                html = '<span class="breadcrumb-text">' + name + '</span>';
             } else {
-                html = "<a class='breadcrumb-link' href='/report-mastery?parentLevel='" + level + "&parentId=" + id + ">" + name + "</a>";
+                html = '<a class="breadcrumb-link" href="/report-mastery?parentLevel="' + level + '&parentId=' + id + '>' + name + '</a>';
                 if (!isLast) {
-                    html += " > ";
+                    html += ' > ';
                 }
             }
             
@@ -158,11 +158,15 @@
         };
         
         var setTopics = function(data) {
-
+			
+        };
+        
+        var toggleTopicDropdown = function() {
+	        $('#topic-dropdown-container').toggleClass('shown');
         };
         
         var drawTrendButtonHTML = function(itemId) {
-            return "<button class='btn btn-default draw-trend-button' onclick='drawTrendChart(" + itemId + ")'><i class='fa fa-line-chart' aria-hidden='true'></i></button>";
+            return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i></button>';
         };
         
         var setTableMeta = function(data) {
@@ -172,14 +176,13 @@
                 $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
             }
             // initialize tables
-            table = $('#data-table').DataTable({
-            });
+            table = $('#data-table').DataTable({});
             aggregationTable = $('#aggregation-table').DataTable({
-                "paging": false,
-                "ordering": false,
-                "info": false,
-                "bFilter": false,
-                "fnDrawCallback": function(oSettings) {
+                paging: false,
+                ordering: false,
+                info: false,
+                bFilter: false,
+                fnDrawCallback: function(oSettings) {
                     $(oSettings.nTHead).hide();
                 }
             });
@@ -203,7 +206,7 @@
                 var array = data.rows[idx].values;
                 array.unshift(data.rows[idx].name);
                 array.push(drawTrendButtonHTML(data.rows[idx].id));
-                table.row("#row-" + data.rows[idx].id).data(array).draw(false);
+                table.row('#row-' + data.rows[idx].id).data(array).draw(false);
             }
             // add aggregation rows
             for (idx in data.aggregation) {
@@ -220,19 +223,19 @@
         
         var getTrendData = function(itemId) {
             var data = {
-                "series": [
+                series: [
                     {
-                        "name": "% exercise completed",
-                        "isPercentage": true
+                        name: '% exercise completed',
+                        isPercentage: true
                     },{
-                        "name": "% exercise correct",
-                        "isPercentage": true
+                        name: '% exercise correct',
+                        isPercentage: true
                     },{
-                        "name": "# attempts",
-                        "isPercentage": false
+                        name: '# attempts',
+                        isPercentage: false
                     }
                 ],
-                "data": [
+                data: [
                     [1496941452, 15, 15, 2],
                     [1497042452, 32, 20, 5],
                     [1497143452, 45, 30, 12],
@@ -297,79 +300,79 @@
         $(function() {
             google.charts.load('current', {'packages':['line', 'corechart']});
             setBreadcrumb({
-                "breadcrumb": [{
-                    "parentName": "All Regions",
-                    "parentLevel": 0,
-                    "parentId": 0
+                breadcrumb: [{
+                    parentName: "All Regions",
+                    parentLevel: 0,
+                    parentId: 0
                 }, {
-                    "parentName": "East Sector",
-                    "parentLevel": 1,
-                    "parentId": 10
+                    parentName: "East Sector",
+                    parentLevel: 1,
+                    parentId: 10
                 }, {
-                    "parentName": "Suffolk County Charter School",
-                    "parentLevel": 2,
-                    "parentId": 25
+                    parentName: "Suffolk County Charter School",
+                    parentLevel: 2,
+                    parentId: 25
                 }]
             });
             
             setTableMeta({
-                "metrics": [{
-                    "displayName": "% exercise completed",
-                    "toolTip": "help text goes here"
+                metrics: [{
+                    displayName: "% exercise completed",
+                    toolTip: "help text goes here"
                 }, {
-                    "displayName": "% exercise correct",
-                    "toolTip": "help text goes here"
+                    displayName: "% exercise correct",
+                    toolTip: "help text goes here"
                 }, {
-                    "displayName": "# attempts",
-                    "toolTip": "help text goes here"
+                    displayName: "# attempts",
+                    toolTip: "help text goes here"
                 }, {
-                    "displayName": "% students completed the topic",
-                    "toolTip": "help text goes here"
+                    displayName: "% students completed the topic",
+                    toolTip: "help text goes here"
                 }],
-                "rows": [{
-                    "id": 1,
-                    "name": "East sector"
+                rows: [{
+                    id: 1,
+                    name: "East sector"
                 }, {
-                    "id": 2,
-                    "name": "West sector"
+                    id: 2,
+                    name: "West sector"
                 }, {
-                    "id": 3,
-                    "name": "North sector"
+                    id: 3,
+                    name: "North sector"
                 }]
             });
             
             setTableData({
-                "rows": [{
-                    "id": 1,
-                    "name": "East Sector",
-                    "values": [
+                rows: [{
+                    id: 1,
+                    name: "East Sector",
+                    values: [
                         "30%",
                         "25%",
                         1,
                         "10%"
                     ]
                 }, {
-                    "id": 2,
-                    "name": "West Sector",
-                    "values": [
+                    id: 2,
+                    name: "West Sector",
+                    values: [
                         "30%",
                         "25%",
                         1,
                         "10%"
                     ]
                 }, {
-                    "id": 3,
-                    "name": "North Sector",
-                    "values": [
+                    id: 3,
+                    name: "North Sector",
+                    values: [
                         "30%",
                         "25%",
                         1,
                         "10%"
                     ]
                 }],
-                "aggregation": [{
-                    "name": "Average",
-                    "values": [
+                aggregation: [{
+                    name: "Average",
+                    values: [
                         "30.75%",
                         "28.75%",
                         2.75,
@@ -378,7 +381,7 @@
                 }]
             });
 
-            $("#topics-tree").fancytree({
+            $('#topics-tree').fancytree({
                 checkbox: false,
                 selectMode: 1,
                 source: [ // Typically we would load using ajax instead...

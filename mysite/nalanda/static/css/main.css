@@ -261,6 +261,19 @@ body {
     padding-left: 2px;
 }
 
+.topic-dropdown {
+	position: absolute;
+	z-index: 9999;
+	margin-left: 41px;
+	margin-top: 4px;
+	min-width: 175px;
+	display: none;
+}
+
+.topic-dropdown.shown {
+	display: block;
+}
+
 input.daterangepicker {
     top: 0;
     left: 0;
