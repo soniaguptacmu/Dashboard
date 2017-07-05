@@ -60,8 +60,12 @@
                             Everything
                             <span class="caret"></span>
                         </button>
-                        <div id="topic-dropdown-container" class="topic-dropdown">
+                        <div id="topic-dropdown-container" class="topic-dropdown-container">
                             <div id="topics-tree"></div>
+                            <div class="controls">
+	                            <button class="btn btn-default btn-xs btn-primary" onclick="applyAndDismissTopicDropdown()">Apply</button>
+	                            <button class="btn btn-default btn-xs" onclick="toggleTopicDropdown()">Cancel</button>
+                            </div>
                         </div>
                     </div>
                     <div class="dates col-md-6">
@@ -157,12 +161,40 @@
             $('.report-breadcrumb').append(html);
         };
         
-        var setTopics = function(data) {
+        var initializeTopicsDropdown = function(data) {
+			var content = [];
+			_setTopics(content, data.topics);
 			
+			$('#topics-tree').fancytree({
+                checkbox: false,
+                selectMode: 1,
+                source: content
+            });
+        };
+        
+        var _setTopics = function(toArray, dataArray) {
+	        for (idx in dataArray) {
+		        var dict = dataArray[idx];
+		        var newDict = {
+			        title: dict.name,
+			        key: dict.id,
+			        folder: dict.children !== null
+		        };
+		        if (dict.children !== null) {
+			        newDict['children'] = [];
+			        _setTopics(newDict['children'], dict.children);
+		        }
+		        toArray.push(newDict);
+	        }
         };
         
         var toggleTopicDropdown = function() {
 	        $('#topic-dropdown-container').toggleClass('shown');
+        };
+        
+        var applyAndDismissTopicDropdown = function() {
+	        
+	        toggleTopicDropdown();
         };
         
         var drawTrendButtonHTML = function(itemId) {
@@ -381,35 +413,25 @@
                 }]
             });
 
-            $('#topics-tree').fancytree({
-                checkbox: false,
-                selectMode: 1,
-                source: [ // Typically we would load using ajax instead...
-                    {
-                        title: "Node 1"
-                    }, {
-                        title: "Node 2"
-                    }, {
-                        title: "Folder 3",
-                        folder: true,
-                        expanded: true,
-                        children: [{
-                            title: "Node 3.1",
-                            key: "id3.1"
-                        }, {
-                            title: "Node 3.2"
-                        }]
-                    }, {
-                        title: "Folder 4",
-                        folder: true,
-                        children: [{
-                            title: "Node 4.1"
-                        }, {
-                            title: "Node 4.2"
-                        }]
-                    }
-                ],
-            });
+            initializeTopicsDropdown({
+				"topics": [{
+					"id": 1,
+					"name": "Channel 1",
+					"children": [{
+						"id": 10,
+						"name": "Physics",
+						"children": null
+        			}]
+        		},{
+					"id": 2,
+					"name": "Channel 2",
+					"children": [{
+						"id": 24,
+						"name": "Algorithms",
+						"children": null
+        			}]
+    			}]
+			});
             
             $('.daterangepicker').daterangepicker();
         });
