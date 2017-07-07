@@ -56,12 +56,16 @@
                 <div class="report-settings row">
                     <div class="topic col-md-6">
                         Topic: 
-                        <button class="btn btn-default" type="button">
+                        <button class="btn btn-default" type="button" onclick="toggleTopicDropdown();">
                             Everything
                             <span class="caret"></span>
                         </button>
-                        <div class="topic-dropdown -Dshown">
+                        <div id="topic-dropdown-container" class="topic-dropdown-container">
                             <div id="topics-tree"></div>
+                            <div class="controls">
+	                            <button class="btn btn-default btn-xs btn-primary" onclick="applyAndDismissTopicDropdown()">Apply</button>
+	                            <button class="btn btn-default btn-xs" onclick="toggleTopicDropdown()">Cancel</button>
+                            </div>
                         </div>
                     </div>
                     <div class="dates col-md-6">
@@ -146,23 +150,55 @@
         var appendBreadcrumbItem = function(name, level, id, isLast) {
             var html;
             if (isLast) {
-                html = "<span class='breadcrumb-text'>" + name + "</span>";
+                html = '<span class="breadcrumb-text">' + name + '</span>';
             } else {
-                html = "<a class='breadcrumb-link' href='/report-mastery?parentLevel='" + level + "&parentId=" + id + ">" + name + "</a>";
+                html = '<a class="breadcrumb-link" href="/report-mastery?parentLevel="' + level + '&parentId=' + id + '>' + name + '</a>';
                 if (!isLast) {
-                    html += " > ";
+                    html += ' > ';
                 }
             }
             
             $('.report-breadcrumb').append(html);
         };
         
-        var setTopics = function(data) {
-
+        var initializeTopicsDropdown = function(data) {
+			var content = [];
+			_setTopics(content, data.topics);
+			
+			$('#topics-tree').fancytree({
+                checkbox: false,
+                selectMode: 1,
+                source: content
+            });
+        };
+        
+        var _setTopics = function(toArray, dataArray) {
+	        for (idx in dataArray) {
+		        var dict = dataArray[idx];
+		        var newDict = {
+			        title: dict.name,
+			        key: dict.id,
+			        folder: dict.children !== null
+		        };
+		        if (dict.children !== null) {
+			        newDict['children'] = [];
+			        _setTopics(newDict['children'], dict.children);
+		        }
+		        toArray.push(newDict);
+	        }
+        };
+        
+        var toggleTopicDropdown = function() {
+	        $('#topic-dropdown-container').toggleClass('shown');
+        };
+        
+        var applyAndDismissTopicDropdown = function() {
+	        
+	        toggleTopicDropdown();
         };
         
         var drawTrendButtonHTML = function(itemId) {
-            return "<button class='btn btn-default draw-trend-button' onclick='drawTrendChart(" + itemId + ")'><i class='fa fa-line-chart' aria-hidden='true'></i></button>";
+            return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i></button>';
         };
         
         var setTableMeta = function(data) {
@@ -172,14 +208,13 @@
                 $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
             }
             // initialize tables
-            table = $('#data-table').DataTable({
-            });
+            table = $('#data-table').DataTable({});
             aggregationTable = $('#aggregation-table').DataTable({
-                "paging": false,
-                "ordering": false,
-                "info": false,
-                "bFilter": false,
-                "fnDrawCallback": function(oSettings) {
+                paging: false,
+                ordering: false,
+                info: false,
+                bFilter: false,
+                fnDrawCallback: function(oSettings) {
                     $(oSettings.nTHead).hide();
                 }
             });
@@ -203,7 +238,7 @@
                 var array = data.rows[idx].values;
                 array.unshift(data.rows[idx].name);
                 array.push(drawTrendButtonHTML(data.rows[idx].id));
-                table.row("#row-" + data.rows[idx].id).data(array).draw(false);
+                table.row('#row-' + data.rows[idx].id).data(array).draw(false);
             }
             // add aggregation rows
             for (idx in data.aggregation) {
@@ -220,19 +255,19 @@
         
         var getTrendData = function(itemId) {
             var data = {
-                "series": [
+                series: [
                     {
-                        "name": "% exercise completed",
-                        "isPercentage": true
+                        name: '% exercise completed',
+                        isPercentage: true
                     },{
-                        "name": "% exercise correct",
-                        "isPercentage": true
+                        name: '% exercise correct',
+                        isPercentage: true
                     },{
-                        "name": "# attempts",
-                        "isPercentage": false
+                        name: '# attempts',
+                        isPercentage: false
                     }
                 ],
-                "data": [
+                data: [
                     [1496941452, 15, 15, 2],
                     [1497042452, 32, 20, 5],
                     [1497143452, 45, 30, 12],
@@ -297,79 +332,79 @@
         $(function() {
             google.charts.load('current', {'packages':['line', 'corechart']});
             setBreadcrumb({
-                "breadcrumb": [{
-                    "parentName": "All Regions",
-                    "parentLevel": 0,
-                    "parentId": 0
+                breadcrumb: [{
+                    parentName: "All Regions",
+                    parentLevel: 0,
+                    parentId: 0
                 }, {
-                    "parentName": "East Sector",
-                    "parentLevel": 1,
-                    "parentId": 10
+                    parentName: "East Sector",
+                    parentLevel: 1,
+                    parentId: 10
                 }, {
-                    "parentName": "Suffolk County Charter School",
-                    "parentLevel": 2,
-                    "parentId": 25
+                    parentName: "Suffolk County Charter School",
+                    parentLevel: 2,
+                    parentId: 25
                 }]
             });
             
             setTableMeta({
-                "metrics": [{
-                    "displayName": "% exercise completed",
-                    "toolTip": "help text goes here"
+                metrics: [{
+                    displayName: "% exercise completed",
+                    toolTip: "help text goes here"
                 }, {
-                    "displayName": "% exercise correct",
-                    "toolTip": "help text goes here"
+                    displayName: "% exercise correct",
+                    toolTip: "help text goes here"
                 }, {
-                    "displayName": "# attempts",
-                    "toolTip": "help text goes here"
+                    displayName: "# attempts",
+                    toolTip: "help text goes here"
                 }, {
-                    "displayName": "% students completed the topic",
-                    "toolTip": "help text goes here"
+                    displayName: "% students completed the topic",
+                    toolTip: "help text goes here"
                 }],
-                "rows": [{
-                    "id": 1,
-                    "name": "East sector"
+                rows: [{
+                    id: 1,
+                    name: "East sector"
                 }, {
-                    "id": 2,
-                    "name": "West sector"
+                    id: 2,
+                    name: "West sector"
                 }, {
-                    "id": 3,
-                    "name": "North sector"
+                    id: 3,
+                    name: "North sector"
                 }]
             });
             
             setTableData({
-                "rows": [{
-                    "id": 1,
-                    "name": "East Sector",
-                    "values": [
+                rows: [{
+                    id: 1,
+                    name: "East Sector",
+                    values: [
                         "30%",
                         "25%",
                         1,
                         "10%"
                     ]
                 }, {
-                    "id": 2,
-                    "name": "West Sector",
-                    "values": [
+                    id: 2,
+                    name: "West Sector",
+                    values: [
                         "30%",
                         "25%",
                         1,
                         "10%"
                     ]
                 }, {
-                    "id": 3,
-                    "name": "North Sector",
-                    "values": [
+                    id: 3,
+                    name: "North Sector",
+                    values: [
                         "30%",
                         "25%",
                         1,
                         "10%"
                     ]
                 }],
-                "aggregation": [{
-                    "name": "Average",
-                    "values": [
+                aggregation: [{
+                    name: "Average",
+                    values: [
                         "30.75%",
                         "28.75%",
                         2.75,
@@ -378,35 +413,25 @@
                 }]
             });
 
-            $("#topics-tree").fancytree({
-                checkbox: false,
-                selectMode: 1,
-                source: [ // Typically we would load using ajax instead...
-                    {
-                        title: "Node 1"
-                    }, {
-                        title: "Node 2"
-                    }, {
-                        title: "Folder 3",
-                        folder: true,
-                        expanded: true,
-                        children: [{
-                            title: "Node 3.1",
-                            key: "id3.1"
-                        }, {
-                            title: "Node 3.2"
-                        }]
-                    }, {
-                        title: "Folder 4",
-                        folder: true,
-                        children: [{
-                            title: "Node 4.1"
-                        }, {
-                            title: "Node 4.2"
-                        }]
-                    }
-                ],
-            });
+            initializeTopicsDropdown({
+				"topics": [{
+					"id": 1,
+					"name": "Channel 1",
+					"children": [{
+						"id": 10,
+						"name": "Physics",
+						"children": null
+        			}]
+        		},{
+					"id": 2,
+					"name": "Channel 2",
+					"children": [{
+						"id": 24,
+						"name": "Algorithms",
+						"children": null
+        			}]
+    			}]
+			});
             
             $('.daterangepicker').daterangepicker();
         });
