@@ -1,27 +1,20 @@
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from django.template import Context, loader
 from django.core.exceptions import ObjectDoesNotExist
-from nalanda.models import Users,UserInfoSchool, UserInfoClass, UserRoleCollectionMapping
+from nalanda.models import Users,UserInfoSchool, UserInfoClass, UserRoleCollectionMapping, UserInfoStudent
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.contrib.auth import logout
 from django.utils import timezone
 from django.db.utils import DatabaseError, Error, OperationalError
-import simplejson as json
-import codecs
-
-
-
-
-
-
-myapp = "nalanda"
-baseURL = "http://127.0.0.1:8000/nalanda/"
+from django.core.urlresolvers import reverse
+from django.core import serializers
+import json
 
 
 def construct_response(code, title, message, data):
     response_object = {}
-    response_object["code"] = code
-    response_object["info"] = {'title': title,'message': message}
+    response_object['code'] = code
+    response_object['info'] = {'title': title,'message': message}
     response_object['data'] = data
     return response_object            
 
@@ -30,10 +23,11 @@ def login_post(username, password):
     try:
         is_success = False
         code = 0
+        role = -1
         title = ""
         message = ""
         data = {}
-        if username and password:
+        if username and password:     
             result = Users.objects.filter(username=username).filter(password=password)
             if not result:
                 code = 1001
@@ -41,7 +35,7 @@ def login_post(username, password):
                 message = 'The username/password combination is incorrect'
                 data = {'username': username} 
                 user = Users.objects.filter(username=username)
-                if user:
+                if user and user.role_id != 4:
                     user[0].number_of_failed_attempts += 1
                     if user[0].number_of_failed_attempts >= 4:
                         user[0].is_active = False
@@ -56,6 +50,7 @@ def login_post(username, password):
                 else:
                     result[0].last_login_time = timezone.now()
                     result[0].save()
+                    role = result[0].role_id
                     is_success = True
             
         else:
@@ -63,8 +58,9 @@ def login_post(username, password):
             title = 'The username/password are required'
             message = 'The username/password are required'
             data = {'username': username}
+            is_success = False
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object, is_success, role
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -72,105 +68,107 @@ def login_post(username, password):
         data = {} 
         is_success = False
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object, is_success, role
     except OperationalError:
-        print("Operation Error")
-    except Error:
-        print("Error")
+        code = 2011
+        title = 'Sorry, operational error occurred'
+        message = 'Sorry, operational error occurred'
+        data = {} 
+        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success, role
     except:
-        print("Error occurred")
+        code = 2021
+        title = 'Sorry, error occurred at the server'
+        message = 'Sorry, error occurred at the server'
+        data = {} 
+        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success, role
     
 
-# Create your views here.
 @csrf_exempt
 def login_view(request):
-    username = ""
     if request.method == 'GET':
-
-        #template = loader.get_template(myapp + '/login.html')
-        #return HttpResponse(template.render(data, request))  
-        #return HttpResponse(template.render()) 
-        return HttpResponse("X")
-    elif request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
-
-        response_object, is_success = login_post(username, password)
+        return render(request, 'login.html')
         
-        print(response_object)
-        print(is_success)
-        #if is_success:
-            #response = redirect(baseURL, response_object)
+    elif request.method == 'POST':
+        data = json.loads(request.body)
 
-        #else:
-            #response = redirect(baseURL + 'login', response_object)
-        return response_object
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        response_object, is_success, role = login_post(username, password)
+        
+
+        if is_success:
+            response = redirect(reverse('report'))
+            response.set_cookie('role', role)
+        else:    
+            response = render(request, 'login.html', response_object) 
+            response.delete_cookie('role')
+        response.delete_cookie('username')
+        return response
 
 
 @csrf_exempt
 def logout_view(request):
     if request.method == 'GET':
-        logout(request)
-        response = redirect(baseURL)
-        #response.delete_cookie('session_id')
-        return response
+        try:
+            logout(request)
+            code = 0
+            title = ""
+            message = ""
+            data = {}
+            response_object = construct_response(code, title, message, data)
+            response = render(request, 'index.html', response_object)
+            response.delete_cookie('role')
+            return response
+        except:
+            code = 2021
+            title = 'Sorry, error occurred at the server'
+            message = 'Sorry, error occurred at the server'
+            data = {} 
+            is_success = False
+            response_object = construct_response(code, title, message, data)
+            return HttpResponse(response_object)
+
 
 def get_school_and_classes():
-    try:
-        institutes = []
-        school_info = {}
-        school_id = ""
-        school_name = ""
-        school = UserInfoSchool.objects.all()
-        if not school:
-            print("No school exists")
-        else:
-            for i in range(0, len(school)):
-
-                school_id = school[i].school_id
-                school_name = school[i].school_name
-                classes_array = []
-
-                classes_in_school = UserInfoClass.objects.filter(parent=school_id)
-                if not classes_in_school:
-                    print("For school_id ", school_id, ", no classes exist")
-                else:
-                    for i in range(0, len(classes_in_school)):
-                        current_class = {'name': classes_in_school[i].class_name, 'id': classes_in_school[i].class_id}
-                        classes_array.append(current_class)
-                school_info = {'name': school_name, 'id': school_id, 'classes': classes_array}
-                institutes.append(school_info)
-        return institutes
-    except DatabaseError:
-        code = 2001
-        title = 'Sorry, error occurred in database operations'
-        message = 'Sorry, error occurred in database operations'
-        data = {} 
-        is_success = False
-        response_object = construct_response(code, title, message, data)
-        return response_object, is_success
-    except OperationalError:
-        print("Operation Error")
-    except Error:
-       print("Error")
-    except:
-        print("Error occurred")
+    institutes = []
+    school_info = {}
+    school_id = ''
+    school_name = ''
+    school = UserInfoSchool.objects.all()
+    if school:
+        for i in range(0, len(school)):
+            school_id = school[i].school_id
+            school_name = school[i].school_name
+            classes_array = []
+            classes_in_school = UserInfoClass.objects.filter(parent=school_id)
+            if classes_in_school:
+                for i in range(0, len(classes_in_school)):
+                    current_class = {'name': classes_in_school[i].class_name, 'id': classes_in_school[i].class_id}
+                    classes_array.append(current_class)
+            school_info = {'name': school_name, 'id': school_id, 'classes': classes_array}
+            institutes.append(school_info)
+    return institutes
+ 
 
         
 
-def register_post(username, password, first_name, last_name, email, role_id, institute_id, classes):
-    
+@csrf_exempt
+def register_post(username, password, first_name, last_name, email, role_id, institute_id, classes): 
     try:
         not_complete = False
         username_exists = False
         is_success = False
-        if (not username) or (not password) or (not email) or (not role_id) or role_id == "0" or (not first_name) or (not last_name):
+        if (not username) or (not password) or (not email) or (not role_id) or role_id == '0' or (not first_name) or (not last_name):
             not_complete = True
         
-        if role_id != "1" and (not institute_id):
+        if (role_id == '2' or role_id == '3') and (not institute_id):
             not_complete = True
         
-        if role_id != "1" and role_id != "2" and (not classes):
+        if role_id == '3' and (not classes):
             not_complete = True
 
         if not not_complete:
@@ -190,7 +188,7 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
         
         role_id = int(role_id)  
         if not institute_id:
-            institute_id = ""
+            institute_id = ''
         else:
             institute_id = int(institute_id)
 
@@ -210,21 +208,15 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
                 user_role_collection_mapping.save()
             elif role_id == '2':
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
-                if not school:
-                    print("institute_id", institute_id, " school not exists")
-                else:
+                if school:
                     user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0])
                     user_role_collection_mapping.save()
-            elif role_id == "3":
+            elif role_id == '3':
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
-                if not school:
-                    print("institute_id", institute_id, " school not exists")
-                else:
+                if school:
                     for i in range(0, len(classes)):
                         current_class = UserInfoClass.objects.filter(class_id=classes[i])
-                        if not current_class:
-                            print("class_id", classes[i], " class not exists")
-                        else:
+                        if current_class:
                             user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0], class_id = current_class[0])
                             user_role_collection_mapping.save()         
             code = 0
@@ -244,116 +236,56 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
         response_object = construct_response(code, title, message, data)
         return response_object, is_success
     except OperationalError:
-        print("Operation Error")
-   
-    except Error:
-       print("Error")
+        code = 2011
+        title = 'Sorry, operational error occurred'
+        message = 'Sorry, operational error occurred'
+        data = {} 
+        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
     except:
-        print("Error occurred")
+        code = 2021
+        title = 'Sorry, error occurred at the server'
+        message = 'Sorry, error occurred at the server'
+        data = {} 
+        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
 
 
 @csrf_exempt
 def register_view(request):
-    if request.method == 'GET':
-        #template = loader.get_template(myapp + '/register.html')
-        #return HttpResponse(template.render(data, request))  
-        #return HttpResponse(template.render()) 
-        institutes = get_school_and_classes()
-        data = {'institutes': institutes}   
-        code = 0
-        title = ''
-        message = ''
-        response_object = construct_response(code, title, message, data)
-        print(response_object)
+    try:
+        if request.method == 'GET':
+            institutes = get_school_and_classes()
+            data = {'institutes': institutes}   
+            code = 0
+            title = ''
+            message = ''
+            response_object = construct_response(code, title, message, data)
+            return render(request, 'register.html', response_object)  
 
-        return HttpResponse("No") 
-
-    elif request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '').strip()
-        first_name = request.POST.get('firstName', '').strip()
-        last_name = request.POST.get('lastName', '').strip()
-        email = request.POST.get('email', '').strip()
-        role_id = request.POST.get('role', '').strip()
-        institute_id = request.POST.get('instituteId', '').strip()
-        classes = request.POST.get('classes', [])
-
-        response_object, is_success = register_post(username, password, first_name, last_name, email, role_id, institute_id, classes)
-
-        print(response_object)
-        print(is_success)
-        return response_object
-       
-        #if is_success:
-            #response = redirect(baseURL, response_object)
-        #else:
-            #response = redirect(baseURL + 'register', response_object)
-        #return response
+        elif request.method == 'POST':
+            data = json.loads(request.body)
  
+            username = data.get('username', '').strip()
+            password = data.get('password', '').strip()
+            first_name = data.get('firstName', '').strip()
+            last_name = data.get('lastName', '').strip()
+            email = data.get('email', '').strip()
+            role_id = str(data.get('role', '')).strip()
+            institute_id = str(data.get('instituteId', '')).strip()
+            classes = data.get('classes', [])
+            
+            response_object, is_success = register_post(username, password, first_name, last_name, email, role_id, institute_id, classes)
+            print(response_object)
+            
+            if is_success:
+                response = redirect(reverse('login'))
+            else:
+                response = render(request, 'register.html', response_object) 
+            return response
 
-def admin_approve_pending_users_post(users):
-  
-    #users = []
-    #user1 = {"username": "larry","classes": [1,2]}
-    #user2 = {"username": "vivek","classes":[]}
-    #user3 = {"username": "peter","classes": []}
-    #users.append(user1)
-    #users.append(user2)
-    #users.append(user3)
-
-    #try:
-        code = 0
-        title = ''
-        message = ''
-        data = {}
-        
-
-
-        if len(users) == 0:
-            print("No users to approve")
-        else:
-            for i in users:
-                username = users[i]["username"]
-                #print(users[i])
-                result = Users.objects.filter(username=username)
-                if not result:
-                    #print("Username", username, "doesn't exist, cannot approve")
-                    print("")
-                else:
-                    result[0].is_active = True
-                    result[0].update_date = timezone.now()
-                    result[0].save()
-                    # If the user is a board memeber, no institute or class will be specified 
-                    if result[0].role_id == 1 or result[0].role_id == 2:
-                        mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
-                        if not mapping:
-                            print("mapping with user ", result[0].user_id, "and class ", approve_class[0].class_id, "does not exist")
-                        else:
-                            mapping[0].is_approved = True
-                            #######################################
-                            #@TODO
-                            mapping[0].approver_id = 1
-                            mapping[0].save()
-                    elif result[0].role_id == 3:
-                        classes = users[i]["classes"]
-                        for j in range(len(classes)):
-                            approve_class = UserInfoClass.objects.filter(class_id = classes[j])
-                            if not approve_class:
-                                print("For user", username, ",classes_id ", classes[j], "does not exist, connot approve")
-                            else:
-                                mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0]).filter(class_id=approve_class[0])
-                                if not mapping:
-                                    print("mapping with user ", result[0].user_id, "and class ", approve_class[0].class_id, "does not exist")
-                                else:
-                                    mapping[0].is_approved = True
-                                    #######################################
-                                    #@TODO
-                                    mapping[0].approver_id = 1
-                                    mapping[0].save()
-        response_object = construct_response(code, title, message, data) 
-       
-        return response_object
-'''
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -361,76 +293,132 @@ def admin_approve_pending_users_post(users):
         data = {} 
         is_success = False
         response_object = construct_response(code, title, message, data)
-        return response_object
+        return response_object, is_success
     except OperationalError:
-        print("Operation Error")
-    except Error:
-       print("Error")
+        code = 2011
+        title = 'Sorry, operational error occurred'
+        message = 'Sorry, operational error occurred'
+        data = {} 
+        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
     except:
-        print("Error occurred")
-'''
-   
+        code = 2021
+        title = 'Sorry, error occurred at the server'
+        message = 'Sorry, error occurred at the server'
+        data = {} 
+        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
 
 
-@csrf_exempt
-def admin_approve_pending_users_view(request):
-    if request.method == 'POST':
-        users_json_obj = json.loads(request.POST.get('users', []))
-        
-        #users_json_obj = get_object_or_404(request.users)
-   
-        response_object = admin_approve_pending_users_post(users_json_obj)
+ 
 
-        print(response_object)
-        return response_object
-        #return HttpResponse("Yes")
-
-def admin_disapprove_pending_users_post(users): 
-
-    #users = []
-    #user1 = {"username": "larry","classes": [1,2]}
-    #user2 = {"username": "vivek","classes":[]}
-    #user3 = {"username": "peter","classes": []}
-    #users.append(user1)
-    #users.append(user2)
-    #users.append(user3)
-
-    code = 0
-    title = ''
-    message = ''
-    data = {}
+def admin_approve_pending_users_post(users):
     try:
-        if not users:
-            print("No users to approve")
-        else:
+        code = 0
+        title = ''
+        message = ''
+        data = {}
+
+        if len(users) != 0:
             for i in range(len(users)):
                 username = users[i]["username"]
                 result = Users.objects.filter(username=username)
-                if not result:
-                    #print("Username", username, "doesn't exist, cannot disapprove")
-                    print("")
-                else:
+                if result:
+                    result[0].is_active = True
                     result[0].update_date = timezone.now()
                     result[0].save()
                     # If the user is a board memeber, no institute or class will be specified 
                     if result[0].role_id == 1 or result[0].role_id == 2:
                         mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
-                        if not mapping:
-                            print("mapping with user ", result[0].user_id, "and class ", approve_class[0].class_id, "does not exist")
-                        else:
+                        if mapping:
+                            mapping[0].is_approved = True
+                            mapping[0].approver_id = 1
+                            mapping[0].save()
+                    elif result[0].role_id == 3:
+                        classes = users[i]["classes"]
+                        for j in range(len(classes)):
+                            approve_class = UserInfoClass.objects.filter(class_id = classes[j])
+                            if approve_class:
+                                mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0]).filter(class_id=approve_class[0])
+                                if mapping:
+                                    mapping[0].is_approved = True
+                                    mapping[0].approver_id = 1
+                                    mapping[0].save()
+        response_object = construct_response(code, title, message, data) 
+       
+        return response_object
+
+    except DatabaseError:
+        code = 2001
+        title = 'Sorry, error occurred in database operations'
+        message = 'Sorry, error occurred in database operations'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object
+    except OperationalError:
+        code = 2011
+        title = 'Sorry, operational error occurred'
+        message = 'Sorry, operational error occurred'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
+    except:
+        code = 2021
+        title = 'Sorry, error occurred at the server'
+        message = 'Sorry, error occurred at the server'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object
+
+
+
+   
+@csrf_exempt
+def admin_approve_pending_users_view(request):
+    if request.method == 'POST':
+        role = request.COOKIES.get('role')
+        if role != '5':
+            code = 2031
+            title = 'Sorry, you have to be admin to perform this action'
+            message = 'Sorry, you have to be admin to perform this action'
+            data = {} 
+            response_object = construct_response(code, title, message, data)
+
+        else:
+            data = json.loads(request.body)
+            users = data.get('users',[])       
+            response_object = admin_approve_pending_users_post(users)
+        return HttpResponse(response_object)
+
+
+def admin_disapprove_pending_users_post(users): 
+    code = 0
+    title = ''
+    message = ''
+    data = {}
+    try:
+        if users:
+            for i in range(len(users)):
+                username = users[i]['username']
+                result = Users.objects.filter(username=username)
+                if result:
+                    result[0].update_date = timezone.now()
+                    result[0].save()
+                    # If the user is a board memeber, no institute or class will be specified 
+                    if result[0].role_id == 1 or result[0].role_id == 2:
+                        mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
+                        if mapping:
                             mapping[0].delete()
                             
                     elif result[0].role_id == 3:
                         classes = users[i]["classes"]
                         for j in range(len(classes)):
                             approve_class = UserInfoClass.objects.filter(class_id = classes[j])
-                            if not approve_class:
-                                print("For user", username, ",classes_id ", classes[j], "does not exist, connot approve")
-                            else:
+                            if approve_class:
                                 mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0]).filter(class_id=approve_class[0])
-                                if not mapping:
-                                    print("mapping with user", result[0].user_id, "and class", approve_class[0].class_id, "does not exist")
-                                else:
+                                if mapping:
                                     mapping[0].delete()               
         response_object = construct_response(code, title, message, data) 
         return response_object
@@ -439,47 +427,56 @@ def admin_disapprove_pending_users_post(users):
         title = 'Sorry, error occurred in database operations'
         message = 'Sorry, error occurred in database operations'
         data = {} 
-        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object
+    except OperationalError:
+        code = 2011
+        title = 'Sorry, operational error occurred'
+        message = 'Sorry, operational error occurred'
+        data = {} 
         response_object = construct_response(code, title, message, data)
         return response_object, is_success
-    except OperationalError:
-        print("Operation Error")
-    except Error:
-       print("Error")
     except:
-        print("Error occurred")
+        code = 2021
+        title = 'Sorry, error occurred at the server'
+        message = 'Sorry, error occurred at the server'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object
 
 @csrf_exempt
 def admin_disapprove_pending_users_view(request):
     if request.method == 'POST':
+        role = request.COOKIES.get('role')
+        if role != '5':
+            code = 2031
+            title = 'Sorry, you have to be admin to perform this action'
+            message = 'Sorry, you have to be admin to perform this action'
+            data = {} 
+            response_object = construct_response(code, title, message, data)
 
-        users = request.POST.get('users', [])
-        print(request.POST.get('users', []))
-        response_object = admin_disapprove_pending_users_post(users)
-
-        print(response_object)
-        return HttpResponse("Yes")
+        else:
+            data = json.loads(request.body)
+            users = data.get('users',[])       
+            response_object = admin_disapprove_pending_users_post(users)
+        return HttpResponse(response_object)
+    
 
 def admin_unblock_users_post(usernames):
-    usernames = ['larry', 'bob', 'vivek']
     code = 0
     title = ''
     message = ''
     data = {}
     try:
-        if not usernames:
-            print("No users to unblock")
-        else:
+        if usernames:
             for i in range(len(usernames)):
                 username = usernames[i]
                 result = Users.objects.filter(username=username)
-                if not result:
-                    print("Username", username, "doesn't exist, cannot unblock")
-                else:
+                if result:
                     result[0].is_active = True;
                     result[0].number_of_failed_attempts = 0;
                     result[0].update_date = timezone.now()
-                    print(timezone.now())
+            
                     result[0].save()
         response_object = construct_response(code, title, message, data) 
         return response_object
@@ -492,26 +489,328 @@ def admin_unblock_users_post(usernames):
         response_object = construct_response(code, title, message, data)
         return response_object, is_success
     except OperationalError:
-        print("Operation Error")
-    except Error:
-       print("Error")
+        code = 2011
+        title = 'Sorry, operational error occurred'
+        message = 'Sorry, operational error occurred'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
     except:
-        print("Error occurred")
+        code = 2021
+        title = 'Sorry, error occurred at the server'
+        message = 'Sorry, error occurred at the server'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object
 
 
 
     
-
 @csrf_exempt
 def admin_unblock_users_view(request):
     if request.method == 'POST':
-        usernames = request.POST.get('usernames', [])
-        response_object = admin_unblock_users_post(usernames)
+        role = request.COOKIES.get('role')
+        if role != '5':
+            code = 2031
+            title = 'Sorry, you have to be admin to perform this action'
+            message = 'Sorry, you have to be admin to perform this action'
+            data = {} 
+            response_object = construct_response(code, title, message, data)
 
+        else:
+            data = json.loads(request.body)
+            usernames = data.get('usernames',[])
+            response_object = admin_unblock_users_post(usernames)
+
+        return HttpResponse(response_object)
+
+@csrf_exempt
+def report_homepage_view(request):
+    if request.method == 'GET':
+        role = request.COOKIES.get('role')
+        if not role:
+            code = 2031
+            title = 'Sorry, you have to login to perform this action'
+            message = 'Sorry, you have to login to perform this action'
+            data = {} 
+            response_object = construct_response(code, title, message, data)
+            return HttpResponse(response_object)
+
+        else:
+            code = 0
+            title = ''
+            message = ''
+            data = {}
+            response_object = construct_response(code, title, message, data)
+            return render(request, 'report-mastery.html', response_object)
+
+
+def construct_breadcrumb(parentName, parentLevel, parentId):
+    res = {
+        "parentName": parentName,
+        "parentLevel": parentLevel,
+        "parentId": parentId
+        }
+
+    return res
+
+def construct_metrics():
+    metrics = [
+        {},
+        {'displayName': '% exerciese completed', 'toolTip': ''},
+        {'displayName': '% exerciese correct', 'toolTip': ''},
+        {'displayName': '# attempts completed', 'toolTip': ''},
+        {'displayName': '% students completed the topic', 'toolTip': ''},
+        {}
+    ]
+    return metrics
+
+
+def get_page_meta(parent_id, parent_level):
+    try:
+        code = 0
+        title = ''
+        message = ''
+        if parent_level == -1 or parent_id == -1:
+            code = 2031
+            title = 'Parent level or parent id is missing'
+            message = 'Parent level or parent id is missing'
+            data = {} 
+        else: 
+            metrics = construct_metrics()
+            breadcrumb = []
+            rows = []
+            root = construct_breadcrumb("Institutues", 0, 0)
+            # For all possbile levels, root should be present
+            breadcrumb.append(root)
+            #If the partent level is root
+            if parent_level == 0:
+                # Return all the schools 
+                schools = UserInfoSchool.objects.filter()
+                if schools:
+                    for school in schools:
+                        temp = {
+                            "id": school.school_id,
+                            "name": school.school_name
+                        }
+                        rows.append(temp)
+            # If the parent level is school
+            elif parent_level == 1:
+                # Add current level school to the breadcrumb
+                school = UserInfoSchool.objects.filter(school_id = parent_id)
+                if school:
+                    school_name = school[0].school_name
+                    breadcrumb.append(construct_breadcrumb(school_name, 1, parent_id))
+
+                # Return all the classrooms inside a school
+
+                    classes = UserInfoClass.objects.filter(parent = school[0])
+                    if classes:
+                        for curr_class in classes:
+                            temp = {
+                                "id": curr_class.class_id,
+                                "name": curr_class.class_name
+                            }
+                            rows.append(temp)
+
+            elif parent_level == 2:
+                
+                #Add current level class to the breadcrumb
+                curr_class = UserInfoClass.objects.filter(class_id = parent_id)
+                if curr_class:
+                    class_name = curr_class[0].class_name
+                   
+                #Add higher level school to the breadcrumb
+                    school = curr_class[0].parent
+                    if school:
+                        school_id = school.school_id
+                        school_name = school.school_name
+                        breadcrumb.append(construct_breadcrumb(school_name, 2, school_id))
+                        breadcrumb.append(construct_breadcrumb(class_name, 2, parent_id))
+
+                    # Return all students inside a classroom
+                students = UserInfoStudent.objects.filter(parent = curr_class[0])
+                if students:
+                    for student in students:
+                        temp = {
+                            'id': student.student_id,
+                            'name': student.student_name
+                        }
+                        rows.append(temp)
+            data = {'breadcrumb': breadcrumb, 'metrics': metrics, 'rows': rows}
+        response_object = construct_response(code, title, message, data)
+        return response_object
+    except DatabaseError:
+        code = 2001
+        title = 'Sorry, error occurred in database operations'
+        message = 'Sorry, error occurred in database operations'
+        data = {} 
+        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
+    except OperationalError:
+        code = 2011
+        title = 'Sorry, operational error occurred'
+        message = 'Sorry, operational error occurred'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
+    except:
+        code = 2021
+        title = 'Sorry, error occurred at the server'
+        message = 'Sorry, error occurred at the server'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object
+
+
+@csrf_exempt
+def get_page_meta_view(request):
+    if request.method == 'POST':
+        role = request.COOKIES.get('role')
+        if not role:
+            code = 2031
+            title = 'Sorry, you have to login to perform this action'
+            message = 'Sorry, you have to login to perform this action'
+            data = {} 
+            response_object = construct_response(code, title, message, data)
+
+            return HttpResponse(response_object)
+
+        else:
+            data = json.loads(request.body)
+            start_timestamp = data.get('startTimestamp', '').strip()
+            end_timeStamp = data.get('endTimeStamp', '').strip()
+            topic_id = data.get('topicId', -2)
+            parent_level = data.get('parentLevel', -1)
+            parent_id = data.get('parentId', -1)
+            response_object= get_page_meta(parent_id, parent_level) 
+          
+            return HttpResponse(response_object)
+        
+        
+def get_page_data(parent_id, parent_level, topic_id, end_timeStamp, start_timestamp):
+    try:
+        code = 0
+        title = ''
+        message = ''
+        if parent_level == -1 or parent_id == -1 or topic_id == -2 or (not start_timestamp) or (not end_timeStamp) :
+            code = 2031
+            title = 'Argument is missing'
+            message = 'Argument is missing'
+            data = {} 
+        else: 
+            rows = []
+            aggregation = []
+            percent_complete = []
+            percent_correct = []
+            number_of_attempts = []
+            percent_student = []
+            #If the partent level is root
+            if parent_level == 0:
+                # Return all the schools 
+                schools = UserInfoSchool.objects.filter()
+                if schools:
+                    for school in schools:
+                        temp = {
+                            "id": school.school_id,
+                            "name": school.school_name
+                        }
+                        rows.append(temp)
+            # If the parent level is school
+            elif parent_level == 1:
+                # Add current level school to the breadcrumb
+                school = UserInfoSchool.objects.filter(school_id = parent_id)
+                if school:
+                    school_name = school[0].school_name
+                    breadcrumb.append(construct_breadcrumb(school_name, 1, parent_id))
+
+                # Return all the classrooms inside a school
+
+                    classes = UserInfoClass.objects.filter(parent = school[0])
+                    if classes:
+                        for curr_class in classes:
+                            temp = {
+                                "id": curr_class.class_id,
+                                "name": curr_class.class_name
+                            }
+                            rows.append(temp)
+
+            elif parent_level == 2:
+                
+                #Add current level class to the breadcrumb
+                curr_class = UserInfoClass.objects.filter(class_id = parent_id)
+                if curr_class:
+                    class_name = curr_class[0].class_name
+                   
+                #Add higher level school to the breadcrumb
+                    school = curr_class[0].parent
+                    if school:
+                        school_id = school.school_id
+                        school_name = school.school_name
+                        breadcrumb.append(construct_breadcrumb(school_name, 2, school_id))
+                        breadcrumb.append(construct_breadcrumb(class_name, 2, parent_id))
+
+                    # Return all students inside a classroom
+                students = UserInfoStudent.objects.filter(parent = curr_class[0])
+                if students:
+                    for student in students:
+                        temp = {
+                            'id': student.student_id,
+                            'name': student.student_name
+                        }
+                        rows.append(temp)
+            data = {'breadcrumb': breadcrumb, 'metrics': metrics, 'rows': rows}
+        response_object = construct_response(code, title, message, data)
+        return response_object
+    except DatabaseError:
+        code = 2001
+        title = 'Sorry, error occurred in database operations'
+        message = 'Sorry, error occurred in database operations'
+        data = {} 
+        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
+    except OperationalError:
+        code = 2011
+        title = 'Sorry, operational error occurred'
+        message = 'Sorry, operational error occurred'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success
+    except:
+        code = 2021
+        title = 'Sorry, error occurred at the server'
+        message = 'Sorry, error occurred at the server'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
+        return response_object
+
+
+
+
+@csrf_exempt
+def get_page_data_view(request):
+    role = request.COOKIES.get('role')
+    if not role:
+        code = 2031
+        title = 'Sorry, you have to login to perform this action'
+        message = 'Sorry, you have to login to perform this action'
+        data = {} 
+        response_object = construct_response(code, title, message, data)
         print(response_object)
-        return HttpResponse("Yes")
+        return HttpResponse(response_object)
 
-
+    else:
+        data = json.loads(request.body)
+        start_timestamp = data.get('startTimestamp', '').strip()
+        end_timeStamp = data.get('endTimeStamp', '').strip()
+        topic_id = data.get('topicId', -2)
+        parent_level = data.get('parentLevel', -1)
+        parent_id = data.get('parentId', -1)
+        response_object= get_page_data(parent_id, parent_level, topic_id, end_timeStamp, start_timestamp) 
+        print(response_object)
+        return HttpResponse(response_object)
 
 
 
