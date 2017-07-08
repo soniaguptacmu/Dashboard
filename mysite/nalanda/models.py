@@ -52,15 +52,16 @@ class UserRoleCollectionMapping(models.Model):
 
 
 class Content(models.Model):
-    topic_id = models.BigIntegerField(primary_key=True)
+    topic_id = models.CharField(max_length=32,primary_key=True)
     topic_name = models.CharField(max_length=60)
-    content_node_id = models.CharField(max_length=32)
+    content_id = models.CharField(max_length=32)
+    channel_id = models.CharField(max_length=32)
     total_questions = models.IntegerField()
     sub_topics = models.CharField(max_length=10000)
 
 class MasteryLevelStudent(models.Model):
     student_id = models.ForeignKey(UserInfoStudent, on_delete=models.CASCADE)
-    topic_id = models.ForeignKey(Content, on_delete=models.CASCADE)
+    content_id = models.ForeignKey(Content, on_delete=models.CASCADE)
     channel_id = models.CharField(max_length=32)
     date = models.DateTimeField()
     completed_questions = models.IntegerField()
@@ -70,7 +71,7 @@ class MasteryLevelStudent(models.Model):
 
 class MasteryLevelClass(models.Model):
     class_id = models.ForeignKey(UserInfoClass, on_delete=models.CASCADE)
-    topic_id = models.ForeignKey(Content, on_delete=models.CASCADE)
+    content_id = models.ForeignKey(Content, on_delete=models.CASCADE)
     channel_id = models.CharField(max_length=32)
     date = models.DateTimeField()
     completed_questions = models.IntegerField()
@@ -80,7 +81,7 @@ class MasteryLevelClass(models.Model):
 
 class MasteryLevelSchool(models.Model):
     school_id = models.ForeignKey(UserInfoSchool, on_delete=models.CASCADE)
-    topic_id = models.ForeignKey(Content, on_delete=models.CASCADE)
+    content_id = models.ForeignKey(Content, on_delete=models.CASCADE)
     channel_id = models.CharField(max_length=32)
     date = models.DateTimeField()
     completed_questions = models.IntegerField()

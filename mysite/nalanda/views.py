@@ -2,13 +2,16 @@ from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from django.template import Context, loader
 from django.core.exceptions import ObjectDoesNotExist
 from nalanda.models import Users,UserInfoSchool, UserInfoClass, UserRoleCollectionMapping, UserInfoStudent
+from nalanda.models import Content, MasteryLevelStudent, MasteryLevelClass, MasteryLevelSchool
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.contrib.auth import logout
 from django.utils import timezone
 from django.db.utils import DatabaseError, Error, OperationalError
 from django.core.urlresolvers import reverse
 from django.core import serializers
+from django.db import models
 import json
+import datetime
 
 
 def construct_response(code, title, message, data):
@@ -691,10 +694,12 @@ def get_page_meta_view(request):
         
 def get_page_data(parent_id, parent_level, topic_id, end_timeStamp, start_timestamp):
     try:
+        start_timestamp = datetime.date(2015,1,1)
+        end_timeStamp = datetime.date(2015,5,5)
         code = 0
         title = ''
         message = ''
-        if parent_level == -1 or parent_id == -1 or topic_id == -2 or (not start_timestamp) or (not end_timeStamp) :
+        if parent_level == -1 or parent_id == -1 or topic_id == -2 or (not start_timestamp) or (not end_timeStamp) or channel_id == -1:
             code = 2031
             title = 'Argument is missing'
             message = 'Argument is missing'
@@ -702,65 +707,179 @@ def get_page_data(parent_id, parent_level, topic_id, end_timeStamp, start_timest
         else: 
             rows = []
             aggregation = []
-            percent_complete = []
-            percent_correct = []
-            number_of_attempts = []
-            percent_student = []
-            #If the partent level is root
+            percent_complete_array = []
+            percent_correct_array = []
+            number_of_attempts_array = []
+            percent_student_completed_array = []
+
+            values = []
+            total_questions = 0
+            
+            # If the user wants to view everything
+            if topic_id == -1:
+                topics = Content.objects.filter()
+                if topics:
+                    for topic in topics:
+                        total_questions += topic.total_questions
+
+            else:
+                topic = Content.objects.filter(content_id=topic_id).filter(channel_id = channel_id)
+                if topic:
+                    total_questions = topic[0].total_questions
+
+            # If the current level is root
             if parent_level == 0:
                 # Return all the schools 
                 schools = UserInfoSchool.objects.filter()
+                # For each school, calculate
                 if schools:
                     for school in schools:
-                        temp = {
-                            "id": school.school_id,
-                            "name": school.school_name
-                        }
-                        rows.append(temp)
+                        # Get school id and name
+                        school_id = school.school_id
+                        school_name = school.school_name
+                        # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
+                        if topic_id == -1:
+                            mastery_school = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(date__range=(start_timestamp, end_timeStamp))
+                        else:
+                            mastery_school = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timeStamp))
+                        if mastery_school:
+                            # Calculate the percentage of completed questions
+                            completed_questions = mastery_school[0].completed_questions
+                            percent_complete_float = float(completed_questions) / total_questions
+                            percent_complete = "{0:.2f}%".format(percent_complete_float)
+                            percent_complete_array.append(percent_complete_float)
+
+                            # Calculate the percentage of correct questions
+                            correct_questinos = mastery_school[0].correct_questions
+                            percent_correct_float = float(correct_questions) / total_questions
+                            percent_correct = "{0:.2f}%".format(percent_correct_float)
+                            percent_correct_array.append(percent_correct_float)
+
+                            # Get the number of attempted questions
+                            number_of_attempts = mastery_school[0].attempt_questions
+                            number_of_attempts_array.append(number_of_attempts)
+
+                            # Calculate the percentage of students completed the topic
+                            total_students = school.total_students
+                            students_completed = mastery_school[0].students_completed
+                            percent_student_completed_float = float(students_completed) / total_students
+                            percent_student_completed = "{0:.2f}%".format(percent_student_completed_float)
+                            percent_student_completed_array.append(percent_student_completed_float)
+
+                            values = [percent_complete, percent_correct, number_of_attempts, percent_student_completed]
+                            row = {'id': school_id, 'name': school_name, 'values': values}
+                            rows.add(row)
+
             # If the parent level is school
             elif parent_level == 1:
-                # Add current level school to the breadcrumb
+                # Find the current school
                 school = UserInfoSchool.objects.filter(school_id = parent_id)
-                if school:
-                    school_name = school[0].school_name
-                    breadcrumb.append(construct_breadcrumb(school_name, 1, parent_id))
-
                 # Return all the classrooms inside a school
-
+                if school:
                     classes = UserInfoClass.objects.filter(parent = school[0])
                     if classes:
                         for curr_class in classes:
-                            temp = {
-                                "id": curr_class.class_id,
-                                "name": curr_class.class_name
-                            }
-                            rows.append(temp)
+                            class_id = curr_class.class_id
+                            class_name = curr_class.class_name
+                            # Filter mastery level belongs to a certain class with certain topic id, and within certain time range
+                            if topic_id == -1:
+                                mastery_class = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(date__range=(start_timestamp, end_timeStamp))
+                            else:
+                                mastery_class = MasteryLevelClass.objects.filter(class_id=curr_class).filter(content_id=topic).filter(channel_id=channel_id).filter(date__range=(start_timestamp, end_timeStamp))
+                            if mastery_class:
+                                # Calculate the percentage of completed questions
+                                completed_questions = mastery_class[0].completed_questions
+                                percent_complete_float = float(completed_questions) / total_questions
+                                percent_complete = "{0:.2f}%".format(percent_complete_float)
+                                percent_complete_array.append(percent_complete_float)
 
+
+                                # Calculate the percentage of correct questions
+                                correct_questinos = mastery_school[0].correct_questions
+                                percent_correct_float = float(correct_questions) / total_questions
+                                percent_correct = "{0:.2f}%".format(percent_correct_float)
+                                percent_correct_array.append(percent_correct_float)
+
+                                # Get the number of attempted questions
+                                number_of_attempts = mastery_class[0].attempt_questions
+                                number_of_attempts_array.append(number_of_attempts)
+
+                                # Calculate the percentage of students completed the topic
+                                total_students = school.total_students
+                                students_completed = mastery_school[0].students_completed
+                                percent_student_completed_float = float(students_completed) / total_students
+                                percent_student_completed = "{0:.2f}%".format(percent_student_completed_float)
+                                percent_student_completed_array.append(percent_student_completed_float)
+
+                                values = [percent_complete, percent_correct, number_of_attempts, percent_student_completed]
+                                row = {'id': school_id, 'name': school_name, 'values': values}
+                                rows.add(row)
+
+            # If the parent level is class
             elif parent_level == 2:
-                
-                #Add current level class to the breadcrumb
-                curr_class = UserInfoClass.objects.filter(class_id = parent_id)
-                if curr_class:
-                    class_name = curr_class[0].class_name
-                   
-                #Add higher level school to the breadcrumb
-                    school = curr_class[0].parent
-                    if school:
-                        school_id = school.school_id
-                        school_name = school.school_name
-                        breadcrumb.append(construct_breadcrumb(school_name, 2, school_id))
-                        breadcrumb.append(construct_breadcrumb(class_name, 2, parent_id))
 
-                    # Return all students inside a classroom
-                students = UserInfoStudent.objects.filter(parent = curr_class[0])
-                if students:
-                    for student in students:
-                        temp = {
-                            'id': student.student_id,
-                            'name': student.student_name
-                        }
-                        rows.append(temp)
-            data = {'breadcrumb': breadcrumb, 'metrics': metrics, 'rows': rows}
+                curr_class = UserInfoClass.objects.filter(class_id = parent_id)
+                # Return all the classrooms inside a school
+                if curr_class:
+                    students = UserInfoStudent.objects.filter(parent = curr_class[0])
+                    if students:
+                        for student in students:
+                            student_id = student.student_id
+                            student_name = student.student_name
+                            # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
+                            if topic_id == -1:
+                                mastery_class = MasteryLevelStudent.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(date__range=(start_timestamp, end_timeStamp))
+                            else:
+                                mastery_student = MasteryLevelStudent.objects.filter(class_id=curr_class).filter(content_id=topic).filter(channel_id=channel_id).filter(date__range=(start_timestamp, end_timeStamp))
+                            if mastery_student:
+                                # Calculate the percentage of completed questions
+                                percent_complete_float = float(completed_questions) / total_questions
+                                percent_complete = "{0:.2f}%".format(percent_complete_float)
+                                percent_complete_array.append(percent_complete_float)
+
+
+                                # Calculate the percentage of correct questions
+                                correct_questinos = mastery_school[0].correct_questions
+                                percent_correct_float = float(correct_questions) / total_questions
+                                percent_correct = "{0:.2f}%".format(percent_correct_float)
+                                percent_correct_array.append(percent_correct_float)
+
+                                # Get the number of attempted questions
+                                number_of_attempts = mastery_student[0].attempt_questions
+                                number_of_attempts_array.append(number_of_attempts)
+
+                                # Return if this student has completed the topic
+                                completed = mastery_student[0].completed
+                                if completed:
+                                    percent_student_completed = 1
+                                else:
+                                    percent_student_completed = 0
+                                percent_student_completed_array.append(percent_student_completed)
+
+                                values = [percent_complete, percent_correct, number_of_attempts, percent_student_completed]
+                                row = {'id': school_id, 'name': school_name, 'values': values}
+                                rows.add(row)
+            avg_percent_complete = 0
+            avg_percent_correct = 0
+            avg_number_of_attempts = 0
+            avg_percent_student_completed = 0
+
+            for i in range(len(percent_complete_array)):
+                avg_percent_complete +=  percent_complete_array[i]
+                avg_percent_correct += percent_correct_array[i]
+                avg_number_of_attempts += number_of_attempts_array[i]
+                avg_percent_student_completed += percent_student_completed_array[i]
+            avg_percent_complete /= 4
+            avg_percent_correct /= 4
+            avg_number_of_attempts /= 4
+            if parent_level == 2:
+                avg_percent_student_completed = ""
+            else:
+                 avg_percent_student_completed /= 4
+            values = [str(avg_percent_complete), str(avg_percent_correct), str(avg_number_of_attempts), str(avg_percent_student_completed)]
+            average = {'name': 'Average', 'values': values}
+            aggregation.append(average)
+            data = {'rows': rows, 'aggregation': aggregation}
         response_object = construct_response(code, title, message, data)
         return response_object
     except DatabaseError:
@@ -791,26 +910,29 @@ def get_page_data(parent_id, parent_level, topic_id, end_timeStamp, start_timest
 
 @csrf_exempt
 def get_page_data_view(request):
-    role = request.COOKIES.get('role')
-    if not role:
-        code = 2031
-        title = 'Sorry, you have to login to perform this action'
-        message = 'Sorry, you have to login to perform this action'
-        data = {} 
-        response_object = construct_response(code, title, message, data)
-        print(response_object)
-        return HttpResponse(response_object)
+    if request.method == 'POST':
+        role = request.COOKIES.get('role')
+        if not role:
+            code = 2031
+            title = 'Sorry, you have to login to perform this action'
+            message = 'Sorry, you have to login to perform this action'
+            data = {} 
+            response_object = construct_response(code, title, message, data)
+            print(response_object)
+            return HttpResponse(response_object)
 
-    else:
-        data = json.loads(request.body)
-        start_timestamp = data.get('startTimestamp', '').strip()
-        end_timeStamp = data.get('endTimeStamp', '').strip()
-        topic_id = data.get('topicId', -2)
-        parent_level = data.get('parentLevel', -1)
-        parent_id = data.get('parentId', -1)
-        response_object= get_page_data(parent_id, parent_level, topic_id, end_timeStamp, start_timestamp) 
-        print(response_object)
-        return HttpResponse(response_object)
+        else:
+            data = json.loads(request.body)
+            start_timestamp = data.get('startTimestamp', '').strip()
+            end_timeStamp = data.get('endTimeStamp', '').strip()
+            topic_id = data.get('topicId', -2)
+            parent_level = data.get('parentLevel', -1)
+            parent_id = data.get('parentId', -1)
+            parent_id = data.get('parentId', -1)
+            channel_id = data.get('channelId', -1)
+            response_object= get_page_data(parent_id, parent_level, topic_id, end_timeStamp, start_timestamp) 
+            print(response_object)
+            return HttpResponse(response_object)
 
 
 
