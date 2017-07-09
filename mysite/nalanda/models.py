@@ -89,4 +89,8 @@ class MasteryLevelSchool(models.Model):
     attempt_questions = models.IntegerField()
     students_completed = models.IntegerField()
 
+class LatestFetchDate(models.Model):
+    date_id = models.IntegerField(primary_key=True)
+    latest_date = models.DateTimeField()
+
 

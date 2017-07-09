@@ -2,7 +2,7 @@ from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from django.template import Context, loader
 from django.core.exceptions import ObjectDoesNotExist
 from nalanda.models import Users,UserInfoSchool, UserInfoClass, UserRoleCollectionMapping, UserInfoStudent
-from nalanda.models import Content, MasteryLevelStudent, MasteryLevelClass, MasteryLevelSchool
+from nalanda.models import Content, MasteryLevelStudent, MasteryLevelClass, MasteryLevelSchool, LatestFetchDate
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.contrib.auth import logout
 from django.utils import timezone
@@ -131,7 +131,6 @@ def logout_view(request):
             title = 'Sorry, error occurred at the server'
             message = 'Sorry, error occurred at the server'
             data = {} 
-            is_success = False
             response_object = construct_response(code, title, message, data)
             return HttpResponse(response_object)
 
@@ -258,62 +257,37 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
 
 @csrf_exempt
 def register_view(request):
-    try:
-        if request.method == 'GET':
-            institutes = get_school_and_classes()
-            data = {'institutes': institutes}   
-            code = 0
-            title = ''
-            message = ''
-            response_object = construct_response(code, title, message, data)
-            return render(request, 'register.html', response_object)  
-
-        elif request.method == 'POST':
-            data = json.loads(request.body)
- 
-            username = data.get('username', '').strip()
-            password = data.get('password', '').strip()
-            first_name = data.get('firstName', '').strip()
-            last_name = data.get('lastName', '').strip()
-            email = data.get('email', '').strip()
-            role_id = str(data.get('role', '')).strip()
-            institute_id = str(data.get('instituteId', '')).strip()
-            classes = data.get('classes', [])
-            
-            response_object, is_success = register_post(username, password, first_name, last_name, email, role_id, institute_id, classes)
-            print(response_object)
-            
-            if is_success:
-                response = redirect(reverse('login'))
-            else:
-                response = render(request, 'register.html', response_object) 
-            return response
-
-    except DatabaseError:
-        code = 2001
-        title = 'Sorry, error occurred in database operations'
-        message = 'Sorry, error occurred in database operations'
-        data = {} 
-        is_success = False
+    if request.method == 'GET':
+        institutes = get_school_and_classes()
+        data = {'institutes': institutes}   
+        code = 0
+        title = ''
+        message = ''
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
-    except OperationalError:
-        code = 2011
-        title = 'Sorry, operational error occurred'
-        message = 'Sorry, operational error occurred'
-        data = {} 
-        is_success = False
-        response_object = construct_response(code, title, message, data)
-        return response_object, is_success
-    except:
-        code = 2021
-        title = 'Sorry, error occurred at the server'
-        message = 'Sorry, error occurred at the server'
-        data = {} 
-        is_success = False
-        response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return render(request, 'register.html', response_object)  
 
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        first_name = data.get('firstName', '').strip()
+        last_name = data.get('lastName', '').strip()
+        email = data.get('email', '').strip()
+        role_id = str(data.get('role', '')).strip()
+        institute_id = str(data.get('instituteId', '')).strip()
+        classes = data.get('classes', [])
+        
+        response_object, is_success = register_post(username, password, first_name, last_name, email, role_id, institute_id, classes)
+        print(response_object)
+        
+        if is_success:
+            response = redirect(reverse('login'))
+        else:
+            response = render(request, 'register.html', response_object) 
+        return response
+
+    
 
  
 
@@ -366,7 +340,7 @@ def admin_approve_pending_users_post(users):
         message = 'Sorry, operational error occurred'
         data = {} 
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object
     except:
         code = 2021
         title = 'Sorry, error occurred at the server'
@@ -438,7 +412,7 @@ def admin_disapprove_pending_users_post(users):
         message = 'Sorry, operational error occurred'
         data = {} 
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object
     except:
         code = 2021
         title = 'Sorry, error occurred at the server'
@@ -488,16 +462,15 @@ def admin_unblock_users_post(usernames):
         title = 'Sorry, error occurred in database operations'
         message = 'Sorry, error occurred in database operations'
         data = {} 
-        is_success = False
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object
     except OperationalError:
         code = 2011
         title = 'Sorry, operational error occurred'
         message = 'Sorry, operational error occurred'
         data = {} 
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object
     except:
         code = 2021
         title = 'Sorry, error occurred at the server'
@@ -543,9 +516,38 @@ def report_homepage_view(request):
             code = 0
             title = ''
             message = ''
-            data = {}
-            response_object = construct_response(code, title, message, data)
-            return render(request, 'report-mastery.html', response_object)
+            try:
+                lastest_date = LatestFetchDate.objects.filter()
+                if lastest_date:
+                    data = {'dateUpdated': lastest_date[0].lastest_date}
+                else:
+                    data = {}
+                response_object = construct_response(code, title, message, data)
+                return render(request, 'report-mastery.html', response_object)
+            except DatabaseError:
+                code = 2001
+                title = 'Sorry, error occurred in database operations'
+                message = 'Sorry, error occurred in database operations'
+                data = {} 
+                response_object = construct_response(code, title, message, data)
+                return render(request, 'report-mastery.html', response_object)
+            except OperationalError:
+                code = 2011
+                title = 'Sorry, operational error occurred'
+                message = 'Sorry, operational error occurred'
+                data = {} 
+                response_object = construct_response(code, title, message, data)
+                return render(request, 'report-mastery.html', response_object)
+            except:
+                code = 2021
+                title = 'Sorry, error occurred at the server'
+                message = 'Sorry, error occurred at the server'
+                data = {} 
+                response_object = construct_response(code, title, message, data)
+                return render(request, 'report-mastery.html', response_object)
+
+     
+            
 
 
 def construct_breadcrumb(parentName, parentLevel, parentId):
@@ -648,16 +650,15 @@ def get_page_meta(parent_id, parent_level):
         title = 'Sorry, error occurred in database operations'
         message = 'Sorry, error occurred in database operations'
         data = {} 
-        is_success = False
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object
     except OperationalError:
         code = 2011
         title = 'Sorry, operational error occurred'
         message = 'Sorry, operational error occurred'
         data = {} 
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object
     except:
         code = 2021
         title = 'Sorry, error occurred at the server'
@@ -887,16 +888,15 @@ def get_page_data(parent_id, parent_level, topic_id, end_timeStamp, start_timest
         title = 'Sorry, error occurred in database operations'
         message = 'Sorry, error occurred in database operations'
         data = {} 
-        is_success = False
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object
     except OperationalError:
         code = 2011
         title = 'Sorry, operational error occurred'
         message = 'Sorry, operational error occurred'
         data = {} 
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object
     except:
         code = 2021
         title = 'Sorry, error occurred at the server'
