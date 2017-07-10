@@ -1,6 +1,6 @@
 // globals
 var table; // main data table
-var aggregationTable; // aggregration rows table
+var aggregationTable; // aggregation rows table
 var compareTable; // // datatables object
 var performanceTable; // datatables object
 var tableData; // see API specs
@@ -192,6 +192,8 @@ var buildTopicsDropdown = function(data) {
 // Instantiate both tables, insert rows with data partially populated
 var setTableMeta = function(data) {
     tableMeta = data;
+    
+    var lengthMenu = [[5, 10, 25, 50, 100], [5, 10, 25, 50, 100]];
 
     // insert columns
     for (idx in data.metrics) {
@@ -212,9 +214,8 @@ var setTableMeta = function(data) {
             updateLoadingInfo();
         },
         dom: 'Bfrtip',
-        buttons: [
-            'copy', 'csv', 'excel', 'pdf', 'print'
-        ]
+        buttons: ['pageLength', 'copy', 'csv', 'excel', 'pdf', 'print'],
+        lengthMenu: lengthMenu
     });
     
     aggregationTable = $('#aggregation-table').DataTable({
@@ -222,11 +223,6 @@ var setTableMeta = function(data) {
         ordering: false,
         info: false,
         bFilter: false,
-/*
-        fnDrawCallback: function(oSettings) {
-            //$(oSettings.nTHead).hide();
-        },
-*/
         initComplete: function(settings, json) {
             loadedTables++;
             updateLoadingInfo();
@@ -241,7 +237,10 @@ var setTableMeta = function(data) {
         initComplete: function(settings, json) {
             loadedTables++;
             updateLoadingInfo();
-        }
+        },
+        dom: 'Bfrtip',
+        buttons: ['pageLength'],
+        lengthMenu: lengthMenu
     });
     
     performanceTable = $('#data-performance-table').DataTable({
@@ -252,7 +251,10 @@ var setTableMeta = function(data) {
         initComplete: function(settings, json) {
             loadedTables++;
             updateLoadingInfo();
-        }
+        },
+        dom: 'Bfrtip',
+        buttons: ['pageLength'],
+        lengthMenu: lengthMenu
     });
 
     // manually toggle dropdown; stop event propagation to avoid unintentional table reorders
@@ -812,6 +814,9 @@ var runTest = function() {
         }, {
             id: 10,
             name: "Westwood School"
+        }, {
+            id: 11,
+            name: "Eastwood School"
         }]
     });
     
@@ -907,6 +912,15 @@ var runTest = function() {
                 "56%",
                 120,
                 "20%"
+            ]
+        }, {
+            id: 11,
+            name: "Eastwood School",
+            values: [
+                "35%",
+                "16%",
+                70,
+                "17%"
             ]
         }],
         aggregation: [{

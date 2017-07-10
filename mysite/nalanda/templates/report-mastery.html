@@ -41,7 +41,7 @@
 <body class="">
     <header id="masthead" class="site-header">
         <div class="inner">
-            <h1 class="site-title"><a class="site-title-link" href="/">Nalanda Project</a></h1>
+            <h1 class="site-title"><a class="site-title-link" href="/">Kolibri Visualizer</a></h1>
             <!--<span style="color:#ffffff">Current User: {{ "current_user" }}</span>-->
             <a href="/logout" class="log-out" title="Log Out"><i class="glyphicon glyphicon-log-out"></i> Log Out</a>
         </div>
@@ -59,7 +59,7 @@
                         	<i class="fa fa-align-left" aria-hidden="true"></i> Compare
                         </button>
                         <button type="button" class="btn btn-default switch-view-button switch-view-button-3" onclick="switchView(3);">
-                        	Performance
+                        	<i class="fa fa-tachometer" aria-hidden="true"></i> Performance
                         </button>
                     </div>
                     <div class="clearfix"></div>
@@ -84,17 +84,18 @@
                         </div>
                     </div>
                     <div class="dates col-md-6">
-                        <div class="datepicker-title">Data Range:</div>
+                        <div class="datepicker-title">Date Range:</div>
                         <input class="daterangepicker" name="daterange">
                     </div>
                 </div>
                 <div class="report-breadcrumb"></div>
                 <div class="report-content">
                     <div class="table-view report-view report-view-1">
+	                    <h2 class="section-title">Table View</h2>
                         <table id="data-table" class="display" cellspacing="0" width="100%">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th class="name-column">Name</th>
                                     <!-- metric columns -->
                                     <th class="trend-column">Trend</th>
                                 </tr>
@@ -103,11 +104,11 @@
                                 <!-- data rows -->
                             </tbody>
                         </table>
-                        <h2 class="section-title">Aggregrations</h2>
+                        <h2 class="section-title">Aggregations</h2>
                         <table id="aggregation-table" class="display" cellspacing="0" width="100%">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th class="name-column">Name</th>
                                     <!-- metric columns -->
                                     <th class="trend-column"></th>
                                 </tr>
@@ -124,6 +125,7 @@
                         </div>
                     </div>
                     <div class="compare-view report-view report-view-2 hidden">
+	                    <h2 class="section-title">Compare View</h2>
                         <table id="data-compare-table" class="display" cellspacing="0" width="100%">
                             <thead>
                                 <tr>
@@ -147,6 +149,7 @@
                         </table>
                     </div>
                     <div class="performance-view report-view report-view-3 hidden">
+	                    <h2 class="section-title">Performance View</h2>
                         <table id="data-performance-table" class="display" cellspacing="0" width="100%">
                             <thead>
                                 <tr>

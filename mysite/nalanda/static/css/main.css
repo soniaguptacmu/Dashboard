@@ -254,7 +254,8 @@ body {
 }
 
 .section-title {
-    font-size: 18px;
+    font-size: 24px;
+    margin: 20px 0;
 }
 
 .report-settings {
@@ -342,7 +343,11 @@ input.daterangepicker {
 }
 
 .report-breadcrumb {
-    margin: 15px 0;
+    margin: 15px 0 20px;
+    background: #f3f3f3;
+	padding: 10px 14px;
+	/* border: 1px solid #ddd; */
+	border-radius: 6px;
 }
 
 .trend-chart {
@@ -402,6 +407,10 @@ th {
 
 th.bar-column {
     min-width: 300px;
+}
+
+th.name-column {
+    min-width: 200px;
 }
 
 .draw-trend-button {
