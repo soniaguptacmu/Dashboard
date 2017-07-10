@@ -368,6 +368,10 @@ input.daterangepicker {
     color: #777;
 }
 
+.progress {
+    margin: 0;
+}
+
 .progress-negative {
     float: left ;
     width: 50%;

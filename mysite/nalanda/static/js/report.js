@@ -380,7 +380,7 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
                 
         if (compareValue > 0) {
             positiveValue = compareValue / max * 100;
-            positiveLabel = Math.floor(compareValue) + '%';
+            positiveLabel = '+' + Math.floor(compareValue) + '%';
         } else if (compareValue < 0) {
             negativeValue = compareValue / min * 100; // the variable holds a positive number, but `represents` a negative value
             negativeLabel = Math.floor(compareValue) + '%';
@@ -648,10 +648,6 @@ var runTest = function() {
             parentName: "East Sector",
             parentLevel: 1,
             parentId: 10
-        }, {
-            parentName: "Suffolk County Charter School",
-            parentLevel: 2,
-            parentId: 25
         }]
     });
     
@@ -672,13 +668,34 @@ var runTest = function() {
         }],
         rows: [{
             id: 1,
-            name: "East sector"
+            name: "Allegheny K-5"
         }, {
             id: 2,
-            name: "West sector"
+            name: "Arsenal Elementary School"
         }, {
             id: 3,
-            name: "North sector"
+            name: "Banksville Elementary School"
+        }, {
+            id: 4,
+            name: "Beechwood Elementary School"
+        }, {
+            id: 5,
+            name: "Concord Elementary School"
+        }, {
+            id: 6,
+            name: "Dilworth Traditional Academy"
+        }, {
+            id: 7,
+            name: "Grandview Elementary School"
+        }, {
+            id: 8,
+            name: "Brookline School"
+        }, {
+            id: 9,
+            name: "Manchester School"
+        }, {
+            id: 10,
+            name: "Westwood School"
         }]
     });
     
@@ -686,7 +703,7 @@ var runTest = function() {
     setTableData({
         rows: [{
             id: 1,
-            name: "East Sector",
+            name: "Allegheny K-5",
             values: [
                 "30%",
                 "25%",
@@ -695,7 +712,7 @@ var runTest = function() {
             ]
         }, {
             id: 2,
-            name: "West Sector",
+            name: "Arsenal Elementary School",
             values: [
                 "20%",
                 "20%",
@@ -704,12 +721,75 @@ var runTest = function() {
             ]
         }, {
             id: 3,
-            name: "North Sector",
+            name: "Banksville Elementary School",
             values: [
                 "80%",
                 "2%",
                 88,
                 "16%"
+            ]
+        }, {
+            id: 4,
+            name: "Beechwood Elementary School",
+            values: [
+                "15%",
+                "32%",
+                2,
+                "44%"
+            ]
+        }, {
+            id: 5,
+            name: "Concord Elementary School",
+            values: [
+                "34%",
+                "54%",
+                123,
+                "3%"
+            ]
+        }, {
+            id: 6,
+            name: "Dilworth Traditional Academy",
+            values: [
+                "21%",
+                "37%",
+                320,
+                "25%"
+            ]
+        }, {
+            id: 7,
+            name: "Grandview Elementary School",
+            values: [
+                "58%",
+                "52%",
+                14,
+                "33%"
+            ]
+        }, {
+            id: 8,
+            name: "Brookline School",
+            values: [
+                "98%",
+                "100%",
+                210,
+                "88%"
+            ]
+        }, {
+            id: 9,
+            name: "Manchester School",
+            values: [
+                "14%",
+                "2%",
+                4,
+                "3%"
+            ]
+        }, {
+            id: 10,
+            name: "Westwood School",
+            values: [
+                "45%",
+                "56%",
+                120,
+                "20%"
             ]
         }],
         aggregation: [{
