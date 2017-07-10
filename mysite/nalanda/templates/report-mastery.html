@@ -141,18 +141,20 @@
     </footer>
     <script>        
         // globals
-        var table;
-        var aggregationTable;
-        var startTimestamp = 1496948693; // default: DTL
-        var endTimestamp = 1596948693; // default: DTL
-        var topicId = -1; // default to everything
+        var table; // main data table
+        var aggregationTable; // aggregration rows table
+        var startTimestamp = 1496948693; // default: from server
+        var endTimestamp = 1596948693; // default: from server
+        var topicId = -1; // default: everything
         var parentLevel = 0; // default: parent-of-root-level
-        var parentId = -1; // default: at root level already, no parent
-        var debug = true;
-        var breadcrumbData = null;
+        var parentId = -1; // default: none (at root level already, no parent)
+        var debug = true; // whether to print debug outputs to console
+        var breadcrumbData = null; // holds breadcrumb data that will be used to re-build the breadcrumb links when clicked
         
-        // Update page (new breadcrumb and table/diagrams)
-        // See `startTimestamp`, `endTimestamp`, `topicId`, `parentLevel`, `parentId`
+        /** Pragma Mark - Starting Points **/
+        
+        // Update page (incl. new breadcrumb and all table/diagrams)
+        // Uses global variables `startTimestamp`, `endTimestamp`, `topicId`, `parentLevel`, and `parentId`
         var updatePageContent = function() {
 	        
 	        var tableData1;
@@ -190,8 +192,8 @@
 			});
         };
         
-        // Fetch topics using API and update the dropdown menu
-        var fetchTopics = function() {
+        // Fetch topics by calling API and update the dropdown menu
+        var refreshTopicsDropdown = function() {
 	        sendPOSTRequest('/api/mastery/topics', {
 		        startTimestamp: startTimestamp,
 				endTimestamp: endTimestamp,
@@ -200,28 +202,6 @@
 	        }, function(data) {
 		        initializeTopicsDropdown(data);
 	        });
-        };
-        
-        // Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
-        var sendPOSTRequest = function(url, dataObject, callback) {
-	        if (debug) {
-		        console.log('POST request sent to: ' + url);
-		        console.log('POST data: ');
-		        console.log(dataObject);
-	        }
-	        $.ajax({
-				type: 'POST',
-				url: url,
-				data: JSON.stringify(dataObject),
-				success: function(result) {
-					if (debug) {
-						console.log('Response:');
-						console.log(result);
-					}
-					callback(result);
-				},
-				dataType: 'json'
-			});
         };
         
         // Instantiate date range picker
@@ -236,6 +216,8 @@
             });
         };
         
+        /** Pragma Mark - Page Manipulation **/
+        
         // Clears current breadcrumb and sets it to a new one according to given data.
         // Uses `appendBreadcrumbItem`
         var setBreadcrumb = function(data, upToLevel) {
@@ -249,21 +231,6 @@
 	                break;
                 }
             }
-        };
-        
-        // Append a new breadcrumb item to the current list
-        var appendBreadcrumbItem = function(name, level, id, isLast) {
-            var html;
-            if (isLast) {
-                html = '<span class="breadcrumb-text">' + name + '</span>';
-            } else {
-                html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', ' + id + ')">' + name + '</a>';
-                if (!isLast) {
-                    html += ' > ';
-                }
-            }
-            
-            $('.report-breadcrumb').append(html);
         };
         
         // Initializes the topics dropdown according to given data
@@ -319,60 +286,6 @@
 				tree.clearFilter();
     		});
         };
-
-		// See `initializeTopicsDropdown`
-        var _setTopics = function(toArray, dataArray) {
-	        for (idx in dataArray) {
-		        var dict = dataArray[idx];
-		        var newDict = {
-			        title: dict.name,
-			        key: dict.id,
-			        folder: dict.children !== null
-		        };
-		        if (dict.children !== null) {
-			        newDict['children'] = [];
-			        _setTopics(newDict['children'], dict.children);
-		        }
-		        toArray.push(newDict);
-	        }
-        };
-
-        // Toggle topics dropdown menu
-        // IBAction
-        var toggleTopicDropdown = function() {
-	        $('#topic-dropdown-container').toggleClass('shown');
-        };
-
-        // Apply currently selected topic, dismiss the dropdown, and update the page (async)
-        // IBAction
-        var applyAndDismissTopicDropdown = function() {
-	        var node = $("#topics-tree").fancytree('getTree').getActiveNode();
-			if (node !== null) {
-				topicId = node.key; // update global state
-				updatePage();
-			}
-	        toggleTopicDropdown();
-        };
-        
-        // IBAction
-        var performDrilldown = function(id) {
-	      	  parentId = id;
-	      	  parentLevel++;
-	      	  updatePageContent();
-        };
-        
-        // IBAction
-        var clickBreadcrumbLink = function(level, id) {
-	      	parentId = id;
-	      	parentLevel = level;
-	      	setBreadcrumb(breadcrumbData, level);
-	      	updatePageContent();  
-        };
-        
-        // Returns the HTML code for draw trend button
-        var drawTrendButtonHTML = function(itemId) {
-            return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i></button>';
-        };
         
         // Instantiate both tables, insert rows with data partially populated
         var setTableMeta = function(data) {
@@ -406,15 +319,6 @@
             }
         };
         
-        // HTML code of drilldown column in data table
-        var drilldownColumnHTML = function(name, id) {
-	        if (parentLevel == 2) {
-	        	return '<span>' + name + '</span>';
-	        } else {
-	        	return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
-	        }
-        };
-    
     	// Replace dummy data inserted in `setTableMeta` with real data
         var setTableData = function(data) {
             // update data rows
@@ -431,50 +335,6 @@
                 array.push('');
                 aggregationTable.row.add(array).draw(false);
             }
-        };
-        
-        // Dismiss trend diagram
-        // IBAction
-        var dismissTrendChart = function() {
-            $('#chart-container').html('');
-        };
-        
-        // Get trend data with specific item id from server (via POST) and sanitize it 
-        // Used by `drawTrendChart`
-        var getTrendData = function(itemId, callback) {
-            var data = {
-                series: [
-                    {
-                        name: '% exercise completed',
-                        isPercentage: true
-                    },{
-                        name: '% exercise correct',
-                        isPercentage: true
-                    },{
-                        name: '# attempts',
-                        isPercentage: false
-                    }
-                ],
-                data: [
-                    [1496941452, 15, 15, 2],
-                    [1497042452, 32, 20, 5],
-                    [1497143452, 45, 30, 12],
-                    [1497344452, 52, 45, 14],
-                    [1497945452, 65, 64, 18],
-                    [1499246452, 77, 77, 21],
-                    [1499347452, 80, 78, 23],
-                    [1499448452, 99, 79, 25],
-                    [1499949452, 100, 95, 30]
-                ]
-            };
-            
-            for (idx in data.data) {
-                var timestamp = data.data[idx][0];
-                var dateObject = new Date(timestamp * 1000);
-                data.data[idx][0] = dateObject;
-            }
-            
-            callback(data);
         };
         
         // Get data remotely via `getTrendData` (async) and draw the chart (after removing previous chart -- if any)
@@ -511,12 +371,190 @@
 	                options.series[seriesIndex++] = {axis: type};
 	            }
 	            
-	            chartData.addRows(trendData.data);
+	            chartData.addRows(trendData.points);
 	            
 	            var chartContainer = document.getElementById('chart-container');
 	            var chart = new google.charts.Line(chartContainer);
 	            chart.draw(chartData, options);
             });
+        };
+        
+        /** Pragma Mark - IBActions **/
+        
+        // Toggle topics dropdown menu
+        // IBAction
+        var toggleTopicDropdown = function() {
+	        $('#topic-dropdown-container').toggleClass('shown');
+        };
+
+        // Apply currently selected topic, dismiss the dropdown, and update the page (async)
+        // IBAction
+        var applyAndDismissTopicDropdown = function() {
+	        var node = $("#topics-tree").fancytree('getTree').getActiveNode();
+			if (node !== null) {
+				topicId = node.key; // update global state
+				updatePage();
+			}
+	        toggleTopicDropdown();
+        };
+        
+        // IBAction
+        var performDrilldown = function(id) {
+	      	  parentId = id;
+	      	  parentLevel++;
+	      	  updatePageContent();
+        };
+        
+        // IBAction
+        var clickBreadcrumbLink = function(level, id) {
+	      	parentId = id;
+	      	parentLevel = level;
+	      	setBreadcrumb(breadcrumbData, level);
+	      	updatePageContent();  
+        };
+        
+        // Dismiss trend diagram
+        // IBAction
+        var dismissTrendChart = function() {
+            $('#chart-container').html('');
+        };
+        
+        /** Pragma Mark - Utilities **/
+        
+        // Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
+        // `callback` called when a response is received, with the actual response as the parameter.
+        var sendPOSTRequest = function(url, dataObject, callback) {
+	        if (debug) {
+		        console.log('POST request sent to: ' + url);
+		        console.log('POST data: ');
+		        console.log(dataObject);
+	        }
+	        $.ajax({
+				type: 'POST',
+				url: url,
+				data: JSON.stringify(dataObject),
+				success: function(result) {
+					if (debug) {
+						console.log('Response:');
+						console.log(result);
+					}
+					callback(result);
+				},
+				dataType: 'json'
+			});
+        };
+        
+        // Append a new breadcrumb item to the current list
+        var appendBreadcrumbItem = function(name, level, id, isLast) {
+            var html;
+            if (isLast) {
+                html = '<span class="breadcrumb-text">' + name + '</span>';
+            } else {
+                html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', ' + id + ')">' + name + '</a>';
+                if (!isLast) {
+                    html += ' > ';
+                }
+            }
+            
+            $('.report-breadcrumb').append(html);
+        };
+        
+		// See `initializeTopicsDropdown`
+        var _setTopics = function(toArray, dataArray) {
+	        for (idx in dataArray) {
+		        var dict = dataArray[idx];
+		        var newDict = {
+			        title: dict.name,
+			        key: dict.id,
+			        folder: dict.children !== null
+		        };
+		        if (dict.children !== null) {
+			        newDict['children'] = [];
+			        _setTopics(newDict['children'], dict.children);
+		        }
+		        toArray.push(newDict);
+	        }
+        };
+
+        // Returns the HTML code for draw trend button
+        var drawTrendButtonHTML = function(itemId) {
+            return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' 
+                   + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i></button>';
+        };
+                
+        // HTML code of drilldown column in data table
+        var drilldownColumnHTML = function(name, id) {
+	        if (parentLevel == 2) {
+	        	return '<span>' + name + '</span>';
+	        } else {
+	        	return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
+	        }
+        };
+        
+        var processTrendData = function(data) {
+            // API issue: data.points and data.data are both used historically. 
+            // We use data.points as the official one but accept data.data also as a compatibility patch.
+            if (data.data !== null && data.points === null) {
+                data.points = data.data;
+            }
+                        
+            for (idx in data.points) {
+                var timestamp = data.points[idx][0];
+                var dateObject = new Date(timestamp * 1000);
+                data.points[idx][0] = dateObject;
+            }
+            
+            return data;
+        };
+        
+        // Get trend data with specific item id from server (via POST) and sanitize it 
+        // Used by `drawTrendChart`
+        var getTrendData = function(itemId, callback) {
+            // Test
+            callback(processTrendData(fakeTrendData()));
+            return;
+            
+            sendPOSTRequest('/api/mastery/trend', {
+                startTimestamp: startTimestamp,
+                endTimestamp: endTimestamp,
+                topicId: topicId,
+                level: parentLevel + 1,
+                itemId: itemId
+            }, function(data) {
+                callback(processTrendData(data));
+            });            
+        };
+        
+        /** Testing **/
+        
+        var fakeTrendData = function() {
+            var data = {
+                series: [
+                    {
+                        name: '% exercise completed',
+                        isPercentage: true
+                    },{
+                        name: '% exercise correct',
+                        isPercentage: true
+                    },{
+                        name: '# attempts',
+                        isPercentage: false
+                    }
+                ],
+                points: [
+                    [1496941452, 15, 15, 2],
+                    [1497042452, 32, 20, 5],
+                    [1497143452, 45, 30, 12],
+                    [1497344452, 52, 45, 14],
+                    [1497945452, 65, 64, 18],
+                    [1499246452, 77, 77, 21],
+                    [1499347452, 80, 78, 23],
+                    [1499448452, 99, 79, 25],
+                    [1499949452, 100, 95, 30]
+                ]
+            };            
+            
+            return data;
         };
         
         var runTest = function() {
@@ -630,7 +668,12 @@
         
         $(function() {
             google.charts.load('current', {'packages':['line', 'corechart']});
+            
             setupDateRangePicker();
+            //refreshTopicsDropdown();
+            //updatePageContent();
+            
+            // Test
             runTest();
         });
     </script>
