@@ -7,7 +7,8 @@ var tableData; // see API specs
 var tableMeta; // see API specs
 var startTimestamp = 1496948693; // default: from server
 var endTimestamp = 1596948693; // default: from server
-var topicId = -1; // default: everything
+var contentId = '-1'; // default: everything
+var channelId = '-1'; // default: everything
 var parentLevel = 0; // default: parent-of-root-level
 var parentId = -1; // default: none (at root level already, no parent)
 var compareMetricIndex = 0; // current metric index of the compare table
@@ -21,7 +22,7 @@ var debug = true; // whether to print debug outputs to console
 /** Pragma Mark - Starting Points **/
 
 // Update page (incl. new breadcrumb and all table/diagrams)
-// Uses global variables `startTimestamp`, `endTimestamp`, `topicId`, `parentLevel`, and `parentId`
+// Uses global variables `startTimestamp`, `endTimestamp`, `contentId`, `channelId`, `parentLevel`, and `parentId`
 var updatePageContent = function() {
     
     var tableData1;
@@ -32,7 +33,8 @@ var updatePageContent = function() {
 	sendPOSTRequest('/api/mastery/get-page-meta', {
 		startTimestamp: startTimestamp,
 		endTimestamp: endTimestamp,
-		topicId: topicId,
+		contentId: contentId,
+		channelId: channelId,
 		parentLevel: parentLevel,
 		parentId: parentId
 	}, function(data) {
@@ -47,7 +49,8 @@ var updatePageContent = function() {
 	sendPOSTRequest('/api/mastery/get-page-data', {
 		startTimestamp: startTimestamp,
 		endTimestamp: endTimestamp,
-		topicId: topicId,
+		contentId: contentId,
+		channelId: channelId,
 		parentLevel: parentLevel,
 		parentId: parentId
 	}, function(data) {
@@ -207,7 +210,11 @@ var setTableMeta = function(data) {
         initComplete: function(settings, json) {
             loadedTables++;
             updateLoadingInfo();
-        }
+        },
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
     });
     
     aggregationTable = $('#aggregation-table').DataTable({
@@ -544,8 +551,9 @@ var toggleTopicDropdown = function() {
 var applyAndDismissTopicDropdown = function() {
     var node = $('#topics-tree').fancytree('getTree').getActiveNode();
 	if (node !== null) {
-		topicId = node.key; // update global state
-		//console.log(node);
+		topicIdentifiers = node.key.split(','); // update global state
+		channelId = topicIdentifiers[0];
+		contentId = topicIdentifiers[1];
 		$('.topic-dropdown-text').html(node.title);
 		updatePageContent();
 	} else {
@@ -644,7 +652,7 @@ var _setTopics = function(toArray, dataArray) {
         var dict = dataArray[idx];
         var newDict = {
 	        title: dict.name,
-	        key: dict.id,
+	        key: dict.channelId + ',' + dict.contentId,
 	        folder: dict.children !== null
         };
         if (dict.children !== null) {
@@ -696,7 +704,8 @@ var getTrendData = function(itemId, callback) {
     sendPOSTRequest('/api/mastery/trend', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
-        topicId: topicId,
+		contentId: contentId,
+		channelId: channelId,
         level: parentLevel + 1,
         itemId: itemId
     }, function(data) {
@@ -914,7 +923,8 @@ var runTest = function() {
 	// Test
     buildTopicsDropdown({
 		"topics": [{
-			"id": 1,
+			"contentId": "bb",
+			"channelId": "aa",
 			"name": "Channel 1",
 			"children": [{
 				"id": 10,
@@ -922,7 +932,8 @@ var runTest = function() {
 				"children": null
 			}]
 		},{
-			"id": 2,
+			"contentId": "bdb",
+			"channelId": "adsa",
 			"name": "Channel 2",
 			"children": [{
 				"id": 24,
