@@ -252,6 +252,10 @@ body {
     float: right;
 }
 
+.section-title {
+    font-size: 18px;
+}
+
 .report-settings {
     margin: 15px 0;
 }
@@ -259,6 +263,14 @@ body {
 .report-settings .topic {
     width: auto;
     padding-left: 2px;
+}
+
+.report-view {
+    display: block;
+}
+
+.report-view.hidden {
+    display: none;
 }
 
 .topic-dropdown-container {
@@ -330,4 +342,43 @@ input.daterangepicker {
 
 .report-breadcrumb {
     margin: 15px 0;
+}
+
+.trend-chart {
+    width: 950px;
+    margin: 60px auto 20px;
+    border: 2px solid #ddd;
+}
+
+.trend-chart.hidden {
+    display: none;
+}
+
+.chart-container {
+    position: relative;
+    padding: 20px;
+}
+
+.dismiss-chart-button {
+    cursor: pointer;
+    position: absolute;
+    z-index: 9999;
+    right: 30px;
+    font-size: 20px;
+    color: #777;
+}
+
+.progress-negative {
+    float: left ;
+    width: 50%;
+    border-radius: 4px 0 0 4px;
+}
+
+.progress-positive {
+    width: 50%;
+    border-radius: 0 4px 4px 0;
+}
+
+.progress-negative .progress-bar {
+    float: right;
 }
