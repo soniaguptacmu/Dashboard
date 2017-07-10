@@ -26,6 +26,9 @@
     <link rel="stylesheet" href="../static/node_modules/font-awesome/css/font-awesome.min.css">
     <!-- google charts -->
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- toastr -->
+    <script type="text/javascript" src="../static/node_modules/toastr/build/toastr.min.js"></script>
+    <link rel="stylesheet" href="../static/node_modules/toastr/build/toastr.min.css" media="all">
     
     <script type="text/javascript" src="../static/js/common.js"></script>
     <script type="text/javascript" src="../static/js/report.js"></script>
@@ -58,7 +61,7 @@
                     <div class="topic col-md-6">
                         Topic: 
                         <button class="btn btn-default" type="button" onclick="toggleTopicDropdown();">
-                            Everything
+                            <span class="topic-dropdown-text">Everything</span>
                             <span class="caret"></span>
                         </button>
                         <div id="topic-dropdown-container" class="topic-dropdown-container">
@@ -173,6 +176,12 @@
                         </table>                        
                     </div>
                 </div>
+                <div class="loading-info-container hidden">
+                    <div class="loading-info">
+                        Loading…
+                    </div>
+                </div>
+                <div class="prevents-interaction hidden"></div>
             </div>
         </div>
         <div id="secondary" class="site-sidebar">

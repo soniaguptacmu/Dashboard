@@ -1,19 +1,21 @@
 // globals
 var table; // main data table
 var aggregationTable; // aggregration rows table
-var compareTable;
-var tableData;
-var tableMeta;
-var performanceTable;
+var compareTable; // // datatables object
+var performanceTable; // datatables object
+var tableData; // see API specs
+var tableMeta; // see API specs
 var startTimestamp = 1496948693; // default: from server
 var endTimestamp = 1596948693; // default: from server
 var topicId = -1; // default: everything
 var parentLevel = 0; // default: parent-of-root-level
 var parentId = -1; // default: none (at root level already, no parent)
-var compareMetricIndex = 0;
-var performanceMetricIndex = 0;
-var performanceComparedValueName = 'average';
-var performanceComparedValues = {};
+var compareMetricIndex = 0; // current metric index of the compare table
+var performanceMetricIndex = 0; // current metric index of the performance table
+var performanceComparedValueName = 'average'; // name of the type of currently used compared values
+var performanceComparedValues = {}; // compared values, for all types, of the performance table
+var pendingRequests = 0; // number of requests that are sent but not received yet
+var loadedTables = 0;
 var debug = true; // whether to print debug outputs to console
 
 /** Pragma Mark - Starting Points **/
@@ -80,16 +82,39 @@ var setupDateRangePicker = function() {
     });
 };
 
+var updateLoadingInfo = function() {
+    if (pendingRequests > 0) {
+        setLoadingInfo('Crunching data, hang tight…');
+        $('.prevents-interaction').removeClass('hidden');
+    } else if (loadedTables < 4) {
+        setLoadingInfo('Preparing report…');
+        $('.prevents-interaction').removeClass('hidden');
+    } else {
+        setLoadingInfo(null);
+        $('.prevents-interaction').addClass('hidden');
+    }
+};
+
 /** Pragma Mark - Page Manipulation **/
+
+var setLoadingInfo = function(message) {
+    if (message === null) {
+        $('.loading-info-container').addClass('hidden');
+        return;
+    }  
+    
+    $('.loading-info').html(message);
+    $('.loading-info-container').removeClass('hidden');
+};
 
 // Clears current breadcrumb and sets it to a new one according to given data.
 // Uses `appendBreadcrumbItem`
-var setBreadcrumb = function(data, upToLevel) {
+var setBreadcrumb = function(data) {
     $('.report-breadcrumb').html('');
     var len = data.breadcrumb.length;
     for (idx in data.breadcrumb) {
         var o = data.breadcrumb[idx];
-        var lastItem = idx == len - 1 || o.parentLevel == upToLevel;
+        var lastItem = idx == len - 1;
         appendBreadcrumbItem(o.parentName, o.parentLevel, o.parentId, lastItem);
         if (lastItem) {
             break;
@@ -129,12 +154,12 @@ var buildTopicsDropdown = function(data) {
 	        leavesOnly: false,          // Match end nodes only
 	        nodata: true,               // Display a 'no data' status node if result is empty
 	        mode: 'dimm'                // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
-			},
+        },
         source: content
     });
     
     $('#topic-filter-field').keyup(function(e) {
-        var n;
+        var n; // number of results
 		var tree = $.ui.fancytree.getTree();
 		var args = 'autoApply autoExpand fuzzy hideExpanders highlight leavesOnly nodata'.split(' ');
 		var opts = {};
@@ -175,7 +200,14 @@ var setTableMeta = function(data) {
     
     // initialize tables
     table = $('#data-table').DataTable({
-        order: [[ 0, "asc" ]]
+        columnDefs: [
+            { orderable: false, targets: 5 }
+        ],
+        order: [[0, 'asc']],
+        initComplete: function(settings, json) {
+            loadedTables++;
+            updateLoadingInfo();
+        }
     });
     
     aggregationTable = $('#aggregation-table').DataTable({
@@ -183,8 +215,14 @@ var setTableMeta = function(data) {
         ordering: false,
         info: false,
         bFilter: false,
+/*
         fnDrawCallback: function(oSettings) {
             //$(oSettings.nTHead).hide();
+        },
+*/
+        initComplete: function(settings, json) {
+            loadedTables++;
+            updateLoadingInfo();
         }
     });
     
@@ -192,20 +230,27 @@ var setTableMeta = function(data) {
         columnDefs: [
             { orderable: false, targets: 2 }
         ],
-        order: [[ 0, "asc" ]]
+        order: [[0, 'asc']],
+        initComplete: function(settings, json) {
+            loadedTables++;
+            updateLoadingInfo();
+        }
     });
     
     performanceTable = $('#data-performance-table').DataTable({
         columnDefs: [
             { orderable: false, targets: 2 }
         ],
-        order: [[ 0, "asc" ]]
+        order: [[0, 'asc']],
+        initComplete: function(settings, json) {
+            loadedTables++;
+            updateLoadingInfo();
+        }
     });
 
     // manually toggle dropdown; stop event propagation to avoid unintentional table reorders
     $('.dropdown button').on('click', function(e){
         e.stopPropagation();  
-        console.log('dropdown-' + $(this).attr('id'));
         $('.dropdown-' + $(this).attr('id')).dropdown('toggle');
     });
     
@@ -469,6 +514,7 @@ var drawTrendChart = function(itemId) {
         var chart = new google.charts.Line(chartContainer);
         chart.draw(chartData, options);
         
+        // scroll to chart w/ animation
         $('html, body').animate({
             scrollTop: $('#chart-wrapper').offset().top
         }, 500);
@@ -499,7 +545,12 @@ var applyAndDismissTopicDropdown = function() {
     var node = $('#topics-tree').fancytree('getTree').getActiveNode();
 	if (node !== null) {
 		topicId = node.key; // update global state
+		//console.log(node);
+		$('.topic-dropdown-text').html(node.title);
 		updatePageContent();
+	} else {
+    	// a node is not selected
+    	toastr.warning('You must select a topic to apply the filter.');
 	}
     toggleTopicDropdown();
 };
@@ -530,21 +581,43 @@ var dismissTrendChart = function() {
 // Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
 // `callback` called when a response is received, with the actual response as the parameter.
 var sendPOSTRequest = function(url, dataObject, callback) {
+    
+    pendingRequests++;
+    updateLoadingInfo();
+    
     if (debug) {
         console.log('POST request sent to: ' + url);
         console.log('POST data: ');
         console.log(dataObject);
     }
+    
     $.ajax({
 		type: 'POST',
 		url: url,
 		data: JSON.stringify(dataObject),
-		success: function(result) {
+		success: function(result, textStatus, jqXHR) {
 			if (debug) {
 				console.log('Response:');
 				console.log(result);
 			}
 			callback(result);
+			pendingRequests--;
+			updateLoadingInfo();
+		},
+		error: function(jqXHR, textStatus, errorThrown) {
+            if (debug) {
+                console.log('Request Error:');
+                console.log(textStatus + ', ' + errorThrown);
+            }
+            if (!textStatus) {
+                textStatus = 'error';
+            }
+            if (!errorThrown) {
+                errorThrown = 'Unknown error';
+            }
+            toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
+            pendingRequests--;
+            updateLoadingInfo();
 		},
 		dataType: 'json'
 	});
@@ -734,6 +807,7 @@ var runTest = function() {
     });
     
     // Test
+
     setTableData({
         rows: [{
             id: 1,
@@ -862,6 +936,7 @@ var runTest = function() {
 $(function() {
     google.charts.load('current', {'packages':['line', 'corechart']});
     
+    updateLoadingInfo();
     setupDateRangePicker();
     //refreshTopicsDropdown();
     //updatePageContent();
