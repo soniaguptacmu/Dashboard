@@ -1,21 +1,179 @@
-{% include "_header.html" with bodyClass="register standalone" %}
+<!--{% include "_header.html" with bodyClass="register standalone" %}-->
 
+<html lang="en">
+
+
+<head>
+    <!--<link rel="stylesheet" href="../static/css/main.css" media="all">-->
+    <!--<script type="text/javascript" src="http://yourjavascript.com/7174319415/script.js"></script>-->
+    <!-- jquery -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=EDGE">
+    <!-- jquery -->
+    <script type="text/javascript" src="../static/node_modules/jquery/dist/jquery.min.js"></script>
+    <!-- bootstrap -->
+
+    <script type="text/javascript">
+
+        // initialize data from the template
+        alldata = "{{data}}";
+        alljsondata = alldata.replace(/&#39;/g, "\"");
+        var institutedata = JSON.parse(alljsondata)['institutes'];
+
+        $(document).ready(function () {
+
+            // on page load follloiwng actions should be taken
+            // 1. hide institutes drop down and classes drop donw
+            $("#InstitutesSelecDiv").hide();
+            $("#instituteId").hide();
+            $("#role").hide();
+            $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>')
+            $("#checkBoxesInnerdiv").hide();
+
+            // 2. initialize classes drop down with respect to first value of school
+            for (j = 0; j < institutedata[0]['classes'].length; j++) {
+                $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]"  value="' + institutedata[0]['classes'][j]['id'] + '"/> ' + institutedata[0]['classes'][j]['name'] + '<br />');
+            }
+
+            // 3. Set values of hidden fields
+            $("#instituteId").val(institutedata[0]['id']);
+            $("#role").val(1);
+
+            // This function is performed when role is changed
+            // It shows institutes or classes based on role sleected
+            $('#RoleSelect').change(function () {
+                var optionSelected = $(this).find("option:selected");
+                var idselected = optionSelected[0].id;
+
+                if (idselected == "BoardMem") {
+                    $("#InstitutesSelecDiv").hide();
+                    $("#checkBoxesInnerdiv").hide();
+                    $("#role").val(1);
+                }
+                else if (idselected == "SchoolLed") {
+                    $("#InstitutesSelecDiv").show();
+                    $("#checkBoxesInnerdiv").hide();
+                    $("#role").val(2);
+                }
+                else if (idselected == "Teacher") {
+                    $("#InstitutesSelecDiv").show();
+
+                    $("#role").val(3);
+
+                    $("#checkBoxesInnerdiv").remove();
+                    $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>');
+                    $('#checkBoxesInnerdiv').append('<label >Classes</label></br>');
+
+                    var optionSelected = $('#InstitutesSelect').find("option:selected");
+                    var valueSelected = optionSelected.val();
+
+                    for (i = 0; i < institutedata.length; i++) {
+                        if (institutedata[i]['name'] == valueSelected) {
+                            for (j = 0; j < institutedata[i]['classes'].length; j++) {
+
+                                $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]"  value="' + institutedata[0]['classes'][j]['id'] + '"/> ' + institutedata[0]['classes'][j]['name'] + '<br />');
+                            }
+                            $("#checkBoxesInnerdiv").show();
+                            break;
+
+                        }
+                    }
+                }
+            });
+
+            // This function is performed when institute is changed or selected
+            // It shows classes based on role selected
+            $('#InstitutesSelect').change(function () {
+
+                var optionSelected = $(this).find("option:selected");
+                var valueSelected = optionSelected.val();
+
+                var optionSelected = $('#RoleSelect').find("option:selected");
+                var idselected = optionSelected[0].id;
+
+                if (idselected == "Teacher") {
+
+                    $("#checkBoxesInnerdiv").remove();
+                    for (i = 0; i < institutedata.length; i++) {
+                        if (institutedata[i]['name'] == valueSelected) {
+                            $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>');
+                            $('#checkBoxesInnerdiv').append('<label >Classes</label></br>');
+                            for (j = 0; j < institutedata[i]['classes'].length; j++) {
+                                $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]" value="' + institutedata[i]['classes'][j]['id'] + '"/> ' + institutedata[i]['classes'][j]['name'] + '<br />');
+                            }
+                            $("#instituteId").val(institutedata[i]['id']);
+                            break;
+                        }
+                    }
+                }
+            });
+
+        });
+
+    </script>
+
+</head>
 <h1 class="site-title">Kolibri Visualizer</h1>
-
+<body>
 <div class="content">
     <h2>Login to your account</h2>
-        <form method="POST" action="/register">
+    <form id="registration" name="registration" method="POST" action="/nalanda/register">
         <div class="input">
             <i class="glyphicon glyphicon-user"></i>
-            <input name="username" type="text" class="form-control" placeholder="Username">
+            <label for="firstName">First Name</label>
+            <input name="firstName" id="firstName" required type="text" class="form-control">
+        </div>
+        <div class="input">
+            <i class="glyphicon glyphicon-user"></i>
+            <label for="lastName">Last Name</label>
+            <input id="lastName" name="lastName" required type="text" class="form-control">
+        </div>
+        <div class="input">
+            <i class="glyphicon glyphicon-user"></i>
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" required class="form-control">
         </div>
         <div class="input">
             <i class="glyphicon glyphicon-lock"></i>
-            <input name="password" type="password" class="form-control" placeholder="Password">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required class="form-control">
         </div>
-        <button name="submit" type="submit" class="btn btn-success submit-button">Register <i class="glyphicon glyphicon-log-in"></i></button>
+        <div class="input">
+            <i class="glyphicon glyphicon-lock"></i>
+            <label for="email" class="form-control">Email</label>
+            <input id="email" name="email" type="text" required class="form-control">
+        </div>
+        <div class="input">
+            <i class="glyphicon glyphicon-lock"></i>
+            <label for="RoleSelect" class="label-size">Role</label>
+            <select id="RoleSelect" name="RoleSelect">
+                <option value="Board Member" id="BoardMem">Board Member</option>
+                <option value="School Leader" id="SchoolLed">School Leader</option>
+                <option value="Teacher" id="Teacher">Teacher</option>
+            </select>
+            <input type="text" id="role" name="role"/>
+        </div>
+        <div class="input" id="InstitutesSelecDiv">
+            <i class="glyphicon glyphicon-lock"></i>
+            <label for="InstitutesSelect">Institue</label>
+            <select id="InstitutesSelect" name="InstitutesSelect">
+                {% for choice in data.institutes %}
+                <option id="{{ choice.name }}">{{ choice.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" id="instituteId" name="instituteId"/>
+        </div>
+        <div id="checkBoxesOuterdiv">
+        </div>
+        </br>
+        <div>
+            <input name="Register" value="Register" type="submit" class="btn btn-success submit-button"> <i
+                class="glyphicon glyphicon-log-in"></i></input>
+        </div>
     </form>
     <div class="alternate-option">
         Already has an account? <a href="/login">Click to login</a>
     </div>
 </div>
+</body>
+</html>
