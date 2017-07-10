@@ -61,6 +61,10 @@
                             <span class="caret"></span>
                         </button>
                         <div id="topic-dropdown-container" class="topic-dropdown-container">
+	                        <div class="search">
+		                        <input type="search" id="topic-filter-field" placeholder="Filter topics...">
+		                        <i id="reset-search" class="fa fa-times" aria-hidden="true"></i>
+	                        </div>
                             <div id="topics-tree"></div>
                             <div class="controls">
 	                            <button class="btn btn-default btn-xs btn-primary" onclick="applyAndDismissTopicDropdown()">Apply</button>
@@ -135,24 +139,125 @@
     <footer id="colophon" class="site-footer">
         &copy; 2017 Carnegie Mellon University
     </footer>
-    <script>
+    <script>        
+        // globals
         var table;
         var aggregationTable;
-        var setBreadcrumb = function(data) {
+        var startTimestamp = 1496948693; // default: DTL
+        var endTimestamp = 1596948693; // default: DTL
+        var topicId = -1; // default to everything
+        var parentLevel = 0; // default: parent-of-root-level
+        var parentId = -1; // default: at root level already, no parent
+        var debug = true;
+        var breadcrumbData = null;
+        
+        // Update page (new breadcrumb and table/diagrams)
+        // See `startTimestamp`, `endTimestamp`, `topicId`, `parentLevel`, `parentId`
+        var updatePageContent = function() {
+	        
+	        var tableData1;
+	        var tableData2;
+	        
+	        // Making sure `setTableData` happens AFTER `setTableMeta`
+	        
+			sendPOSTRequest('/api/mastery/get-page-meta', {
+				startTimestamp: startTimestamp,
+				endTimestamp: endTimestamp,
+				topicId: topicId,
+				parentLevel: parentLevel,
+				parentId: parentId
+			}, function(data) {
+				tableData1 = data;
+				breadcrumbData = data;
+				setBreadcrumb(data);
+				setTableMeta(data);
+				if (tableData2 !== null) {
+					setTableData(tableData2);
+				}
+			});
+			
+			sendPOSTRequest('/api/mastery/get-page-data', {
+				startTimestamp: startTimestamp,
+				endTimestamp: endTimestamp,
+				topicId: topicId,
+				parentLevel: parentLevel,
+				parentId: parentId
+			}, function(data) {
+				tableData2 = data;
+				if (tableData1 !== null) {
+					setTableData(data);
+				}
+			});
+        };
+        
+        // Fetch topics using API and update the dropdown menu
+        var fetchTopics = function() {
+	        sendPOSTRequest('/api/mastery/topics', {
+		        startTimestamp: startTimestamp,
+				endTimestamp: endTimestamp,
+				parentLevel: parentLevel,
+				parentId: parentId
+	        }, function(data) {
+		        initializeTopicsDropdown(data);
+	        });
+        };
+        
+        // Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
+        var sendPOSTRequest = function(url, dataObject, callback) {
+	        if (debug) {
+		        console.log('POST request sent to: ' + url);
+		        console.log('POST data: ');
+		        console.log(dataObject);
+	        }
+	        $.ajax({
+				type: 'POST',
+				url: url,
+				data: JSON.stringify(dataObject),
+				success: function(result) {
+					if (debug) {
+						console.log('Response:');
+						console.log(result);
+					}
+					callback(result);
+				},
+				dataType: 'json'
+			});
+        };
+        
+        // Instantiate date range picker
+        var setupDateRangePicker = function() {
+			$('.daterangepicker').daterangepicker({
+				startDate: new Date(startTimestamp * 1000),
+				endDate: new Date(endTimestamp * 1000)
+            }, function(start, end, label) {
+	            startTimestamp = new Date(start.format('YYYY-MM-DD')).getTime() / 1000;
+	            endTimestamp = new Date(start.format('YYYY-MM-DD')).getTime() / 1000;
+	            updatePageContent();
+            });
+        };
+        
+        // Clears current breadcrumb and sets it to a new one according to given data.
+        // Uses `appendBreadcrumbItem`
+        var setBreadcrumb = function(data, upToLevel) {
             $('.report-breadcrumb').html('');
             var len = data.breadcrumb.length;
             for (idx in data.breadcrumb) {
                 var o = data.breadcrumb[idx];
-                appendBreadcrumbItem(o.parentName, o.parentLevel, o.parentId, idx == len - 1);
+                var lastItem = idx == len - 1 || o.parentLevel == upToLevel;
+                appendBreadcrumbItem(o.parentName, o.parentLevel, o.parentId, lastItem);
+                if (lastItem) {
+	                break;
+                }
             }
         };
         
+        // Append a new breadcrumb item to the current list
         var appendBreadcrumbItem = function(name, level, id, isLast) {
             var html;
             if (isLast) {
                 html = '<span class="breadcrumb-text">' + name + '</span>';
             } else {
-                html = '<a class="breadcrumb-link" href="/report-mastery?parentLevel="' + level + '&parentId=' + id + '>' + name + '</a>';
+                html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', ' + id + ')">' + name + '</a>';
                 if (!isLast) {
                     html += ' > ';
                 }
@@ -161,6 +266,8 @@
             $('.report-breadcrumb').append(html);
         };
         
+        // Initializes the topics dropdown according to given data
+        // Calls `_setTopics` recursively
         var initializeTopicsDropdown = function(data) {
 			var content = [];
 			_setTopics(content, data.topics);
@@ -168,10 +275,52 @@
 			$('#topics-tree').fancytree({
                 checkbox: false,
                 selectMode: 1,
+                extensions: ['filter'],
+				quicksearch: true,
+				filter: {
+			        autoApply: true,   // Re-apply last filter if lazy data is loaded
+			        autoExpand: false, // Expand all branches that contain matches while filtered
+			        counter: true,     // Show a badge with number of matching child nodes near parent icons
+			        fuzzy: false,      // Match single characters in order, e.g. 'fb' will match 'FooBar'
+			        hideExpandedCounter: true,  // Hide counter badge if parent is expanded
+			        hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
+			        highlight: true,   // Highlight matches by wrapping inside <mark> tags
+			        leavesOnly: false, // Match end nodes only
+			        nodata: true,      // Display a 'no data' status node if result is empty
+			        mode: 'dimm'       // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
+      			},
                 source: content
             });
+            
+            $('#topic-filter-field').keyup(function(e) {
+		        var n;
+				var tree = $.ui.fancytree.getTree();
+				var args = 'autoApply autoExpand fuzzy hideExpanders highlight leavesOnly nodata'.split(' ');
+				var opts = {};
+				var filterFunc = tree.filterBranches;
+				var match = $(this).val();
+
+				$.each(args, function(i, o) {
+					opts[o] = $('#' + o).is(':checked');
+      			});
+	  			opts.mode = 'hide';
+
+	  			if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ''){
+	  				$('#reset-search').click();
+	  				return;
+      			}
+
+	  			n = filterFunc.call(tree, match, opts);
+	        });
+	        
+	        $('#reset-search').click(function(e){
+				$('#topic-filter-field').val('');
+				var tree = $.ui.fancytree.getTree();
+				tree.clearFilter();
+    		});
         };
-        
+
+		// See `initializeTopicsDropdown`
         var _setTopics = function(toArray, dataArray) {
 	        for (idx in dataArray) {
 		        var dict = dataArray[idx];
@@ -187,20 +336,45 @@
 		        toArray.push(newDict);
 	        }
         };
-        
+
+        // Toggle topics dropdown menu
+        // IBAction
         var toggleTopicDropdown = function() {
 	        $('#topic-dropdown-container').toggleClass('shown');
         };
-        
+
+        // Apply currently selected topic, dismiss the dropdown, and update the page (async)
+        // IBAction
         var applyAndDismissTopicDropdown = function() {
-	        
+	        var node = $("#topics-tree").fancytree('getTree').getActiveNode();
+			if (node !== null) {
+				topicId = node.key; // update global state
+				updatePage();
+			}
 	        toggleTopicDropdown();
         };
         
+        // IBAction
+        var performDrilldown = function(id) {
+	      	  parentId = id;
+	      	  parentLevel++;
+	      	  updatePageContent();
+        };
+        
+        // IBAction
+        var clickBreadcrumbLink = function(level, id) {
+	      	parentId = id;
+	      	parentLevel = level;
+	      	setBreadcrumb(breadcrumbData, level);
+	      	updatePageContent();  
+        };
+        
+        // Returns the HTML code for draw trend button
         var drawTrendButtonHTML = function(itemId) {
             return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i></button>';
         };
         
+        // Instantiate both tables, insert rows with data partially populated
         var setTableMeta = function(data) {
             // insert columns
             for (idx in data.metrics) {
@@ -220,10 +394,10 @@
             });
             // insert placeholder rows for data table
             for (idx in data.rows) {
-                var array = [data.rows[idx].name];
+                var array = [drilldownColumnHTML(data.rows[idx].name, data.rows[idx].id)];
                 var nItems = data.metrics.length;
                 while (nItems--) {
-                    array.push("");
+                    array.push('');
                 }
                 array.push(drawTrendButtonHTML(data.rows[idx].id));
                 var rowNode = table.row.add(array).draw(false).node();
@@ -232,11 +406,21 @@
             }
         };
         
+        // HTML code of drilldown column in data table
+        var drilldownColumnHTML = function(name, id) {
+	        if (parentLevel == 2) {
+	        	return '<span>' + name + '</span>';
+	        } else {
+	        	return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
+	        }
+        };
+    
+    	// Replace dummy data inserted in `setTableMeta` with real data
         var setTableData = function(data) {
             // update data rows
             for (idx in data.rows) {
                 var array = data.rows[idx].values;
-                array.unshift(data.rows[idx].name);
+                array.unshift(drilldownColumnHTML(data.rows[idx].name, data.rows[idx].id));
                 array.push(drawTrendButtonHTML(data.rows[idx].id));
                 table.row('#row-' + data.rows[idx].id).data(array).draw(false);
             }
@@ -249,11 +433,15 @@
             }
         };
         
+        // Dismiss trend diagram
+        // IBAction
         var dismissTrendChart = function() {
             $('#chart-container').html('');
         };
         
-        var getTrendData = function(itemId) {
+        // Get trend data with specific item id from server (via POST) and sanitize it 
+        // Used by `drawTrendChart`
+        var getTrendData = function(itemId, callback) {
             var data = {
                 series: [
                     {
@@ -286,52 +474,54 @@
                 data.data[idx][0] = dateObject;
             }
             
-            console.log(data);
-            
-            return data;
+            callback(data);
         };
         
+        // Get data remotely via `getTrendData` (async) and draw the chart (after removing previous chart -- if any)
+        // IBAction
         var drawTrendChart = function(itemId) {
             dismissTrendChart();
-            var trendData = getTrendData(itemId);
-            var chartData = new google.visualization.DataTable();
-            
-            var options = {
-                chart: {
-                    title: 'Trend'
-                },
-                width: 900,
-                height: 500,
-                series: {
-                    
-                },
-                axes: {
-                    y: {
-                        percentage: {label: 'Percentage'},
-                        number: {label: 'Number'}
-                    }
-                }
-            };
-            
-            chartData.addColumn('date', 'Date');
-            var seriesIndex = 0;
-            for (idx in trendData.series) {
-                var dict = trendData.series[idx];
-                var type = dict.isPercentage ? 'percentage' : 'number';
-                chartData.addColumn('number', dict.name);
-                options.series[seriesIndex++] = {axis: type};
-            }
-            
-            chartData.addRows(trendData.data);
-            
-            var chartContainer = document.getElementById('chart-container');
-            var chart = new google.charts.Line(chartContainer);
-            chart.draw(chartData, options);
+            // TODO - chart loading screen
+            getTrendData(itemId, function(trendData) {
+	            var chartData = new google.visualization.DataTable();
+	            
+	            var options = {
+	                chart: {
+	                    title: 'Trend'
+	                },
+	                width: 900,
+	                height: 500,
+	                series: {
+	                    
+	                },
+	                axes: {
+	                    y: {
+	                        percentage: {label: 'Percentage'},
+	                        number: {label: 'Number'}
+	                    }
+	                }
+	            };
+	            
+	            chartData.addColumn('date', 'Date');
+	            var seriesIndex = 0;
+	            for (idx in trendData.series) {
+	                var dict = trendData.series[idx];
+	                var type = dict.isPercentage ? 'percentage' : 'number';
+	                chartData.addColumn('number', dict.name);
+	                options.series[seriesIndex++] = {axis: type};
+	            }
+	            
+	            chartData.addRows(trendData.data);
+	            
+	            var chartContainer = document.getElementById('chart-container');
+	            var chart = new google.charts.Line(chartContainer);
+	            chart.draw(chartData, options);
+            });
         };
         
-        $(function() {
-            google.charts.load('current', {'packages':['line', 'corechart']});
-            setBreadcrumb({
+        var runTest = function() {
+	        // Test
+	        breadcrumbData = {
                 breadcrumb: [{
                     parentName: "All Regions",
                     parentLevel: 0,
@@ -345,8 +535,10 @@
                     parentLevel: 2,
                     parentId: 25
                 }]
-            });
+            };
+            setBreadcrumb(breadcrumbData);
             
+            // Test
             setTableMeta({
                 metrics: [{
                     displayName: "% exercise completed",
@@ -373,6 +565,7 @@
                 }]
             });
             
+            // Test
             setTableData({
                 rows: [{
                     id: 1,
@@ -413,6 +606,7 @@
                 }]
             });
 
+			// Test
             initializeTopicsDropdown({
 				"topics": [{
 					"id": 1,
@@ -432,8 +626,12 @@
         			}]
     			}]
 			});
-            
-            $('.daterangepicker').daterangepicker();
+        };
+        
+        $(function() {
+            google.charts.load('current', {'packages':['line', 'corechart']});
+            setupDateRangePicker();
+            runTest();
         });
     </script>
 </body>
