@@ -125,10 +125,10 @@
                                                 <span class="current-metric">Metric to Compare</span>
                                                 <span class="caret"></span>
                                             </button>
-                                            <ul class="dropdown-menu" aria-labelledby="dropdownMenu1"></ul>
+                                            <ul class="dropdown-menu dropdown-dropdownMenu1" aria-labelledby="dropdownMenu1"></ul>
                                         </div>
                                     </th>
-                                    <th></th>
+                                    <th class="bar-column"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -147,17 +147,17 @@
                                                 <span class="current-metric">Metric to Compare</span>
                                                 <span class="caret"></span>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-metric" aria-labelledby="dropdownMenu2"></ul>
+                                            <ul class="dropdown-menu dropdown-menu-metric dropdown-dropdownMenu2" aria-labelledby="dropdownMenu2"></ul>
                                         </div>
                                     </th>
-                                    <th>
+                                    <th class="bar-column">
                                         Compare to:
                                         <div class="dropdown">
                                             <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu3" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                                 <span class="current-compared-value">Max</span>
                                                 <span class="caret"></span>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-value" aria-labelledby="dropdownMenu3">
+                                            <ul class="dropdown-menu dropdown-menu-value dropdown-dropdownMenu3" aria-labelledby="dropdownMenu3">
                                                 <li class="compare-max"><a href="#" onclick="performanceViewSetComparedValue('max');">Max</a></li>
                                                 <li class="compare-min"><a href="#" onclick="performanceViewSetComparedValue('min');">Min</a></li>
                                                 <li class="compare-average"><a href="#" onclick="performanceViewSetComparedValue('average');">Average</a></li>

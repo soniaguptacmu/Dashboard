@@ -174,7 +174,9 @@ var setTableMeta = function(data) {
     }
     
     // initialize tables
-    table = $('#data-table').DataTable({});
+    table = $('#data-table').DataTable({
+        order: [[ 0, "asc" ]]
+    });
     
     aggregationTable = $('#aggregation-table').DataTable({
         paging: false,
@@ -186,8 +188,26 @@ var setTableMeta = function(data) {
         }
     });
     
-    compareTable = $('#data-compare-table').DataTable({});
-    performanceTable = $('#data-performance-table').DataTable({});
+    compareTable = $('#data-compare-table').DataTable({
+        columnDefs: [
+            { orderable: false, targets: 2 }
+        ],
+        order: [[ 0, "asc" ]]
+    });
+    
+    performanceTable = $('#data-performance-table').DataTable({
+        columnDefs: [
+            { orderable: false, targets: 2 }
+        ],
+        order: [[ 0, "asc" ]]
+    });
+
+    // manually toggle dropdown; stop event propagation to avoid unintentional table reorders
+    $('.dropdown button').on('click', function(e){
+        e.stopPropagation();  
+        console.log('dropdown-' + $(this).attr('id'));
+        $('.dropdown-' + $(this).attr('id')).dropdown('toggle');
+    });
     
     // insert placeholder rows for data table
     for (idx in data.rows) {
@@ -354,23 +374,30 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
     
     // table rows
     
-    // get max/min value
+    // some notes:
+    // `raw value` is the original value of the data item; it can be any positive number
+    // `pivot` is the value against which all `raw value`s are compared; it can be a max value, min value, average value or median value of all `raw value`s
+    // `compare value` is the percentage of the `raw value` to the `pivot value`; it can be anything, positive or negative
+    // `max` is the maximum `compare value`, but no less then 100
+    // `min` is the minimum `compare value`, but no more then -100
+    // `positive value` and `negative value` are `compare value`s scaled to a -100~100 range, when taking all `compare value`s into consideration. Only one will contain a non-zero number, dependending on the value's negativity.
+    
     var max = 100;
     var min = -100;
     
     for (idx in tableData.rows) {
-        var absoluteValue = tableData.rows[idx].values[performanceMetricIndex];
-        var relativeValue = (absoluteValue - pivot) / pivot * 100;
-        if (relativeValue > max) {
-            max = relativeValue;
+        var rawValue = parseFloat(tableData.rows[idx].values[performanceMetricIndex]);
+        var compareValue = (rawValue - pivot) / pivot * 100;
+        if (compareValue > max) {
+            max = compareValue;
         }
-        if (relativeValue < min) {
-            min = relativeValue;
+        if (compareValue < min) {
+            min = compareValue;
         }
     }
     
     for (idx in tableData.rows) {
-        var rawValue = parseInt(tableData.rows[idx].values[performanceMetricIndex]);
+        var rawValue = parseFloat(tableData.rows[idx].values[performanceMetricIndex]);
         var compareValue = (rawValue - pivot) / pivot * 100;
         var positiveValue = 0;
         var negativeValue = 0;
@@ -387,10 +414,12 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
         }
         
         var barHTML =   '<div class="progress progress-negative">' +
-                        '<div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="' + negativeValue + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + negativeValue + '%;">' + negativeLabel +
+                        '<div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="' + negativeValue + 
+                        '" aria-valuemin="0" aria-valuemax="100" style="width: ' + negativeValue + '%;">' + negativeLabel +
                         '</div></div>' +
                         '<div class="progress progress-positive">' +
-                        '<div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="' + positiveValue + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + positiveValue + '%;">' + positiveLabel +
+                        '<div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="' + positiveValue + 
+                        '" aria-valuemin="0" aria-valuemax="100" style="width: ' + positiveValue + '%;">' + positiveLabel +
                         '</div></div>';
                         
         var array = [drilldownColumnHTML(tableData.rows[idx].name, tableData.rows[idx].id), tableData.rows[idx].values[performanceMetricIndex], barHTML];
@@ -425,6 +454,7 @@ var drawTrendChart = function(itemId) {
         };
         
         chartData.addColumn('date', 'Date');
+        
         var seriesIndex = 0;
         for (idx in trendData.series) {
             var dict = trendData.series[idx];
@@ -438,6 +468,10 @@ var drawTrendChart = function(itemId) {
         var chartContainer = document.getElementById('chart-wrapper');
         var chart = new google.charts.Line(chartContainer);
         chart.draw(chartData, options);
+        
+        $('html, body').animate({
+            scrollTop: $('#chart-wrapper').offset().top
+        }, 500);
     });
 };
 
@@ -551,7 +585,7 @@ var _setTopics = function(toArray, dataArray) {
 // Returns the HTML code for draw trend button
 var drawTrendButtonHTML = function(itemId) {
     return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' 
-           + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i></button>';
+           + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i> Show Trend</button>';
 };
         
 // HTML code of drilldown column in data table
@@ -724,7 +758,7 @@ var runTest = function() {
             name: "Banksville Elementary School",
             values: [
                 "80%",
-                "2%",
+                "1%",
                 88,
                 "16%"
             ]
@@ -744,7 +778,7 @@ var runTest = function() {
                 "34%",
                 "54%",
                 123,
-                "3%"
+                "8%"
             ]
         }, {
             id: 6,

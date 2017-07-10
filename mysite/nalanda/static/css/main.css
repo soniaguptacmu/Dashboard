@@ -386,3 +386,23 @@ input.daterangepicker {
 .progress-negative .progress-bar {
     float: right;
 }
+
+.progress-bar {
+    text-shadow: 1px 1px #777 ;
+}
+
+thead .dropdown {
+    display: inline-block;
+}
+
+th {
+    outline: none;
+}
+
+th.bar-column {
+    min-width: 300px;
+}
+
+.draw-trend-button {
+    padding: 2px 8px;
+}
