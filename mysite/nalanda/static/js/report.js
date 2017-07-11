@@ -33,35 +33,35 @@ var updatePageContent = function() {
     var tableData1 = null;
     var tableData2 = null;
     
-	sendPOSTRequest('/api/mastery/get-page-meta', {
-		startTimestamp: startTimestamp,
-		endTimestamp: endTimestamp,
-		contentId: contentId,
-		channelId: channelId,
-		parentLevel: parentLevel,
-		parentId: parentId
-	}, function(response) {
-		tableData1 = response.data;
-		setBreadcrumb(tableData1);
-		setTableMeta(tableData1);
-		if (tableData2 !== null) {
-			setTableData(tableData2);
-		}
-	});
-	
-	sendPOSTRequest('/api/mastery/get-page-data', {
-		startTimestamp: startTimestamp,
-		endTimestamp: endTimestamp,
-		contentId: contentId,
-		channelId: channelId,
-		parentLevel: parentLevel,
-		parentId: parentId
-	}, function(response) {
-		tableData2 = response.data;
-		if (tableData1 !== null) {
-			setTableData(tableData2);
-		}
-	});
+    sendPOSTRequest('/api/mastery/get-page-meta', {
+        startTimestamp: startTimestamp,
+        endTimestamp: endTimestamp,
+        contentId: contentId,
+        channelId: channelId,
+        parentLevel: parentLevel,
+        parentId: parentId
+    }, function(response) {
+        tableData1 = response.data;
+        setBreadcrumb(tableData1);
+        setTableMeta(tableData1);
+        if (tableData2 !== null) {
+            setTableData(tableData2);
+        }
+    });
+    
+    sendPOSTRequest('/api/mastery/get-page-data', {
+        startTimestamp: startTimestamp,
+        endTimestamp: endTimestamp,
+        contentId: contentId,
+        channelId: channelId,
+        parentLevel: parentLevel,
+        parentId: parentId
+    }, function(response) {
+        tableData2 = response.data;
+        if (tableData1 !== null) {
+            setTableData(tableData2);
+        }
+    });
 };
 
 // Fetch topics by calling API and update the dropdown menu
@@ -69,9 +69,9 @@ var updatePageContent = function() {
 var refreshTopicsDropdown = function() {
     sendPOSTRequest('/api/mastery/topics', {
         startTimestamp: startTimestamp,
-		endTimestamp: endTimestamp,
-		parentLevel: parentLevel,
-		parentId: parentId
+        endTimestamp: endTimestamp,
+        parentLevel: parentLevel,
+        parentId: parentId
     }, function(response) {
         buildTopicsDropdown(response.data);
     });
@@ -83,8 +83,8 @@ var getTrendData = function(itemId, callback) {
     sendPOSTRequest('/api/mastery/trend', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
-		contentId: contentId,
-		channelId: channelId,
+        contentId: contentId,
+        channelId: channelId,
         level: parentLevel + 1,
         itemId: itemId
     }, function(response) {
@@ -95,9 +95,9 @@ var getTrendData = function(itemId, callback) {
 // Instantiate date range picker
 // Called only once upon page initialization
 var setupDateRangePicker = function() {
-	$('.daterangepicker').daterangepicker({
-		startDate: new Date(startTimestamp * 1000),
-		endDate: new Date(endTimestamp * 1000)
+    $('.daterangepicker').daterangepicker({
+        startDate: new Date(startTimestamp * 1000),
+        endDate: new Date(endTimestamp * 1000)
     }, function(start, end, label) {
         startTimestamp = new Date(start.format('YYYY-MM-DD')).getTime() / 1000;
         endTimestamp = new Date(start.format('YYYY-MM-DD')).getTime() / 1000;
@@ -147,8 +147,8 @@ var setBreadcrumb = function(data) {
 // Calls `_setTopics` recursively
 // Called only once upon page initialization
 var buildTopicsDropdown = function(data) {
-	var content = [];
-	_setTopics(content, data.topics);
+    var content = [];
+    _setTopics(content, data.topics);
 
     // wrap "everything"
     content = [{
@@ -171,44 +171,44 @@ var buildTopicsDropdown = function(data) {
         nodata: false,              // Display a 'no data' status node if result is empty
         mode: 'hide'                // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
     };
-	
-	$('#topics-tree').html('');
-	$('#topics-tree').fancytree({
+    
+    $('#topics-tree').html('');
+    $('#topics-tree').fancytree({
         checkbox: false,
         selectMode: 1,
         extensions: ['filter'],
-		quicksearch: true,
-		source: content,
-		filter: opts
+        quicksearch: true,
+        source: content,
+        filter: opts
     });
     
     // filter field
     $('#topic-filter-field').keyup(function(e) {
         var n; // number of results
-		var tree = $.ui.fancytree.getTree();
-		var filterFunc = tree.filterBranches;
-		var match = $(this).val();
+        var tree = $.ui.fancytree.getTree();
+        var filterFunc = tree.filterBranches;
+        var match = $(this).val();
 
-		if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ''){
-    		// reset search
+        if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ''){
+            // reset search
             $('#topic-filter-field').val('');
             var tree = $.ui.fancytree.getTree();
             tree.clearFilter();
-			return;
-		}
+            return;
+        }
 
-		n = filterFunc.call(tree, match, opts);
+        n = filterFunc.call(tree, match, opts);
     });
     
     // automatic reset
     $('#reset-search').click(function(e){
-		$('#topic-filter-field').val('');
-		var tree = $.ui.fancytree.getTree();
-		tree.clearFilter();
-	});
-	
-	// click background to dismiss
-	$('html').click(function() {
+        $('#topic-filter-field').val('');
+        var tree = $.ui.fancytree.getTree();
+        tree.clearFilter();
+    });
+    
+    // click background to dismiss
+    $('html').click(function() {
         closeTopicDropdown();
     });
     
@@ -527,33 +527,33 @@ var closeTopicDropdown = function() {
 // UIAction
 var applyAndDismissTopicDropdown = function() {
     var node = $('#topics-tree').fancytree('getTree').getActiveNode();
-	if (node !== null) {
-		var topicIdentifiers = node.key.split(','); // update global state
-		channelId = topicIdentifiers[0];
-		contentId = topicIdentifiers[1];
-		$('.topic-dropdown-text').html(node.title);
-		updatePageContent();
-	} else {
-    	// a node is not selected
-    	toastr.warning('You must select a topic to apply the filter.');
-	}
+    if (node !== null) {
+        var topicIdentifiers = node.key.split(','); // update global state
+        channelId = topicIdentifiers[0];
+        contentId = topicIdentifiers[1];
+        $('.topic-dropdown-text').html(node.title);
+        updatePageContent();
+    } else {
+        // a node is not selected
+        toastr.warning('You must select a topic to apply the filter.');
+    }
     toggleTopicDropdown();
 };
 
 // Handle click event of a drilldown link
 // UIAction
 var performDrilldown = function(itemId) {
-  	  parentId = itemId;
-  	  parentLevel++;
-  	  updatePageContent();
+        parentId = itemId;
+        parentLevel++;
+        updatePageContent();
 };
 
 // Handle click event of a breadcrumb link
 // UIAction
 var clickBreadcrumbLink = function(level, id) {
-  	parentId = id;
-  	parentLevel = level;
-  	updatePageContent();  
+      parentId = id;
+      parentLevel = level;
+      updatePageContent();  
 };
 
 // Dismiss trend diagram
@@ -586,13 +586,13 @@ var _setTopics = function(toArray, dataArray) {
     for (idx in dataArray) {
         var dict = dataArray[idx];
         var newDict = {
-	        title: dict.name,
-	        key: dict.channelId + ',' + dict.contentId,
-	        folder: dict.children !== null
+            title: dict.name,
+            key: dict.channelId + ',' + dict.contentId,
+            folder: dict.children !== null
         };
         if (dict.children !== null) {
-	        newDict['children'] = [];
-	        _setTopics(newDict['children'], dict.children);
+            newDict['children'] = [];
+            _setTopics(newDict['children'], dict.children);
         }
         toArray.push(newDict);
     }
@@ -607,9 +607,9 @@ var drawTrendButtonHTML = function(itemId, itemName) {
 // HTML code of drilldown column in data table
 var drilldownColumnHTML = function(name, id) {
     if (parentLevel + 1 === maxItemLevel) {
-    	return '<span>' + name + '</span>';
+        return '<span>' + name + '</span>';
     } else {
-    	return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
+        return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
     }
 };
 
@@ -732,18 +732,18 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
     }
     
     $.ajax({
-		type: 'POST',
-		url: url,
-		data: JSON.stringify(dataObject),
-		success: function(result, textStatus, jqXHR) {
-			if (debug) {
-				console.log('Response: ' + JSON.stringify(result));
-			}
-			callback(result);
-			pendingRequests--;
-			updateLoadingInfo();
-		},
-		error: function(jqXHR, textStatus, errorThrown) {
+        type: 'POST',
+        url: url,
+        data: JSON.stringify(dataObject),
+        success: function(result, textStatus, jqXHR) {
+            if (debug) {
+                console.log('Response: ' + JSON.stringify(result));
+            }
+            callback(result);
+            pendingRequests--;
+            updateLoadingInfo();
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
             if (!textStatus) {
                 textStatus = 'error';
             }
@@ -756,9 +756,9 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
             toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
             pendingRequests--;
             updateLoadingInfo();
-		},
-		dataType: 'json'
-	});
+        },
+        dataType: 'json'
+    });
 };
 
 /** Testing **/
@@ -977,26 +977,26 @@ var tableDataData = function() {
 
 var topicsData = function() {
     return {
-		"topics": [{
-			"contentId": "bb",
-			"channelId": "aa",
-			"name": "Channel 1",
-			"children": [{
-				"id": 10,
-				"name": "Physics",
-				"children": null
-			}]
-		},{
-			"contentId": "bdb",
-			"channelId": "adsa",
-			"name": "Channel 2",
-			"children": [{
-				"id": 24,
-				"name": "Algorithms",
-				"children": null
-			}]
-		}]
-	};
+        "topics": [{
+            "contentId": "bb",
+            "channelId": "aa",
+            "name": "Channel 1",
+            "children": [{
+                "id": 10,
+                "name": "Physics",
+                "children": null
+            }]
+        },{
+            "contentId": "bdb",
+            "channelId": "adsa",
+            "name": "Channel 2",
+            "children": [{
+                "id": 24,
+                "name": "Algorithms",
+                "children": null
+            }]
+        }]
+    };
 };
 
 var sendPOSTRequest = function(url, dataObject, callback) {
