@@ -289,7 +289,7 @@ var setTableMeta = function(data) {
         while (nItems--) {
             array.push('');
         }
-        array.push(drawTrendButtonHTML(data.rows[idx].id));
+        array.push(drawTrendButtonHTML(data.rows[idx].id, data.rows[idx].name));
         var rowNode = table.row.add(array).draw(false).node();
         var rowId = 'row-' + data.rows[idx].id;
         $(rowNode).attr('id', rowId);
@@ -321,7 +321,7 @@ var setTableData = function(data) {
     for (idx in data.rows) {
         var array = JSON.parse(JSON.stringify(data.rows[idx].values)); // deep copy an array
         array.unshift(drilldownColumnHTML(data.rows[idx].name, data.rows[idx].id));
-        array.push(drawTrendButtonHTML(data.rows[idx].id));
+        array.push(drawTrendButtonHTML(data.rows[idx].id, data.rows[idx].name));
         table.row('#row-' + data.rows[idx].id).data(array).draw(false);
         
         // compare table
@@ -507,17 +507,18 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
 
 // Get data remotely via `getTrendData` (async) and draw the chart (after removing previous chart -- if any)
 // IBAction
-var drawTrendChart = function(itemId) {
+var drawTrendChart = function(itemId, itemName) {
     dismissTrendChart();
-    setTrendChartVisible(true);
-    // TODO - chart loading screen
     getTrendData(itemId, function(trendData) {
         var chartData = new google.visualization.DataTable();
-        
+        var earlyDate = trendData.points[0][0];
+        var lateDate = trendData.points[trendData.points.length - 1][0];
         var options = {
             chart: {
-                title: 'Trend'
+                title: itemName + ' Mastery Trend',
+                subtitle: 'Data from ' + moment(earlyDate).format('MM/DD/YYYY') + ' to ' + moment(lateDate).format('MM/DD/YYYY')
             },
+            legend: { position: 'bottom' },
             width: 900,
             height: 500,
             series: {
@@ -545,7 +546,9 @@ var drawTrendChart = function(itemId) {
         
         var chartContainer = document.getElementById('chart-wrapper');
         var chart = new google.charts.Line(chartContainer);
+        
         chart.draw(chartData, options);
+        setTrendChartVisible(true);
         
         // scroll to chart w/ animation
         $('html, body').animate({
@@ -692,9 +695,9 @@ var _setTopics = function(toArray, dataArray) {
 };
 
 // Returns the HTML code for draw trend button
-var drawTrendButtonHTML = function(itemId) {
+var drawTrendButtonHTML = function(itemId, itemName) {
     return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' 
-           + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i> Show Trend</button>';
+           + itemId + ', \'' + itemName + '\')"><i class="fa fa-line-chart" aria-hidden="true"></i> Show Trend</button>';
 };
         
 // HTML code of drilldown column in data table
@@ -752,6 +755,12 @@ var setTrendChartVisible = function(visible) {
 
 /** Testing **/
 
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+}
+
 var fakeTrendData = function() {
     var data = {
         series: [
@@ -767,15 +776,15 @@ var fakeTrendData = function() {
             }
         ],
         points: [
-            [1496941452, 15, 15, 2],
-            [1497042452, 32, 20, 5],
-            [1497143452, 45, 30, 12],
-            [1497344452, 52, 45, 14],
-            [1497945452, 65, 64, 18],
-            [1499246452, 77, 77, 21],
-            [1499347452, 80, 78, 23],
-            [1499448452, 99, 79, 25],
-            [1499949452, 100, 95, 30]
+            [1496941452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
+            [1497042452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
+            [1497143452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
+            [1497344452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
+            [1497945452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
+            [1499246452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
+            [1499347452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
+            [1499448452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
+            [1499949452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)]
         ]
     };            
     
