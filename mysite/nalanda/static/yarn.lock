@@ -19,7 +19,14 @@ bootstrap@^3.3.7:
   version "3.3.7"
   resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-3.3.7.tgz#5a389394549f23330875a3b150656574f8a9eb71"
 
-datatables@^1.10.13:
+datatables-buttons@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/datatables-buttons/-/datatables-buttons-1.0.3.tgz#cc3d5c97002f83981ee2bbb8e23b4127de8e7e57"
+  dependencies:
+    datatables ">=1.10.8"
+    jquery ">=1.7.0"
+
+datatables@>=1.10.8, datatables@^1.10.13:
   version "1.10.13"
   resolved "https://registry.yarnpkg.com/datatables/-/datatables-1.10.13.tgz#9bb2dec6f7dcf02049a00e4f0e7d3fe009c39346"
   dependencies:
@@ -39,7 +46,7 @@ jquery.fancytree@^2.23.0:
   version "2.23.0"
   resolved "https://registry.yarnpkg.com/jquery.fancytree/-/jquery.fancytree-2.23.0.tgz#9bf3050031d560903b25117ab2d78a9bcf164b97"
 
-jquery@>=1.10, jquery@>=1.7, jquery@>=1.7.1, "jquery@^1.7 || ^2.0 || ^3.1", jquery@^3.2.1:
+jquery@>=1.10, jquery@>=1.7, jquery@>=1.7.0, jquery@>=1.7.1, "jquery@^1.7 || ^2.0 || ^3.1", jquery@^3.2.1:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.2.1.tgz#5c4d9de652af6cd0a770154a631bba12b015c787"
 

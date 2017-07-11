@@ -53,6 +53,7 @@ body {
 }
 
 .log-out:hover {
+    color: #999999;
     background-color: #393939;
     text-decoration: none;
 }
@@ -252,6 +253,11 @@ body {
     float: right;
 }
 
+.section-title {
+    font-size: 24px;
+    margin: 20px 0;
+}
+
 .report-settings {
     margin: 15px 0;
 }
@@ -259,6 +265,14 @@ body {
 .report-settings .topic {
     width: auto;
     padding-left: 2px;
+}
+
+.report-view {
+    display: block;
+}
+
+.report-view.hidden {
+    display: none;
 }
 
 .topic-dropdown-container {
@@ -310,7 +324,7 @@ input.daterangepicker {
     margin-top: 0;
     margin-left: 100px;
     padding: 6px;
-    width: 200px;
+    width: 180px;
     box-shadow: none;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -329,5 +343,115 @@ input.daterangepicker {
 }
 
 .report-breadcrumb {
-    margin: 15px 0;
+    margin: 15px 0 20px;
+    background: #f3f3f3;
+	padding: 10px 14px;
+	/* border: 1px solid #ddd; */
+	border-radius: 6px;
+}
+
+.trend-chart {
+    width: 950px;
+    margin: 60px auto 20px;
+    border: 2px solid #ddd;
+}
+
+.trend-chart.hidden {
+    display: none;
+}
+
+.chart-container {
+    position: relative;
+    padding: 20px;
+}
+
+.dismiss-chart-button {
+    cursor: pointer;
+    position: absolute;
+    z-index: 9999;
+    right: 30px;
+    font-size: 20px;
+    color: #777;
+}
+
+.progress {
+    margin: 0;
+}
+
+.progress-negative {
+    float: left ;
+    width: 50%;
+    border-radius: 4px 0 0 4px;
+}
+
+.progress-positive {
+    width: 50%;
+    border-radius: 0 4px 4px 0;
+}
+
+.progress-negative .progress-bar {
+    float: right;
+}
+
+.progress-bar {
+    text-shadow: 1px 1px #777 ;
+}
+
+thead .dropdown {
+    display: inline-block;
+}
+
+th {
+    outline: none;
+}
+
+th.bar-column {
+    min-width: 300px;
+}
+
+th.name-column {
+    min-width: 200px;
+}
+
+.draw-trend-button {
+    padding: 2px 8px;
+}
+
+.loading-info-container {
+    position: fixed;
+    top: 0;
+    padding: 0;
+    z-index: 99999;
+    width: 100%;
+    margin-left: -220px;
+    display: block;
+}
+
+.loading-info-container.hidden {
+    display: none;
+}
+
+.loading-info {
+    background: #f9ecc0;
+    display: table;
+    border: 1px solid #f3ca7d;
+    border-top: none;
+    padding: 2px 20px;
+    margin: 0 auto;
+    text-align: center;
+    border-radius: 0 0 4px 4px;   
+}
+
+.prevents-interaction {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    display: block;
+    top: 0;
+    left: 0;
+    z-index: 999999;
+}
+
+.prevents-interaction.hidden {
+    display: none;
 }
