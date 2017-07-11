@@ -15,9 +15,9 @@
     <!-- jquery fancytree -->
     <script type="text/javascript" src="../static/node_modules/jquery.fancytree/dist/jquery.fancytree-all-deps.min.js"></script>
     <link rel="stylesheet" href="../static/node_modules/jquery.fancytree/dist/skin-lion/ui.fancytree.min.css" media="all">
-    <!-- jquery datatables -->
-    <script type="text/javascript" src="../static/node_modules/datatables/media/js/jquery.dataTables.min.js"></script>
-    <link rel="stylesheet" href="../static/node_modules/datatables/media/css/jquery.dataTables.min.css" media="all">
+	<!-- datatables -->
+	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/jszip-3.1.3/pdfmake-0.1.27/dt-1.10.15/b-1.3.1/b-html5-1.3.1/b-print-1.3.1/datatables.min.css"/>
+	<script type="text/javascript" src="https://cdn.datatables.net/v/dt/jszip-3.1.3/pdfmake-0.1.27/dt-1.10.15/b-1.3.1/b-html5-1.3.1/b-print-1.3.1/datatables.min.js"></script>
     <!-- bootstrap daterangepicker -->
     <script type="text/javascript" src="../static/node_modules/moment/min/moment.min.js"></script>
     <script type="text/javascript" src="../static/node_modules/bootstrap-daterangepicker/daterangepicker.js"></script>
@@ -26,8 +26,13 @@
     <link rel="stylesheet" href="../static/node_modules/font-awesome/css/font-awesome.min.css">
     <!-- google charts -->
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- toastr -->
+    <script type="text/javascript" src="../static/node_modules/toastr/build/toastr.min.js"></script>
+    <link rel="stylesheet" href="../static/node_modules/toastr/build/toastr.min.css" media="all">
     
+    <!-- PAGE SPECIFICS -->
     <script type="text/javascript" src="../static/js/common.js"></script>
+    <script type="text/javascript" src="../static/js/report.js"></script>
     <link rel="stylesheet" href="../static/css/main.css" media="all">
 
     <title>Report Mastery</title>
@@ -36,8 +41,8 @@
 <body class="">
     <header id="masthead" class="site-header">
         <div class="inner">
-            <h1 class="site-title"><a class="site-title-link" href="/">Nalanda Project</a></h1>
-            <span style="color:#ffffff">Current User: {{ "current_user" }}</span>
+            <h1 class="site-title"><a class="site-title-link" href="/">Kolibri Visualizer</a></h1>
+            <!--<span style="color:#ffffff">Current User: {{ "current_user" }}</span>-->
             <a href="/logout" class="log-out" title="Log Out"><i class="glyphicon glyphicon-log-out"></i> Log Out</a>
         </div>
     </header>
@@ -46,10 +51,16 @@
             <div id="primary" class="site-content">
                 <div class="report-header">
                     <h1 class="page-title">Mastery Report</h1>
-                    <div class="btn-group report-types" role="group" aria-label="...">
-                        <button type="button" class="btn btn-default"><i class="fa fa-table" aria-hidden="true"></i> Table</button>
-                        <button type="button" class="btn btn-default"><i class="fa fa-align-left" aria-hidden="true"></i> Compare</button>
-                        <button type="button" class="btn btn-default">Performance</button>
+                    <div class="btn-group report-types" role="group">
+                        <button type="button" class="btn btn-primary switch-view-button switch-view-button-1" onclick="switchView(1);">
+                        	<i class="fa fa-table" aria-hidden="true"></i> Table
+                        </button>
+                        <button type="button" class="btn btn-default switch-view-button switch-view-button-2" onclick="switchView(2);">
+                        	<i class="fa fa-align-left" aria-hidden="true"></i> Compare
+                        </button>
+                        <button type="button" class="btn btn-default switch-view-button switch-view-button-3" onclick="switchView(3);">
+                        	<i class="fa fa-tachometer" aria-hidden="true"></i> Performance
+                        </button>
                     </div>
                     <div class="clearfix"></div>
                 </div>
@@ -57,10 +68,14 @@
                     <div class="topic col-md-6">
                         Topic: 
                         <button class="btn btn-default" type="button" onclick="toggleTopicDropdown();">
-                            Everything
+                            <span class="topic-dropdown-text">Everything</span>
                             <span class="caret"></span>
                         </button>
                         <div id="topic-dropdown-container" class="topic-dropdown-container">
+	                        <div class="search">
+		                        <input type="search" id="topic-filter-field" placeholder="Filter topics...">
+		                        <i id="reset-search" class="fa fa-times" aria-hidden="true"></i>
+	                        </div>
                             <div id="topics-tree"></div>
                             <div class="controls">
 	                            <button class="btn btn-default btn-xs btn-primary" onclick="applyAndDismissTopicDropdown()">Apply</button>
@@ -69,19 +84,18 @@
                         </div>
                     </div>
                     <div class="dates col-md-6">
-                        <div class="datepicker-title">Data Range:</div>
+                        <div class="datepicker-title">Date Range:</div>
                         <input class="daterangepicker" name="daterange">
                     </div>
                 </div>
-                <div class="report-breadcrumb">
-
-                </div>
+                <div class="report-breadcrumb"></div>
                 <div class="report-content">
-                    <div class="table-view">
+                    <div class="table-view report-view report-view-1">
+	                    <h2 class="section-title">Table View</h2>
                         <table id="data-table" class="display" cellspacing="0" width="100%">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th class="name-column">Name</th>
                                     <!-- metric columns -->
                                     <th class="trend-column">Trend</th>
                                 </tr>
@@ -90,36 +104,94 @@
                                 <!-- data rows -->
                             </tbody>
                         </table>
+                        <h2 class="section-title">Aggregations</h2>
                         <table id="aggregation-table" class="display" cellspacing="0" width="100%">
                             <thead>
                                 <tr>
-                                    <th>Name</th>
+                                    <th class="name-column">Name</th>
                                     <!-- metric columns -->
-                                    <th class="trend-column">Trend</th>
+                                    <th class="trend-column"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <!-- data rows -->
                             </tbody>
-                            <tfoot>
-                                <tr>
-                                    <th>Name</th>
-                                    <!-- metric columns -->
-                                    <th class="trend-column">Trend</th>
-                                </tr>
-                            </tfoot>
                         </table>
-                        <div id="trend-chart">
-                            <div id="chart-container" class="chart-container"></div>
+                        <div class="trend-chart hidden">
+                            <div class="chart-container">
+                                <div class="dismiss-chart-button" onclick="dismissTrendChart();"><i class="fa fa-window-close" aria-hidden="true"></i></div>
+                                <div id="chart-wrapper"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="compare-view">
-
+                    <div class="compare-view report-view report-view-2 hidden">
+	                    <h2 class="section-title">Compare View</h2>
+                        <table id="data-compare-table" class="display" cellspacing="0" width="100%">
+                            <thead>
+                                <tr>
+                                    <th class="name-column">Name</th>
+                                    <th>
+                                        Metric:
+                                        <div class="dropdown">
+                                            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                                <span class="current-metric">Metric to Compare</span>
+                                                <span class="caret"></span>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-dropdownMenu1" aria-labelledby="dropdownMenu1"></ul>
+                                        </div>
+                                    </th>
+                                    <th class="bar-column"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- data rows -->
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="performance-view">
-
+                    <div class="performance-view report-view report-view-3 hidden">
+	                    <h2 class="section-title">Performance View</h2>
+                        <table id="data-performance-table" class="display" cellspacing="0" width="100%">
+                            <thead>
+                                <tr>
+                                    <th class="name-column">Name</th>
+                                    <th>
+                                        <div class="dropdown">
+                                            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                                <span class="current-metric">Metric to Compare</span>
+                                                <span class="caret"></span>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-metric dropdown-dropdownMenu2" aria-labelledby="dropdownMenu2"></ul>
+                                        </div>
+                                    </th>
+                                    <th class="bar-column">
+                                        Compare to:
+                                        <div class="dropdown">
+                                            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu3" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                                <span class="current-compared-value">Max</span>
+                                                <span class="caret"></span>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-value dropdown-dropdownMenu3" aria-labelledby="dropdownMenu3">
+                                                <li class="compare-max"><a href="#" onclick="performanceViewSetComparedValue('max');">Max</a></li>
+                                                <li class="compare-min"><a href="#" onclick="performanceViewSetComparedValue('min');">Min</a></li>
+                                                <li class="compare-average"><a href="#" onclick="performanceViewSetComparedValue('average');">Average</a></li>
+                                                <li class="compare-median"><a href="#" onclick="performanceViewSetComparedValue('median');">Median</a></li>
+                                            </ul>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- data rows -->
+                            </tbody>
+                        </table>                        
                     </div>
                 </div>
+                <div class="loading-info-container hidden">
+                    <div class="loading-info">
+                        Loading…
+                    </div>
+                </div>
+                <div class="prevents-interaction hidden"></div>
             </div>
         </div>
         <div id="secondary" class="site-sidebar">
@@ -135,306 +207,5 @@
     <footer id="colophon" class="site-footer">
         &copy; 2017 Carnegie Mellon University
     </footer>
-    <script>
-        var table;
-        var aggregationTable;
-        var setBreadcrumb = function(data) {
-            $('.report-breadcrumb').html('');
-            var len = data.breadcrumb.length;
-            for (idx in data.breadcrumb) {
-                var o = data.breadcrumb[idx];
-                appendBreadcrumbItem(o.parentName, o.parentLevel, o.parentId, idx == len - 1);
-            }
-        };
-        
-        var appendBreadcrumbItem = function(name, level, id, isLast) {
-            var html;
-            if (isLast) {
-                html = '<span class="breadcrumb-text">' + name + '</span>';
-            } else {
-                html = '<a class="breadcrumb-link" href="/report-mastery?parentLevel="' + level + '&parentId=' + id + '>' + name + '</a>';
-                if (!isLast) {
-                    html += ' > ';
-                }
-            }
-            
-            $('.report-breadcrumb').append(html);
-        };
-        
-        var initializeTopicsDropdown = function(data) {
-			var content = [];
-			_setTopics(content, data.topics);
-			
-			$('#topics-tree').fancytree({
-                checkbox: false,
-                selectMode: 1,
-                source: content
-            });
-        };
-        
-        var _setTopics = function(toArray, dataArray) {
-	        for (idx in dataArray) {
-		        var dict = dataArray[idx];
-		        var newDict = {
-			        title: dict.name,
-			        key: dict.id,
-			        folder: dict.children !== null
-		        };
-		        if (dict.children !== null) {
-			        newDict['children'] = [];
-			        _setTopics(newDict['children'], dict.children);
-		        }
-		        toArray.push(newDict);
-	        }
-        };
-        
-        var toggleTopicDropdown = function() {
-	        $('#topic-dropdown-container').toggleClass('shown');
-        };
-        
-        var applyAndDismissTopicDropdown = function() {
-	        
-	        toggleTopicDropdown();
-        };
-        
-        var drawTrendButtonHTML = function(itemId) {
-            return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i></button>';
-        };
-        
-        var setTableMeta = function(data) {
-            // insert columns
-            for (idx in data.metrics) {
-                $('#data-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
-                $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
-            }
-            // initialize tables
-            table = $('#data-table').DataTable({});
-            aggregationTable = $('#aggregation-table').DataTable({
-                paging: false,
-                ordering: false,
-                info: false,
-                bFilter: false,
-                fnDrawCallback: function(oSettings) {
-                    $(oSettings.nTHead).hide();
-                }
-            });
-            // insert placeholder rows for data table
-            for (idx in data.rows) {
-                var array = [data.rows[idx].name];
-                var nItems = data.metrics.length;
-                while (nItems--) {
-                    array.push("");
-                }
-                array.push(drawTrendButtonHTML(data.rows[idx].id));
-                var rowNode = table.row.add(array).draw(false).node();
-                var rowId = 'row-' + data.rows[idx].id;
-                $(rowNode).attr('id', rowId);
-            }
-        };
-        
-        var setTableData = function(data) {
-            // update data rows
-            for (idx in data.rows) {
-                var array = data.rows[idx].values;
-                array.unshift(data.rows[idx].name);
-                array.push(drawTrendButtonHTML(data.rows[idx].id));
-                table.row('#row-' + data.rows[idx].id).data(array).draw(false);
-            }
-            // add aggregation rows
-            for (idx in data.aggregation) {
-                var array = data.aggregation[idx].values;
-                array.unshift(data.aggregation[idx].name);
-                array.push('');
-                aggregationTable.row.add(array).draw(false);
-            }
-        };
-        
-        var dismissTrendChart = function() {
-            $('#chart-container').html('');
-        };
-        
-        var getTrendData = function(itemId) {
-            var data = {
-                series: [
-                    {
-                        name: '% exercise completed',
-                        isPercentage: true
-                    },{
-                        name: '% exercise correct',
-                        isPercentage: true
-                    },{
-                        name: '# attempts',
-                        isPercentage: false
-                    }
-                ],
-                data: [
-                    [1496941452, 15, 15, 2],
-                    [1497042452, 32, 20, 5],
-                    [1497143452, 45, 30, 12],
-                    [1497344452, 52, 45, 14],
-                    [1497945452, 65, 64, 18],
-                    [1499246452, 77, 77, 21],
-                    [1499347452, 80, 78, 23],
-                    [1499448452, 99, 79, 25],
-                    [1499949452, 100, 95, 30]
-                ]
-            };
-            
-            for (idx in data.data) {
-                var timestamp = data.data[idx][0];
-                var dateObject = new Date(timestamp * 1000);
-                data.data[idx][0] = dateObject;
-            }
-            
-            console.log(data);
-            
-            return data;
-        };
-        
-        var drawTrendChart = function(itemId) {
-            dismissTrendChart();
-            var trendData = getTrendData(itemId);
-            var chartData = new google.visualization.DataTable();
-            
-            var options = {
-                chart: {
-                    title: 'Trend'
-                },
-                width: 900,
-                height: 500,
-                series: {
-                    
-                },
-                axes: {
-                    y: {
-                        percentage: {label: 'Percentage'},
-                        number: {label: 'Number'}
-                    }
-                }
-            };
-            
-            chartData.addColumn('date', 'Date');
-            var seriesIndex = 0;
-            for (idx in trendData.series) {
-                var dict = trendData.series[idx];
-                var type = dict.isPercentage ? 'percentage' : 'number';
-                chartData.addColumn('number', dict.name);
-                options.series[seriesIndex++] = {axis: type};
-            }
-            
-            chartData.addRows(trendData.data);
-            
-            var chartContainer = document.getElementById('chart-container');
-            var chart = new google.charts.Line(chartContainer);
-            chart.draw(chartData, options);
-        };
-        
-        $(function() {
-            google.charts.load('current', {'packages':['line', 'corechart']});
-            setBreadcrumb({
-                breadcrumb: [{
-                    parentName: "All Regions",
-                    parentLevel: 0,
-                    parentId: 0
-                }, {
-                    parentName: "East Sector",
-                    parentLevel: 1,
-                    parentId: 10
-                }, {
-                    parentName: "Suffolk County Charter School",
-                    parentLevel: 2,
-                    parentId: 25
-                }]
-            });
-            
-            setTableMeta({
-                metrics: [{
-                    displayName: "% exercise completed",
-                    toolTip: "help text goes here"
-                }, {
-                    displayName: "% exercise correct",
-                    toolTip: "help text goes here"
-                }, {
-                    displayName: "# attempts",
-                    toolTip: "help text goes here"
-                }, {
-                    displayName: "% students completed the topic",
-                    toolTip: "help text goes here"
-                }],
-                rows: [{
-                    id: 1,
-                    name: "East sector"
-                }, {
-                    id: 2,
-                    name: "West sector"
-                }, {
-                    id: 3,
-                    name: "North sector"
-                }]
-            });
-            
-            setTableData({
-                rows: [{
-                    id: 1,
-                    name: "East Sector",
-                    values: [
-                        "30%",
-                        "25%",
-                        1,
-                        "10%"
-                    ]
-                }, {
-                    id: 2,
-                    name: "West Sector",
-                    values: [
-                        "30%",
-                        "25%",
-                        1,
-                        "10%"
-                    ]
-                }, {
-                    id: 3,
-                    name: "North Sector",
-                    values: [
-                        "30%",
-                        "25%",
-                        1,
-                        "10%"
-                    ]
-                }],
-                aggregation: [{
-                    name: "Average",
-                    values: [
-                        "30.75%",
-                        "28.75%",
-                        2.75,
-                        "10%"
-                    ]
-                }]
-            });
-
-            initializeTopicsDropdown({
-				"topics": [{
-					"id": 1,
-					"name": "Channel 1",
-					"children": [{
-						"id": 10,
-						"name": "Physics",
-						"children": null
-        			}]
-        		},{
-					"id": 2,
-					"name": "Channel 2",
-					"children": [{
-						"id": 24,
-						"name": "Algorithms",
-						"children": null
-        			}]
-    			}]
-			});
-            
-            $('.daterangepicker').daterangepicker();
-        });
-    </script>
 </body>
 </html>
