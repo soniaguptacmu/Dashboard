@@ -1,3 +1,5 @@
+"use strict";
+
 // globals
 var table; // main data table
 var aggregationTable; // aggregation rows table
@@ -16,8 +18,9 @@ var performanceMetricIndex = 0; // current metric index of the performance table
 var performanceComparedValueName = 'average'; // name of the type of currently used compared values
 var performanceComparedValues = {}; // compared values, for all types, of the performance table
 var pendingRequests = 0; // number of requests that are sent but not received yet
-var loadedTables = 0;
-var maxItemLevel = 3; // students
+var loadedTables = 0; // number of data tables loaded
+var totalNumberOfTables = 4; // total number of data tables (read-only)
+var maxItemLevel = 3; // students (read-only)
 var debug = true; // whether to print debug outputs to console
 
 /** Pragma Mark - Starting Points **/
@@ -90,7 +93,7 @@ var updateLoadingInfo = function() {
     if (pendingRequests > 0) {
         setLoadingInfo('Crunching data, hang tight…');
         $('.prevents-interaction').removeClass('hidden');
-    } else if (loadedTables < 4) {
+    } else if (loadedTables < totalNumberOfTables) {
         setLoadingInfo('Preparing report…');
         $('.prevents-interaction').removeClass('hidden');
     } else {
@@ -116,6 +119,7 @@ var setLoadingInfo = function(message) {
 var setBreadcrumb = function(data) {
     $('.report-breadcrumb').html('');
     var len = data.breadcrumb.length;
+    var idx;
     for (idx in data.breadcrumb) {
         var o = data.breadcrumb[idx];
         var lastItem = idx == len - 1;
@@ -208,6 +212,7 @@ var setTableMeta = function(data) {
     var sharedLengthMenu = [[10, 25, 50, 100], [10, 25, 50, 100]];
 
     // insert columns
+    var idx;
     for (idx in data.metrics) {
         $('#data-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
         $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
@@ -276,6 +281,7 @@ var setTableMeta = function(data) {
     });
     
     // insert placeholder rows for data table
+    var idx;
     for (idx in data.rows) {
         // data table
         var array = [drilldownColumnHTML(data.rows[idx].name, data.rows[idx].id)];
@@ -309,6 +315,7 @@ var setTableMeta = function(data) {
 // Replace dummy data inserted in `setTableMeta` with real data
 var setTableData = function(data) {
     tableData = data;
+    var idx;
     
     // update data rows
     for (idx in data.rows) {
@@ -342,6 +349,7 @@ var compareViewSetCompareMetricIndex = function(metricIndex) {
     
     // find max value
     var maxValue = 0;
+    var idx;
     if (typeof tableData.rows[0].values[metricIndex] === 'string') {
         maxValue = 100; // value type is percentage
     } else {
@@ -373,6 +381,7 @@ var performanceViewSetCompareMetricIndex = function(metricIndex) {
     
     // update compared-to values
     var values = [];
+    var idx;
     for (idx in tableData.rows) {
         values.push(parseInt(tableData.rows[idx].values[metricIndex]));
     }
@@ -451,6 +460,7 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
     
     var max = 100;
     var min = -100;
+    var idx;
     
     for (idx in tableData.rows) {
         var rawValue = parseFloat(tableData.rows[idx].values[performanceMetricIndex]);
@@ -523,6 +533,7 @@ var drawTrendChart = function(itemId) {
         chartData.addColumn('date', 'Date');
         
         var seriesIndex = 0;
+        var idx;
         for (idx in trendData.series) {
             var dict = trendData.series[idx];
             var type = dict.isPercentage ? 'percentage' : 'number';
@@ -664,6 +675,7 @@ var appendBreadcrumbItem = function(name, level, id, isLast) {
 
 // See `buildTopicsDropdown`
 var _setTopics = function(toArray, dataArray) {
+    var idx;
     for (idx in dataArray) {
         var dict = dataArray[idx];
         var newDict = {
@@ -700,7 +712,8 @@ var processTrendData = function(data) {
     if (data.data !== null && data.points === null) {
         data.points = data.data;
     }
-                
+
+    var idx;
     for (idx in data.points) {
         var timestamp = data.points[idx][0];
         var dateObject = new Date(timestamp * 1000);
