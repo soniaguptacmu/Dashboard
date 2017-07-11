@@ -1,10 +1,10 @@
 "use strict";
 
 // globals
-var table; // main data table
-var aggregationTable; // aggregation rows table
-var compareTable; // // datatables object
-var performanceTable; // datatables object
+var table = null; // main data table
+var aggregationTable = null; // aggregation rows table
+var compareTable = null; // // datatables object
+var performanceTable = null; // datatables object
 var tableData; // see API specs
 var tableMeta; // see API specs
 var startTimestamp = 1496948693; // default: from server
@@ -18,8 +18,6 @@ var performanceMetricIndex = 0; // current metric index of the performance table
 var performanceComparedValueName = 'average'; // name of the type of currently used compared values
 var performanceComparedValues = {}; // compared values, for all types, of the performance table
 var pendingRequests = 0; // number of requests that are sent but not received yet
-var loadedTables = 0; // number of data tables loaded
-var totalNumberOfTables = 4; // total number of data tables (read-only)
 var maxItemLevel = 3; // students (read-only)
 var debug = true; // whether to print debug outputs to console
 
@@ -27,12 +25,13 @@ var debug = true; // whether to print debug outputs to console
 
 // Update page (incl. new breadcrumb and all table/diagrams)
 // Uses global variables `startTimestamp`, `endTimestamp`, `contentId`, `channelId`, `parentLevel`, and `parentId`
+// Called every time the page needs update
 var updatePageContent = function() {
     
     // Making sure `setTableData` happens AFTER `setTableMeta`
     
-    var tableData1;
-    var tableData2;
+    var tableData1 = null;
+    var tableData2 = null;
     
 	sendPOSTRequest('/api/mastery/get-page-meta', {
 		startTimestamp: startTimestamp,
@@ -41,10 +40,10 @@ var updatePageContent = function() {
 		channelId: channelId,
 		parentLevel: parentLevel,
 		parentId: parentId
-	}, function(data) {
-		tableData1 = data;
-		setBreadcrumb(data);
-		setTableMeta(data);
+	}, function(response) {
+		tableData1 = response.data;
+		setBreadcrumb(tableData1);
+		setTableMeta(tableData1);
 		if (tableData2 !== null) {
 			setTableData(tableData2);
 		}
@@ -57,27 +56,44 @@ var updatePageContent = function() {
 		channelId: channelId,
 		parentLevel: parentLevel,
 		parentId: parentId
-	}, function(data) {
-		tableData2 = data;
+	}, function(response) {
+		tableData2 = response.data;
 		if (tableData1 !== null) {
-			setTableData(data);
+			setTableData(tableData2);
 		}
 	});
 };
 
 // Fetch topics by calling API and update the dropdown menu
+// Called only once upon page initialization
 var refreshTopicsDropdown = function() {
     sendPOSTRequest('/api/mastery/topics', {
         startTimestamp: startTimestamp,
 		endTimestamp: endTimestamp,
 		parentLevel: parentLevel,
 		parentId: parentId
-    }, function(data) {
-        buildTopicsDropdown(data);
+    }, function(response) {
+        buildTopicsDropdown(response.data);
     });
 };
 
+// Get trend data with specific item id from server (via POST) and sanitize it 
+// Used by `drawTrendChart`
+var getTrendData = function(itemId, callback) {    
+    sendPOSTRequest('/api/mastery/trend', {
+        startTimestamp: startTimestamp,
+        endTimestamp: endTimestamp,
+		contentId: contentId,
+		channelId: channelId,
+        level: parentLevel + 1,
+        itemId: itemId
+    }, function(response) {
+        callback(processTrendData(response.data));
+    });            
+};
+
 // Instantiate date range picker
+// Called only once upon page initialization
 var setupDateRangePicker = function() {
 	$('.daterangepicker').daterangepicker({
 		startDate: new Date(startTimestamp * 1000),
@@ -93,9 +109,6 @@ var setupDateRangePicker = function() {
 var updateLoadingInfo = function() {
     if (pendingRequests > 0) {
         setLoadingInfo('Crunching data, hang tight…');
-        $('.prevents-interaction').removeClass('hidden');
-    } else if (loadedTables < totalNumberOfTables) {
-        setLoadingInfo('Preparing report…');
         $('.prevents-interaction').removeClass('hidden');
     } else {
         setLoadingInfo(null);
@@ -118,6 +131,7 @@ var setLoadingInfo = function(message) {
 
 // Clears current breadcrumb and sets it to a new one according to given data.
 // Uses `appendBreadcrumbItem`
+// Called every time the page needs update
 var setBreadcrumb = function(data) {
     $('.report-breadcrumb').html('');
     var len = data.breadcrumb.length;
@@ -126,14 +140,12 @@ var setBreadcrumb = function(data) {
         var o = data.breadcrumb[idx];
         var lastItem = idx == len - 1;
         appendBreadcrumbItem(o.parentName, o.parentLevel, o.parentId, lastItem);
-        if (lastItem) {
-            break;
-        }
     }
 };
 
 // Initializes the topics dropdown according to given data
 // Calls `_setTopics` recursively
+// Called only once upon page initialization
 var buildTopicsDropdown = function(data) {
 	var content = [];
 	_setTopics(content, data.topics);
@@ -211,80 +223,78 @@ var buildTopicsDropdown = function(data) {
 };
 
 // Instantiate both tables, insert rows with data partially populated
+// Called every time the page needs update
+var metaSetOnce = false;
 var setTableMeta = function(data) {
     tableMeta = data;
     
-    var sharedLengthMenu = [[10, 25, 50, 100], [10, 25, 50, 100]];
+    // initialization run only once
+    if (!metaSetOnce) {
+        metaSetOnce = true;
+        
+        var sharedLengthMenu = [[10, 25, 50, 100], [10, 25, 50, 100]];
 
-    // insert columns
-    var idx;
-    for (idx in data.metrics) {
-        $('#data-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
-        $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
-        $('#data-compare-table .dropdown-menu').append('<li><a href="#" onclick="compareViewSetCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
-        $('#data-performance-table .dropdown-menu-metric').append('<li><a href="#" onclick="performanceViewSetCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
+        // insert columns
+        var idx;
+        for (idx in data.metrics) {
+            $('#data-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
+            $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
+            $('#data-compare-table .dropdown-menu').append('<li><a href="#" onclick="compareViewSetCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
+            $('#data-performance-table .dropdown-menu-metric').append('<li><a href="#" onclick="performanceViewSetCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
+        }
+        
+        // initialize tables
+        
+        table = $('#data-table').DataTable({
+            columnDefs: [
+                { orderable: false, targets: 5 }
+            ],
+            order: [[0, 'asc']],
+            dom: 'Bfrtip',
+            buttons: ['pageLength'/*, 'copy'*/, 'csv', 'excel', 'pdf'/*, 'print'*/],
+            lengthMenu: sharedLengthMenu
+        });
+        
+        aggregationTable = $('#aggregation-table').DataTable({
+            paging: false,
+            ordering: false,
+            info: false,
+            bFilter: false
+        });
+        
+        compareTable = $('#data-compare-table').DataTable({
+            columnDefs: [
+                { orderable: false, targets: 2 }
+            ],
+            order: [[0, 'asc']],
+            dom: 'Bfrtip',
+            buttons: ['pageLength'],
+            lengthMenu: sharedLengthMenu
+        });
+        
+        performanceTable = $('#data-performance-table').DataTable({
+            columnDefs: [
+                { orderable: false, targets: 2 }
+            ],
+            order: [[0, 'asc']],
+            dom: 'Bfrtip',
+            buttons: ['pageLength'],
+            lengthMenu: sharedLengthMenu
+        });
+    
+        // manually toggle dropdown; stop event propagation to avoid unintentional table reorders
+        $('thead .dropdown button').on('click', function(e){
+            e.stopPropagation();  
+            $('.dropdown-' + $(this).attr('id')).dropdown('toggle');
+        });
     }
     
-    // initialize tables
+    // remove current rows
     
-    table = $('#data-table').DataTable({
-        columnDefs: [
-            { orderable: false, targets: 5 }
-        ],
-        order: [[0, 'asc']],
-        initComplete: function(settings, json) {
-            loadedTables++;
-            updateLoadingInfo();
-        },
-        dom: 'Bfrtip',
-        buttons: ['pageLength'/*, 'copy'*/, 'csv', 'excel', 'pdf'/*, 'print'*/],
-        lengthMenu: sharedLengthMenu
-    });
-    
-    aggregationTable = $('#aggregation-table').DataTable({
-        paging: false,
-        ordering: false,
-        info: false,
-        bFilter: false,
-        initComplete: function(settings, json) {
-            loadedTables++;
-            updateLoadingInfo();
-        }
-    });
-    
-    compareTable = $('#data-compare-table').DataTable({
-        columnDefs: [
-            { orderable: false, targets: 2 }
-        ],
-        order: [[0, 'asc']],
-        initComplete: function(settings, json) {
-            loadedTables++;
-            updateLoadingInfo();
-        },
-        dom: 'Bfrtip',
-        buttons: ['pageLength'],
-        lengthMenu: sharedLengthMenu
-    });
-    
-    performanceTable = $('#data-performance-table').DataTable({
-        columnDefs: [
-            { orderable: false, targets: 2 }
-        ],
-        order: [[0, 'asc']],
-        initComplete: function(settings, json) {
-            loadedTables++;
-            updateLoadingInfo();
-        },
-        dom: 'Bfrtip',
-        buttons: ['pageLength'],
-        lengthMenu: sharedLengthMenu
-    });
-
-    // manually toggle dropdown; stop event propagation to avoid unintentional table reorders
-    $('thead .dropdown button').on('click', function(e){
-        e.stopPropagation();  
-        $('.dropdown-' + $(this).attr('id')).dropdown('toggle');
-    });
+    table.clear();
+    compareTable.clear();
+    performanceTable.clear();
+    aggregationTable.clear();
     
     // insert placeholder rows for data table
     var idx;
@@ -319,6 +329,7 @@ var setTableMeta = function(data) {
 };
 
 // Replace dummy data inserted in `setTableMeta` with real data
+// Called every time the page needs update
 var setTableData = function(data) {
     tableData = data;
     var idx;
@@ -346,6 +357,8 @@ var setTableData = function(data) {
     compareViewSetCompareMetricIndex(compareMetricIndex);
     performanceViewSetCompareMetricIndex(performanceMetricIndex);
 };
+
+/** Pragma Mark - UIAction **/
 
 // Set index of compare metric in the compare view
 // UIAction
@@ -515,7 +528,7 @@ var closeTopicDropdown = function() {
 var applyAndDismissTopicDropdown = function() {
     var node = $('#topics-tree').fancytree('getTree').getActiveNode();
 	if (node !== null) {
-		topicIdentifiers = node.key.split(','); // update global state
+		var topicIdentifiers = node.key.split(','); // update global state
 		channelId = topicIdentifiers[0];
 		contentId = topicIdentifiers[1];
 		$('.topic-dropdown-text').html(node.title);
@@ -551,47 +564,6 @@ var dismissTrendChart = function() {
 };
 
 /** Pragma Mark - Utilities **/
-
-// Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
-// `callback` called when a response is received, with the actual response as the parameter.
-var sendPOSTRequest = function(url, dataObject, callback) {
-    
-    pendingRequests++;
-    updateLoadingInfo();
-    
-    if (debug) {
-        console.log('POST request sent to: ' + JSON.stringify(url) + '. POST data: ' + JSON.stringify(dataObject));
-    }
-    
-    $.ajax({
-		type: 'POST',
-		url: url,
-		data: JSON.stringify(dataObject),
-		success: function(result, textStatus, jqXHR) {
-			if (debug) {
-				console.log('Response: ' + JSON.stringify(result));
-			}
-			callback(result);
-			pendingRequests--;
-			updateLoadingInfo();
-		},
-		error: function(jqXHR, textStatus, errorThrown) {
-            if (!textStatus) {
-                textStatus = 'error';
-            }
-            if (!errorThrown) {
-                errorThrown = 'Unknown error';
-            }
-            if (debug) {
-                console.log('Request failed with status: ' + textStatus + '. Error Thrown: ' + errorThrown);
-            }
-            toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
-            pendingRequests--;
-            updateLoadingInfo();
-		},
-		dataType: 'json'
-	});
-};
 
 // Append a new breadcrumb item to the current list
 var appendBreadcrumbItem = function(name, level, id, isLast) {
@@ -657,25 +629,6 @@ var processTrendData = function(data) {
     }
     
     return data;
-};
-
-// Get trend data with specific item id from server (via POST) and sanitize it 
-// Used by `drawTrendChart`
-var getTrendData = function(itemId, callback) {
-    // Test
-    callback(processTrendData(fakeTrendData()));
-    return;
-    
-    sendPOSTRequest('/api/mastery/trend', {
-        startTimestamp: startTimestamp,
-        endTimestamp: endTimestamp,
-		contentId: contentId,
-		channelId: channelId,
-        level: parentLevel + 1,
-        itemId: itemId
-    }, function(data) {
-        callback(processTrendData(data));
-    });            
 };
 
 // Sets whether the trend chart is visible.
@@ -768,6 +721,46 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
     }
 };
 
+// Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
+// `callback` called when a response is received, with the actual response as the parameter.
+var sendPOSTRequest_real = function(url, dataObject, callback) {
+    pendingRequests++;
+    updateLoadingInfo();
+    
+    if (debug) {
+        console.log('POST request sent to: ' + JSON.stringify(url) + '. POST data: ' + JSON.stringify(dataObject));
+    }
+    
+    $.ajax({
+		type: 'POST',
+		url: url,
+		data: JSON.stringify(dataObject),
+		success: function(result, textStatus, jqXHR) {
+			if (debug) {
+				console.log('Response: ' + JSON.stringify(result));
+			}
+			callback(result);
+			pendingRequests--;
+			updateLoadingInfo();
+		},
+		error: function(jqXHR, textStatus, errorThrown) {
+            if (!textStatus) {
+                textStatus = 'error';
+            }
+            if (!errorThrown) {
+                errorThrown = 'Unknown error';
+            }
+            if (debug) {
+                console.log('Request failed with status: ' + textStatus + '. Error Thrown: ' + errorThrown);
+            }
+            toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
+            pendingRequests--;
+            updateLoadingInfo();
+		},
+		dataType: 'json'
+	});
+};
+
 /** Testing **/
 
 var getRandomInt = function(min, max) {
@@ -776,7 +769,7 @@ var getRandomInt = function(min, max) {
   return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
 }
 
-var fakeTrendData = function() {
+var trendData = function() {
     var i=0,j=0,k=0;
     var data = {
         series: [
@@ -807,9 +800,8 @@ var fakeTrendData = function() {
     return data;
 };
 
-var runTest = function() {
-    // Test
-    setBreadcrumb({
+var tableMetaData = function() {
+    return {
         breadcrumb: [{
             parentName: "All Regions",
             parentLevel: 0,
@@ -818,11 +810,7 @@ var runTest = function() {
             parentName: "East Sector",
             parentLevel: 1,
             parentId: 10
-        }]
-    });
-    
-    // Test
-    setTableMeta({
+        }],
         metrics: [{
             displayName: "% exercise completed",
             toolTip: "help text goes here"
@@ -870,11 +858,11 @@ var runTest = function() {
             id: 11,
             name: "Eastwood School"
         }]
-    });
-    
-    // Test
+    };
+};
 
-    setTableData({
+var tableDataData = function() {
+    return {
         rows: [{
             id: 1,
             name: "Allegheny K-5",
@@ -984,10 +972,11 @@ var runTest = function() {
                 "10%"
             ]
         }]
-    });
+    };
+};
 
-	// Test
-    buildTopicsDropdown({
+var topicsData = function() {
+    return {
 		"topics": [{
 			"contentId": "bb",
 			"channelId": "aa",
@@ -1007,7 +996,50 @@ var runTest = function() {
 				"children": null
 			}]
 		}]
-	});
+	};
+};
+
+var sendPOSTRequest = function(url, dataObject, callback) {
+    
+    pendingRequests++;
+    updateLoadingInfo();
+    
+    if (debug) {
+        console.log('POST request sent to: ' + JSON.stringify(url) + '. POST data: ' + JSON.stringify(dataObject));
+    }
+    
+    setTimeout(function() {
+        if (url === '/api/mastery/get-page-meta') {
+            callback({
+                code: 0,
+                data: tableMetaData()
+            });
+        }
+        
+        if (url === '/api/mastery/get-page-data') {
+            callback({
+                code: 0,
+                data: tableDataData()
+            });
+        }
+        
+        if (url === '/api/mastery/topics') {
+            callback({
+                code: 0,
+                data: topicsData()
+            });
+        }
+        
+        if (url === '/api/mastery/trend') {
+            callback({
+                code: 0,
+                data: trendData()
+            });
+        }
+        
+        pendingRequests--;
+        updateLoadingInfo();
+    }, 2000);
 };
 
 $(function() {
@@ -1015,9 +1047,6 @@ $(function() {
     
     updateLoadingInfo();
     setupDateRangePicker();
-    //refreshTopicsDropdown();
-    //updatePageContent();
-    
-    // Test
-    runTest();
+    refreshTopicsDropdown();
+    updatePageContent();
 });
