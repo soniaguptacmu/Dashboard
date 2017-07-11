@@ -35,13 +35,13 @@ class UserInfoSchool(models.Model):
 class UserInfoClass(models.Model):
     class_id = models.BigIntegerField(primary_key=True)
     class_name = models.CharField(max_length=60)
-    parent = models.ForeignKey(UserInfoSchool, on_delete=models.CASCADE)
+    parent = models.BigIntegerField()
     total_students = models.IntegerField()
 
 class UserInfoStudent(models.Model):
     student_id = models.BigIntegerField(primary_key=True)
     student_name = models.CharField(max_length=60)
-    parent = models.ForeignKey(UserInfoClass, on_delete=models.CASCADE)
+    parent = models.BigIntegerField()
 
 class UserRoleCollectionMapping(models.Model):
     user_id = models.ForeignKey(Users, on_delete=models.CASCADE)
@@ -53,41 +53,44 @@ class UserRoleCollectionMapping(models.Model):
 
 class Content(models.Model):
     topic_id = models.CharField(max_length=32,primary_key=True)
-    topic_name = models.CharField(max_length=60)
+    topic_name = models.CharField(max_length=140)
     content_id = models.CharField(max_length=32)
     channel_id = models.CharField(max_length=32)
     total_questions = models.IntegerField()
-    sub_topics = models.CharField(max_length=10000)
+    sub_topics = models.TextField()
 
 class MasteryLevelStudent(models.Model):
+    id = models.CharField(max_length=40,primary_key=True)
     student_id = models.ForeignKey(UserInfoStudent, on_delete=models.CASCADE)
-    content_id = models.ForeignKey(Content, on_delete=models.CASCADE)
+    content_id = models.CharField(max_length=32)
     channel_id = models.CharField(max_length=32)
     date = models.DateTimeField()
-    completed_questions = models.IntegerField()
-    correct_questions = models.IntegerField()
-    attempt_questions = models.IntegerField()
-    completed = models.BooleanField()
+    completed_questions = models.IntegerField(default=0)
+    correct_questions = models.IntegerField(default=0)
+    attempt_questions = models.IntegerField(default=0)
+    completed = models.BooleanField(default=False)
 
 class MasteryLevelClass(models.Model):
+    id = models.CharField(max_length=40,primary_key=True)
     class_id = models.ForeignKey(UserInfoClass, on_delete=models.CASCADE)
-    content_id = models.ForeignKey(Content, on_delete=models.CASCADE)
+    content_id = models.CharField(max_length=32)
     channel_id = models.CharField(max_length=32)
     date = models.DateTimeField()
-    completed_questions = models.IntegerField()
-    correct_questions = models.IntegerField()
-    attempt_questions = models.IntegerField()
-    students_completed = models.IntegerField()
+    completed_questions = models.IntegerField(default=0)
+    correct_questions = models.IntegerField(default=0)
+    attempt_questions = models.IntegerField(default=0)
+    students_completed = models.IntegerField(default=0)
 
 class MasteryLevelSchool(models.Model):
+    id = models.CharField(max_length=40,primary_key=True)
     school_id = models.ForeignKey(UserInfoSchool, on_delete=models.CASCADE)
-    content_id = models.ForeignKey(Content, on_delete=models.CASCADE)
+    content_id = models.CharField(max_length=32)
     channel_id = models.CharField(max_length=32)
     date = models.DateTimeField()
-    completed_questions = models.IntegerField()
-    correct_questions = models.IntegerField()
-    attempt_questions = models.IntegerField()
-    students_completed = models.IntegerField()
+    completed_questions = models.IntegerField(default=0)
+    correct_questions = models.IntegerField(default=0)
+    attempt_questions = models.IntegerField(default=0)
+    students_completed = models.IntegerField(default=0)
 
 class LatestFetchDate(models.Model):
     date_id = models.IntegerField(primary_key=True)
