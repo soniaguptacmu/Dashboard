@@ -17,6 +17,7 @@ var performanceComparedValueName = 'average'; // name of the type of currently u
 var performanceComparedValues = {}; // compared values, for all types, of the performance table
 var pendingRequests = 0; // number of requests that are sent but not received yet
 var loadedTables = 0;
+var maxItemLevel = 3; // students
 var debug = true; // whether to print debug outputs to console
 
 /** Pragma Mark - Starting Points **/
@@ -136,9 +137,22 @@ var buildTopicsDropdown = function(data) {
         title: "Everything", 
         key: 1000, 
         folder: true, 
-        children:content,
+        children: content,
         expanded: true
     }];
+    
+    var opts = {
+        autoApply: true,            // Re-apply last filter if lazy data is loaded
+        autoExpand: true,          // Expand all branches that contain matches while filtered
+        counter: false,              // Show a badge with number of matching child nodes near parent icons
+        fuzzy: false,               // Match single characters in order, e.g. 'fb' will match 'FooBar'
+        hideExpandedCounter: true,  // Hide counter badge if parent is expanded
+        hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
+        highlight: true,            // Highlight matches by wrapping inside <mark> tags
+        leavesOnly: false,          // Match end nodes only
+        nodata: false,              // Display a 'no data' status node if result is empty
+        mode: 'hide'                // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
+    };
 	
 	$('#topics-tree').html('');
 	$('#topics-tree').fancytree({
@@ -146,40 +160,25 @@ var buildTopicsDropdown = function(data) {
         selectMode: 1,
         extensions: ['filter'],
 		quicksearch: true,
-		filter: {
-	        autoApply: true,            // Re-apply last filter if lazy data is loaded
-	        autoExpand: false,          // Expand all branches that contain matches while filtered
-	        counter: true,              // Show a badge with number of matching child nodes near parent icons
-	        fuzzy: false,               // Match single characters in order, e.g. 'fb' will match 'FooBar'
-	        hideExpandedCounter: true,  // Hide counter badge if parent is expanded
-	        hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
-	        highlight: true,            // Highlight matches by wrapping inside <mark> tags
-	        leavesOnly: false,          // Match end nodes only
-	        nodata: true,               // Display a 'no data' status node if result is empty
-	        mode: 'dimm'                // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
-        },
-        source: content
+		source: content,
+		filter: opts
     });
     
     $('#topic-filter-field').keyup(function(e) {
         var n; // number of results
 		var tree = $.ui.fancytree.getTree();
-		var args = 'autoApply autoExpand fuzzy hideExpanders highlight leavesOnly nodata'.split(' ');
-		var opts = {};
 		var filterFunc = tree.filterBranches;
 		var match = $(this).val();
 
-		$.each(args, function(i, o) {
-			opts[o] = $('#' + o).is(':checked');
-			});
-			opts.mode = 'hide';
+		if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ''){
+    		// reset search
+            $('#topic-filter-field').val('');
+            var tree = $.ui.fancytree.getTree();
+            tree.clearFilter();
+			return;
+		}
 
-			if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ''){
-				$('#reset-search').click();
-				return;
-			}
-
-			n = filterFunc.call(tree, match, opts);
+		n = filterFunc.call(tree, match, opts);
     });
     
     $('#reset-search').click(function(e){
@@ -187,13 +186,26 @@ var buildTopicsDropdown = function(data) {
 		var tree = $.ui.fancytree.getTree();
 		tree.clearFilter();
 	});
+	
+	$('html').click(function() {
+        closeTopicDropdown();
+    });
+    
+    $('#topic-dropdown-container').click(function(e) {
+        e.stopPropagation();
+    });
+    
+    $('.topic .toggle-button').click(function(e) {
+        toggleTopicDropdown();
+        e.stopPropagation();
+    });
 };
 
 // Instantiate both tables, insert rows with data partially populated
 var setTableMeta = function(data) {
     tableMeta = data;
     
-    var lengthMenu = [[5, 10, 25, 50, 100], [5, 10, 25, 50, 100]];
+    var sharedLengthMenu = [[10, 25, 50, 100], [10, 25, 50, 100]];
 
     // insert columns
     for (idx in data.metrics) {
@@ -214,8 +226,8 @@ var setTableMeta = function(data) {
             updateLoadingInfo();
         },
         dom: 'Bfrtip',
-        buttons: ['pageLength', 'copy', 'csv', 'excel', 'pdf', 'print'],
-        lengthMenu: lengthMenu
+        buttons: ['pageLength'/*, 'copy'*/, 'csv', 'excel', 'pdf'/*, 'print'*/],
+        lengthMenu: sharedLengthMenu
     });
     
     aggregationTable = $('#aggregation-table').DataTable({
@@ -240,7 +252,7 @@ var setTableMeta = function(data) {
         },
         dom: 'Bfrtip',
         buttons: ['pageLength'],
-        lengthMenu: lengthMenu
+        lengthMenu: sharedLengthMenu
     });
     
     performanceTable = $('#data-performance-table').DataTable({
@@ -254,11 +266,11 @@ var setTableMeta = function(data) {
         },
         dom: 'Bfrtip',
         buttons: ['pageLength'],
-        lengthMenu: lengthMenu
+        lengthMenu: sharedLengthMenu
     });
 
     // manually toggle dropdown; stop event propagation to avoid unintentional table reorders
-    $('.dropdown button').on('click', function(e){
+    $('thead .dropdown button').on('click', function(e){
         e.stopPropagation();  
         $('.dropdown-' + $(this).attr('id')).dropdown('toggle');
     });
@@ -297,6 +309,7 @@ var setTableMeta = function(data) {
 // Replace dummy data inserted in `setTableMeta` with real data
 var setTableData = function(data) {
     tableData = data;
+    
     // update data rows
     for (idx in data.rows) {
         var array = JSON.parse(JSON.stringify(data.rows[idx].values)); // deep copy an array
@@ -308,12 +321,12 @@ var setTableData = function(data) {
         var compareArray = [drilldownColumnHTML(data.rows[idx].name, data.rows[idx].id), '', ''];
         compareTable.row('#row-' + data.rows[idx].id).data(compareArray).draw(false);
     }
+    
     // add aggregation rows
     for (idx in data.aggregation) {
         var array = data.aggregation[idx].values;
         array.unshift(data.aggregation[idx].name);
         array.push('');
-        console.log(array);
         aggregationTable.row.add(array).draw(false);
     }
     
@@ -548,6 +561,11 @@ var toggleTopicDropdown = function() {
     $('#topic-dropdown-container').toggleClass('shown');
 };
 
+// IBAction
+var closeTopicDropdown = function() {
+    $('#topic-dropdown-container').removeClass('shown');
+};
+
 // Apply currently selected topic, dismiss the dropdown, and update the page (async)
 // IBAction
 var applyAndDismissTopicDropdown = function() {
@@ -566,8 +584,8 @@ var applyAndDismissTopicDropdown = function() {
 };
 
 // IBAction
-var performDrilldown = function(id) {
-  	  parentId = id;
+var performDrilldown = function(itemId) {
+  	  parentId = itemId;
   	  parentLevel++;
   	  updatePageContent();
 };
@@ -596,9 +614,7 @@ var sendPOSTRequest = function(url, dataObject, callback) {
     updateLoadingInfo();
     
     if (debug) {
-        console.log('POST request sent to: ' + url);
-        console.log('POST data: ');
-        console.log(dataObject);
+        console.log('POST request sent to: ' + JSON.stringify(url) + '. POST data: ' + JSON.stringify(dataObject));
     }
     
     $.ajax({
@@ -607,23 +623,21 @@ var sendPOSTRequest = function(url, dataObject, callback) {
 		data: JSON.stringify(dataObject),
 		success: function(result, textStatus, jqXHR) {
 			if (debug) {
-				console.log('Response:');
-				console.log(result);
+				console.log('Response: ' + JSON.stringify(result));
 			}
 			callback(result);
 			pendingRequests--;
 			updateLoadingInfo();
 		},
 		error: function(jqXHR, textStatus, errorThrown) {
-            if (debug) {
-                console.log('Request Error:');
-                console.log(textStatus + ', ' + errorThrown);
-            }
             if (!textStatus) {
                 textStatus = 'error';
             }
             if (!errorThrown) {
                 errorThrown = 'Unknown error';
+            }
+            if (debug) {
+                console.log('Request failed with status: ' + textStatus + '. Error Thrown: ' + errorThrown);
             }
             toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
             pendingRequests--;
@@ -673,7 +687,7 @@ var drawTrendButtonHTML = function(itemId) {
         
 // HTML code of drilldown column in data table
 var drilldownColumnHTML = function(name, id) {
-    if (parentLevel == 2) {
+    if (parentLevel + 1 === maxItemLevel) {
     	return '<span>' + name + '</span>';
     } else {
     	return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
