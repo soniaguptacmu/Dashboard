@@ -12,6 +12,7 @@ from django.core import serializers
 from django.db import models
 import json
 import datetime
+import time
 
 
 def construct_response(code, title, message, data):
@@ -933,6 +934,86 @@ def get_page_data_view(request):
             response_object= get_page_data(parent_id, parent_level, topic_id, end_timeStamp, start_timestamp) 
             print(response_object)
             return HttpResponse(response_object)
+
+#@login_required
+@csrf_exempt
+def get_topics(request):
+    if request.method == 'POST':
+        topics = Content.objects.filter(topic_id='').first()
+        obj = json.loads(topics.sub_topics)
+        wrap = {}
+        wrap['topic'] = obj
+        response = construct_response(0, '', '', wrap);
+        response_text = json.dumps(response,ensure_ascii=False)
+        return HttpResponse(response_text,content_type='application/json')
+    else:
+        response = construct_response(1111,'wrong request','wrong request','')
+        response_text = serializers.serialize('json',response)
+        return HttpResponse(response_text,content_type='application/json')
+
+#@login_required
+@csrf_exempt
+def get_trend(request):
+    if request.method == 'POST':
+        body_unicode = request.body.decode('utf-8')
+        params = json.loads(body_unicode)
+        start_timestamp = params['startTimestamp']
+        start = datetime.datetime.fromtimestamp(start_timestamp)
+        end_timestamp = params['endTimestamp']
+        end = datetime.datetime.fromtimestamp(end_timestamp)
+        topic_id = params['contentId']
+        channel_id = params['channelId']
+        level = params['level']
+        item_id = params['itemId']
+        data = None
+        if level == -1 or level == 0:
+            pass
+        elif level == 1:
+            data = MasteryLevelSchool.objects.filter(school_id=item_id, content_id=topic_id, channel_id=channel_id,\
+                date__gt=start_timestamp,date__lt=end_timestamp).order_by('date')
+        elif level == 2:
+            data = MasteryLevelClass.objects.filter(class_id=item_id, content_id=topic_id, channel_id=channel_id,\
+                date__gt=start_timestamp,date__lt=end_timestamp).order_by('date')
+        elif level == 3:
+            data = MasteryLevelStudent.objects.filter(student_id=item_id, content_id=topic_id, channel_id=channel_id,\
+                date__gt=start,date__lt=end).order_by('date')
+        res = {}
+        series = []
+        series.append({'name':'percentage of exercise completed','isPercentage':True})
+        series.append({'name':'percentage of exercise correct','isPercentage':True})
+        series.append({'name':'# attemps','isPercentage':False})
+        series.append({'name':'completed students','isPercentage':False})
+        points = []
+        for ele in data:
+            temp = []
+            temp.append(time.mktime(ele.date.timetuple()))
+            temp.append(ele.completed_questions)
+            temp.append(ele.correct_questions)
+            temp.append(ele.attempt_questions)
+            if level == 3:
+                temp.append(ele.completed)
+            else:
+                temp.append(ele.students_completed)
+            points.append(temp)
+        res['series'] = series
+        res['points'] = points
+        #data_str = serializers.serialize('json', data)
+        response = construct_response(0,'','',res)
+        response_text = json.dumps(response,ensure_ascii=False)
+        return HttpResponse(response_text,content_type='application/json')
+    else:
+        response = construct_response(1111,'wrong request','wrong request','')
+        response_text = serializers.serialize('json',response)
+        return HttpResponse(response_text,content_type='application/json')
+
+@csrf_exempt
+def get_report_mastery(request):
+    if request.method == 'GET':
+        return render(request,'report-mastery.html')
+    else:
+        return HttpResponse()
+
+
 
 
 
