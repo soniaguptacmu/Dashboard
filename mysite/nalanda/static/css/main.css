@@ -7,11 +7,16 @@
 ------------------------------------------------------------------------ */
 
 body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Roboto', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     color: #333333;
     background-color: #3d3d3d;
     line-height: 1.5;
     font-size: 14px;
+}
+
+a,
+a:hover {
+    color: #039be5;
 }
 
 .site-header {
@@ -111,7 +116,7 @@ body {
 
 .site-navigation li.current a,
 .site-navigation li.current a:hover {
-    background: #d64635;
+    background: #E53935;
     color: #ffffff;
     border-top-color: transparent;
 }
@@ -309,7 +314,6 @@ body {
 #topic-filter-field {
     outline: none;
     margin-bottom: 6px;
-    box-shadow: none;
     border: 1px solid #ccc;
     border-radius: 12px;
     padding: 3px 5px 3px 25px;
@@ -405,7 +409,7 @@ input.daterangepicker {
 }
 
 .progress-bar {
-    text-shadow: 1px 1px #777 ;
+    text-shadow: 1px 1px #555;
 }
 
 thead .dropdown {
@@ -444,13 +448,67 @@ th.name-column {
     border: 1px solid #ccc;
     border-radius: 4px;
     line-height: 18px;
-    padding: 4px 5px;
+    padding: 6px 5px;
     font-weight: normal;
     outline: none;
 }
 
 .draw-trend-button {
     padding: 2px 8px;
+}
+
+/* use material design color scheme */
+
+.progress-bar {
+    background-color: #2196F3;
+}
+
+.progress-bar-danger {
+    background-color: #FF9800;
+}
+
+.btn-default {
+    background-color: #fff;
+    border-color: #ddd;
+}
+
+.btn-default:hover,
+.btn-default:active,
+.btn-default:focus {
+    background-color: #eee !important;
+    border-color: #ddd !important;
+}
+
+.btn-primary {
+    background-color: #03A9F4;
+    border-color: #0288D1;
+}
+
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus {
+    background-color: #039BE5 !important;
+    border-color: #0277BD !important;
+}
+
+.btn-success {
+    background-color: #66BB6A;
+    border-color: #43A047;
+}
+
+.btn-success:hover,
+.btn-success:active,
+.btn-success:focus {
+    background-color: #43A047 !important;
+    border-color: #2E7D32 !important;
+}
+
+.btn-group > .btn:hover {
+    z-index: auto;
+}
+
+.btn-group > .btn.current {
+    z-index: 2;
 }
 
 .loading-info-container {

@@ -161,8 +161,8 @@ var buildTopicsDropdown = function(data) {
     
     var opts = {
         autoApply: true,            // Re-apply last filter if lazy data is loaded
-        autoExpand: true,          // Expand all branches that contain matches while filtered
-        counter: false,              // Show a badge with number of matching child nodes near parent icons
+        autoExpand: true,           // Expand all branches that contain matches while filtered
+        counter: false,             // Show a badge with number of matching child nodes near parent icons
         fuzzy: false,               // Match single characters in order, e.g. 'fb' will match 'FooBar'
         hideExpandedCounter: true,  // Hide counter badge if parent is expanded
         hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
@@ -504,9 +504,10 @@ var drawTrendChart = function(itemId, itemName) {
 
 // UIAction
 var switchView = function(viewId) {
-    $('.switch-view-button').removeClass('btn-primary');
+    $('.switch-view-button').removeClass('btn-primary current');
     $('.switch-view-button').addClass('btn-default');
-    $('.switch-view-button-' + viewId).addClass('btn-primary');
+    $('.switch-view-button-' + viewId).removeClass('btn-default');
+    $('.switch-view-button-' + viewId).addClass('btn-primary current');
     
     $('.report-view').addClass('hidden');
     $('.report-view-' + viewId).removeClass('hidden');
@@ -543,17 +544,17 @@ var applyAndDismissTopicDropdown = function() {
 // Handle click event of a drilldown link
 // UIAction
 var performDrilldown = function(itemId) {
-        parentId = itemId;
-        parentLevel++;
-        updatePageContent();
+    parentId = itemId;
+    parentLevel++;
+    updatePageContent();
 };
 
 // Handle click event of a breadcrumb link
 // UIAction
 var clickBreadcrumbLink = function(level, id) {
-      parentId = id;
-      parentLevel = level;
-      updatePageContent();  
+    parentId = id;
+    parentLevel = level;
+    updatePageContent();  
 };
 
 // Dismiss trend diagram
@@ -764,9 +765,9 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
 /** Testing **/
 
 var getRandomInt = function(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
 }
 
 var trendData = function() {
