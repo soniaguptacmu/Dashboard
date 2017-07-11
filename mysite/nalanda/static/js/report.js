@@ -29,10 +29,10 @@ var debug = true; // whether to print debug outputs to console
 // Uses global variables `startTimestamp`, `endTimestamp`, `contentId`, `channelId`, `parentLevel`, and `parentId`
 var updatePageContent = function() {
     
+    // Making sure `setTableData` happens AFTER `setTableMeta`
+    
     var tableData1;
     var tableData2;
-    
-    // Making sure `setTableData` happens AFTER `setTableMeta`
     
 	sendPOSTRequest('/api/mastery/get-page-meta', {
 		startTimestamp: startTimestamp,
@@ -89,6 +89,7 @@ var setupDateRangePicker = function() {
     });
 };
 
+// Update loading info (on top of screen) according to current system status. Calling this method will either show it, change it, or hide it.
 var updateLoadingInfo = function() {
     if (pendingRequests > 0) {
         setLoadingInfo('Crunching data, hang tight…');
@@ -104,6 +105,7 @@ var updateLoadingInfo = function() {
 
 /** Pragma Mark - Page Manipulation **/
 
+// Set a specific loading message.
 var setLoadingInfo = function(message) {
     if (message === null) {
         $('.loading-info-container').addClass('hidden');
@@ -168,6 +170,7 @@ var buildTopicsDropdown = function(data) {
 		filter: opts
     });
     
+    // filter field
     $('#topic-filter-field').keyup(function(e) {
         var n; // number of results
 		var tree = $.ui.fancytree.getTree();
@@ -185,12 +188,14 @@ var buildTopicsDropdown = function(data) {
 		n = filterFunc.call(tree, match, opts);
     });
     
+    // automatic reset
     $('#reset-search').click(function(e){
 		$('#topic-filter-field').val('');
 		var tree = $.ui.fancytree.getTree();
 		tree.clearFilter();
 	});
 	
+	// click background to dismiss
 	$('html').click(function() {
         closeTopicDropdown();
     });
@@ -221,6 +226,7 @@ var setTableMeta = function(data) {
     }
     
     // initialize tables
+    
     table = $('#data-table').DataTable({
         columnDefs: [
             { orderable: false, targets: 5 }
@@ -341,7 +347,8 @@ var setTableData = function(data) {
     performanceViewSetCompareMetricIndex(performanceMetricIndex);
 };
 
-// IBAction
+// Set index of compare metric in the compare view
+// UIAction
 var compareViewSetCompareMetricIndex = function(metricIndex) {
     compareMetricIndex = metricIndex;
     var metricName = tableMeta.metrics[metricIndex].displayName;
@@ -373,7 +380,8 @@ var compareViewSetCompareMetricIndex = function(metricIndex) {
     }
 };
 
-// IBAction
+// Set index of compare metric in performance view
+// UIAction
 var performanceViewSetCompareMetricIndex = function(metricIndex) {
     performanceMetricIndex = metricIndex;
     var metricName = tableMeta.metrics[metricIndex].displayName;
@@ -416,15 +424,270 @@ var performanceViewSetCompareMetricIndex = function(metricIndex) {
     $('.compare-median a').text('Median: ' + median);
     
     // update dropdown title and bars
+    // updating compare metric will also affect the value of chosen compared values (different base values)
     performanceViewUpdateComparedValueTitleAndTableRows();
 };
 
-// IBAction
+// Set the compared value for performance view
+// UIAction
 var performanceViewSetComparedValue = function(valueName) {
     performanceComparedValueName = valueName;
     performanceViewUpdateComparedValueTitleAndTableRows();
 };
 
+// Get data remotely via `getTrendData` (async) and draw the chart (after removing previous chart -- if any)
+// UIAction
+var drawTrendChart = function(itemId, itemName) {
+    dismissTrendChart();
+    getTrendData(itemId, function(trendData) {
+        var chartData = new google.visualization.DataTable();
+        var earlyDate = trendData.points[0][0];
+        var lateDate = trendData.points[trendData.points.length - 1][0];
+        var options = {
+            chart: {
+                title: itemName + ' Mastery Trend',
+                subtitle: 'Data from ' + moment(earlyDate).format('MM/DD/YYYY') + ' to ' + moment(lateDate).format('MM/DD/YYYY')
+            },
+            legend: { position: 'bottom' },
+            width: 900,
+            height: 500,
+            series: {
+            },
+            axes: {
+                y: {
+                    percentage: {label: 'Percentage'},
+                    number: {label: 'Number'}
+                }
+            }
+        };
+        
+        chartData.addColumn('date', 'Date');
+        
+        var seriesIndex = 0;
+        var idx;
+        for (idx in trendData.series) {
+            var dict = trendData.series[idx];
+            var type = dict.isPercentage ? 'percentage' : 'number';
+            chartData.addColumn('number', dict.name);
+            options.series[seriesIndex++] = {axis: type};
+        }
+        
+        chartData.addRows(trendData.points);
+        
+        var chartContainer = document.getElementById('chart-wrapper');
+        var chart = new google.charts.Line(chartContainer);
+        
+        chart.draw(chartData, options);
+        setTrendChartVisible(true);
+        
+        // scroll to chart w/ animation
+        $('html, body').animate({
+            scrollTop: $('#chart-wrapper').offset().top
+        }, 500);
+    });
+};
+
+/** Pragma Mark - UIActions **/
+
+// UIAction
+var switchView = function(viewId) {
+    $('.switch-view-button').removeClass('btn-primary');
+    $('.switch-view-button').addClass('btn-default');
+    $('.switch-view-button-' + viewId).addClass('btn-primary');
+    
+    $('.report-view').addClass('hidden');
+    $('.report-view-' + viewId).removeClass('hidden');
+};
+
+// Toggle topics dropdown menu
+// UIAction
+var toggleTopicDropdown = function() {
+    $('#topic-dropdown-container').toggleClass('shown');
+};
+
+// UIAction
+var closeTopicDropdown = function() {
+    $('#topic-dropdown-container').removeClass('shown');
+};
+
+// Apply currently selected topic, dismiss the dropdown, and update the page (async)
+// UIAction
+var applyAndDismissTopicDropdown = function() {
+    var node = $('#topics-tree').fancytree('getTree').getActiveNode();
+	if (node !== null) {
+		topicIdentifiers = node.key.split(','); // update global state
+		channelId = topicIdentifiers[0];
+		contentId = topicIdentifiers[1];
+		$('.topic-dropdown-text').html(node.title);
+		updatePageContent();
+	} else {
+    	// a node is not selected
+    	toastr.warning('You must select a topic to apply the filter.');
+	}
+    toggleTopicDropdown();
+};
+
+// Handle click event of a drilldown link
+// UIAction
+var performDrilldown = function(itemId) {
+  	  parentId = itemId;
+  	  parentLevel++;
+  	  updatePageContent();
+};
+
+// Handle click event of a breadcrumb link
+// UIAction
+var clickBreadcrumbLink = function(level, id) {
+  	parentId = id;
+  	parentLevel = level;
+  	updatePageContent();  
+};
+
+// Dismiss trend diagram
+// UIAction
+var dismissTrendChart = function() {
+    $('#chart-wrapper').html('');
+    setTrendChartVisible(false);
+};
+
+/** Pragma Mark - Utilities **/
+
+// Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
+// `callback` called when a response is received, with the actual response as the parameter.
+var sendPOSTRequest = function(url, dataObject, callback) {
+    
+    pendingRequests++;
+    updateLoadingInfo();
+    
+    if (debug) {
+        console.log('POST request sent to: ' + JSON.stringify(url) + '. POST data: ' + JSON.stringify(dataObject));
+    }
+    
+    $.ajax({
+		type: 'POST',
+		url: url,
+		data: JSON.stringify(dataObject),
+		success: function(result, textStatus, jqXHR) {
+			if (debug) {
+				console.log('Response: ' + JSON.stringify(result));
+			}
+			callback(result);
+			pendingRequests--;
+			updateLoadingInfo();
+		},
+		error: function(jqXHR, textStatus, errorThrown) {
+            if (!textStatus) {
+                textStatus = 'error';
+            }
+            if (!errorThrown) {
+                errorThrown = 'Unknown error';
+            }
+            if (debug) {
+                console.log('Request failed with status: ' + textStatus + '. Error Thrown: ' + errorThrown);
+            }
+            toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
+            pendingRequests--;
+            updateLoadingInfo();
+		},
+		dataType: 'json'
+	});
+};
+
+// Append a new breadcrumb item to the current list
+var appendBreadcrumbItem = function(name, level, id, isLast) {
+    var html;
+    if (isLast) {
+        html = '<span class="breadcrumb-text">' + name + '</span>';
+    } else {
+        html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', ' + id + ')">' + name + '</a>';
+        if (!isLast) {
+            html += ' > ';
+        }
+    }
+    
+    $('.report-breadcrumb').append(html);
+};
+
+// Recursively build the topics structure. See `buildTopicsDropdown`.
+var _setTopics = function(toArray, dataArray) {
+    var idx;
+    for (idx in dataArray) {
+        var dict = dataArray[idx];
+        var newDict = {
+	        title: dict.name,
+	        key: dict.channelId + ',' + dict.contentId,
+	        folder: dict.children !== null
+        };
+        if (dict.children !== null) {
+	        newDict['children'] = [];
+	        _setTopics(newDict['children'], dict.children);
+        }
+        toArray.push(newDict);
+    }
+};
+
+// Returns the HTML code for draw trend button
+var drawTrendButtonHTML = function(itemId, itemName) {
+    return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' 
+           + itemId + ', \'' + itemName + '\')"><i class="fa fa-line-chart" aria-hidden="true"></i> Show Trend</button>';
+};
+        
+// HTML code of drilldown column in data table
+var drilldownColumnHTML = function(name, id) {
+    if (parentLevel + 1 === maxItemLevel) {
+    	return '<span>' + name + '</span>';
+    } else {
+    	return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
+    }
+};
+
+// Trend data preprocessing. Converts timestamp to date object.
+var processTrendData = function(data) {
+    // API issue: data.points and data.data are both used historically. 
+    // We use data.points as the official one but accept data.data also as a compatibility patch.
+    if (data.data !== null && data.points === null) {
+        data.points = data.data;
+    }
+
+    var idx;
+    for (idx in data.points) {
+        var timestamp = data.points[idx][0];
+        var dateObject = new Date(timestamp * 1000);
+        data.points[idx][0] = dateObject;
+    }
+    
+    return data;
+};
+
+// Get trend data with specific item id from server (via POST) and sanitize it 
+// Used by `drawTrendChart`
+var getTrendData = function(itemId, callback) {
+    // Test
+    callback(processTrendData(fakeTrendData()));
+    return;
+    
+    sendPOSTRequest('/api/mastery/trend', {
+        startTimestamp: startTimestamp,
+        endTimestamp: endTimestamp,
+		contentId: contentId,
+		channelId: channelId,
+        level: parentLevel + 1,
+        itemId: itemId
+    }, function(data) {
+        callback(processTrendData(data));
+    });            
+};
+
+// Sets whether the trend chart is visible.
+var setTrendChartVisible = function(visible) {
+    if (visible) {
+        $('.trend-chart').removeClass('hidden');
+    } else {
+        $('.trend-chart').addClass('hidden');
+    }
+};
+
+// Update the title of compared value and all actual table rows in performance view
 var performanceViewUpdateComparedValueTitleAndTableRows = function() {
     
     // dropdown title and pivot value
@@ -505,263 +768,16 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
     }
 };
 
-// Get data remotely via `getTrendData` (async) and draw the chart (after removing previous chart -- if any)
-// IBAction
-var drawTrendChart = function(itemId, itemName) {
-    dismissTrendChart();
-    getTrendData(itemId, function(trendData) {
-        var chartData = new google.visualization.DataTable();
-        var earlyDate = trendData.points[0][0];
-        var lateDate = trendData.points[trendData.points.length - 1][0];
-        var options = {
-            chart: {
-                title: itemName + ' Mastery Trend',
-                subtitle: 'Data from ' + moment(earlyDate).format('MM/DD/YYYY') + ' to ' + moment(lateDate).format('MM/DD/YYYY')
-            },
-            legend: { position: 'bottom' },
-            width: 900,
-            height: 500,
-            series: {
-            },
-            axes: {
-                y: {
-                    percentage: {label: 'Percentage'},
-                    number: {label: 'Number'}
-                }
-            }
-        };
-        
-        chartData.addColumn('date', 'Date');
-        
-        var seriesIndex = 0;
-        var idx;
-        for (idx in trendData.series) {
-            var dict = trendData.series[idx];
-            var type = dict.isPercentage ? 'percentage' : 'number';
-            chartData.addColumn('number', dict.name);
-            options.series[seriesIndex++] = {axis: type};
-        }
-        
-        chartData.addRows(trendData.points);
-        
-        var chartContainer = document.getElementById('chart-wrapper');
-        var chart = new google.charts.Line(chartContainer);
-        
-        chart.draw(chartData, options);
-        setTrendChartVisible(true);
-        
-        // scroll to chart w/ animation
-        $('html, body').animate({
-            scrollTop: $('#chart-wrapper').offset().top
-        }, 500);
-    });
-};
-
-/** Pragma Mark - IBActions **/
-
-// IBAction
-var switchView = function(viewId) {
-    $('.switch-view-button').removeClass('btn-primary');
-    $('.switch-view-button').addClass('btn-default');
-    $('.switch-view-button-' + viewId).addClass('btn-primary');
-    
-    $('.report-view').addClass('hidden');
-    $('.report-view-' + viewId).removeClass('hidden');
-};
-
-// Toggle topics dropdown menu
-// IBAction
-var toggleTopicDropdown = function() {
-    $('#topic-dropdown-container').toggleClass('shown');
-};
-
-// IBAction
-var closeTopicDropdown = function() {
-    $('#topic-dropdown-container').removeClass('shown');
-};
-
-// Apply currently selected topic, dismiss the dropdown, and update the page (async)
-// IBAction
-var applyAndDismissTopicDropdown = function() {
-    var node = $('#topics-tree').fancytree('getTree').getActiveNode();
-	if (node !== null) {
-		topicIdentifiers = node.key.split(','); // update global state
-		channelId = topicIdentifiers[0];
-		contentId = topicIdentifiers[1];
-		$('.topic-dropdown-text').html(node.title);
-		updatePageContent();
-	} else {
-    	// a node is not selected
-    	toastr.warning('You must select a topic to apply the filter.');
-	}
-    toggleTopicDropdown();
-};
-
-// IBAction
-var performDrilldown = function(itemId) {
-  	  parentId = itemId;
-  	  parentLevel++;
-  	  updatePageContent();
-};
-
-// IBAction
-var clickBreadcrumbLink = function(level, id) {
-  	parentId = id;
-  	parentLevel = level;
-  	updatePageContent();  
-};
-
-// Dismiss trend diagram
-// IBAction
-var dismissTrendChart = function() {
-    $('#chart-wrapper').html('');
-    setTrendChartVisible(false);
-};
-
-/** Pragma Mark - Utilities **/
-
-// Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
-// `callback` called when a response is received, with the actual response as the parameter.
-var sendPOSTRequest = function(url, dataObject, callback) {
-    
-    pendingRequests++;
-    updateLoadingInfo();
-    
-    if (debug) {
-        console.log('POST request sent to: ' + JSON.stringify(url) + '. POST data: ' + JSON.stringify(dataObject));
-    }
-    
-    $.ajax({
-		type: 'POST',
-		url: url,
-		data: JSON.stringify(dataObject),
-		success: function(result, textStatus, jqXHR) {
-			if (debug) {
-				console.log('Response: ' + JSON.stringify(result));
-			}
-			callback(result);
-			pendingRequests--;
-			updateLoadingInfo();
-		},
-		error: function(jqXHR, textStatus, errorThrown) {
-            if (!textStatus) {
-                textStatus = 'error';
-            }
-            if (!errorThrown) {
-                errorThrown = 'Unknown error';
-            }
-            if (debug) {
-                console.log('Request failed with status: ' + textStatus + '. Error Thrown: ' + errorThrown);
-            }
-            toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
-            pendingRequests--;
-            updateLoadingInfo();
-		},
-		dataType: 'json'
-	});
-};
-
-// Append a new breadcrumb item to the current list
-var appendBreadcrumbItem = function(name, level, id, isLast) {
-    var html;
-    if (isLast) {
-        html = '<span class="breadcrumb-text">' + name + '</span>';
-    } else {
-        html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', ' + id + ')">' + name + '</a>';
-        if (!isLast) {
-            html += ' > ';
-        }
-    }
-    
-    $('.report-breadcrumb').append(html);
-};
-
-// See `buildTopicsDropdown`
-var _setTopics = function(toArray, dataArray) {
-    var idx;
-    for (idx in dataArray) {
-        var dict = dataArray[idx];
-        var newDict = {
-	        title: dict.name,
-	        key: dict.channelId + ',' + dict.contentId,
-	        folder: dict.children !== null
-        };
-        if (dict.children !== null) {
-	        newDict['children'] = [];
-	        _setTopics(newDict['children'], dict.children);
-        }
-        toArray.push(newDict);
-    }
-};
-
-// Returns the HTML code for draw trend button
-var drawTrendButtonHTML = function(itemId, itemName) {
-    return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' 
-           + itemId + ', \'' + itemName + '\')"><i class="fa fa-line-chart" aria-hidden="true"></i> Show Trend</button>';
-};
-        
-// HTML code of drilldown column in data table
-var drilldownColumnHTML = function(name, id) {
-    if (parentLevel + 1 === maxItemLevel) {
-    	return '<span>' + name + '</span>';
-    } else {
-    	return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
-    }
-};
-
-var processTrendData = function(data) {
-    // API issue: data.points and data.data are both used historically. 
-    // We use data.points as the official one but accept data.data also as a compatibility patch.
-    if (data.data !== null && data.points === null) {
-        data.points = data.data;
-    }
-
-    var idx;
-    for (idx in data.points) {
-        var timestamp = data.points[idx][0];
-        var dateObject = new Date(timestamp * 1000);
-        data.points[idx][0] = dateObject;
-    }
-    
-    return data;
-};
-
-// Get trend data with specific item id from server (via POST) and sanitize it 
-// Used by `drawTrendChart`
-var getTrendData = function(itemId, callback) {
-    // Test
-    callback(processTrendData(fakeTrendData()));
-    return;
-    
-    sendPOSTRequest('/api/mastery/trend', {
-        startTimestamp: startTimestamp,
-        endTimestamp: endTimestamp,
-		contentId: contentId,
-		channelId: channelId,
-        level: parentLevel + 1,
-        itemId: itemId
-    }, function(data) {
-        callback(processTrendData(data));
-    });            
-};
-
-var setTrendChartVisible = function(visible) {
-    if (visible) {
-        $('.trend-chart').removeClass('hidden');
-    } else {
-        $('.trend-chart').addClass('hidden');
-    }
-};
-
 /** Testing **/
 
-function getRandomInt(min, max) {
+var getRandomInt = function(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
 }
 
 var fakeTrendData = function() {
+    var i=0,j=0,k=0;
     var data = {
         series: [
             {
@@ -776,15 +792,15 @@ var fakeTrendData = function() {
             }
         ],
         points: [
-            [1496941452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
-            [1497042452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
-            [1497143452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
-            [1497344452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
-            [1497945452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
-            [1499246452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
-            [1499347452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
-            [1499448452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)],
-            [1499949452, getRandomInt(0,100), getRandomInt(0,100), getRandomInt(0,500)]
+            [1496941452, i=getRandomInt(0,20), j=getRandomInt(0,20), k=getRandomInt(0,50)],
+            [1497042452, i=getRandomInt(i,40), j=getRandomInt(j,40), k=k+getRandomInt(0,50)],
+            [1497143452, i=getRandomInt(i,40), j=getRandomInt(j,40), k=k+getRandomInt(0,50)],
+            [1497344452, i=getRandomInt(i,60), j=getRandomInt(j,60), k=k+getRandomInt(0,50)],
+            [1497945452, i=getRandomInt(i,60), j=getRandomInt(j,60), k=k+getRandomInt(0,50)],
+            [1499246452, i=getRandomInt(i,80), j=getRandomInt(j,80), k=k+getRandomInt(0,50)],
+            [1499347452, i=getRandomInt(i,80), j=getRandomInt(j,80), k=k+getRandomInt(0,50)],
+            [1499448452, i=getRandomInt(i,100), j=getRandomInt(j,100), k=k+getRandomInt(0,50)],
+            [1499949452, i=getRandomInt(i,100), j=getRandomInt(j,100), k=k+getRandomInt(0,50)]
         ]
     };            
     
