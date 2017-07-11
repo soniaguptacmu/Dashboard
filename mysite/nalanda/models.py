@@ -57,11 +57,11 @@ class Content(models.Model):
     content_id = models.CharField(max_length=32)
     channel_id = models.CharField(max_length=32)
     total_questions = models.IntegerField()
-    sub_topics = models.CharField(max_length=10000)
+    sub_topics = models.CharField(max_length=10000, null = True)
 
 class MasteryLevelStudent(models.Model):
     student_id = models.ForeignKey(UserInfoStudent, on_delete=models.CASCADE)
-    content_id = models.ForeignKey(Content, on_delete=models.CASCADE)
+    content_id = models.CharField(max_length=32)
     channel_id = models.CharField(max_length=32)
     date = models.DateTimeField()
     completed_questions = models.IntegerField()
@@ -71,7 +71,7 @@ class MasteryLevelStudent(models.Model):
 
 class MasteryLevelClass(models.Model):
     class_id = models.ForeignKey(UserInfoClass, on_delete=models.CASCADE)
-    content_id = models.ForeignKey(Content, on_delete=models.CASCADE)
+    content_id = models.CharField(max_length=32)
     channel_id = models.CharField(max_length=32)
     date = models.DateTimeField()
     completed_questions = models.IntegerField()
@@ -81,7 +81,7 @@ class MasteryLevelClass(models.Model):
 
 class MasteryLevelSchool(models.Model):
     school_id = models.ForeignKey(UserInfoSchool, on_delete=models.CASCADE)
-    content_id = models.ForeignKey(Content, on_delete=models.CASCADE)
+    content_id = models.CharField(max_length=32)
     channel_id = models.CharField(max_length=32)
     date = models.DateTimeField()
     completed_questions = models.IntegerField()
