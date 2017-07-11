@@ -1,7 +1,228 @@
 {% extends "__base_sidebar.html" %}
 
-{% block content %}
+<html>
+<head>
+    <script type="text/javascript" src="../static/node_modules/jquery/dist/jquery.min.js"></script>
+<script>
 
-<!-- content goes here -->
+    $(document).ready(function () {
 
-{% endblock %}
+        $("#approvebutton").click(function(){
+
+            var approveresult=[];
+            var disapproveresult=[];
+            $('#approvetable').find('tr').each(function () {
+                var row = $(this);
+                var rowapprove={};
+                if (row.find('input[name="appchk"]').is(':checked')) {
+                    rowapprove.username=row[0].children[0].innerHTML;
+                    approveresult.push(rowapprove);
+                }
+                if(row.find('input[name="disappchk"]').is(':checked'))
+                {
+                    rowapprove.username=row[0].children[0].innerHTML;
+                    disapproveresult.push(rowapprove);
+                }
+
+            });
+
+            var approveresultobj={};
+            approveresultobj.users=approveresult;
+
+            ajaxrequest('/nalanda/approve', approveresultobj);
+
+            var disapproveresultobj={};
+            disapproveresultobj.users=disapproveresult;
+
+            ajaxrequest('/nalanda/disapprove', disapproveresultobj);
+
+        });
+
+        function ajaxrequest(url, dataObject) {
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: JSON.stringify(dataObject),
+                success: function (result, textStatus, jqXHR) {
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                },
+                dataType: 'json'
+            });
+        };
+    });
+</script>
+</head>
+<body>
+<table id="approvetable">
+    <th>
+        <td>
+            username
+        </td>
+        <td>
+            email
+        </td>
+        <td>
+            role
+        </td>
+        <td>
+            Institute Name
+        </td>
+        <td>
+            username
+        </td>
+        <td>
+            class name
+        </td>
+        <td>
+            approved
+        </td>
+        <td>
+            disapproved
+        </td>
+    </th>
+    <tr>
+
+        <td>
+            r.username
+        </td>
+        <td>
+            r.email
+        </td>
+        <td>
+            r.role
+        </td>
+        <td>
+            r.instituteName
+        </td>
+        <td>
+            r.username
+        </td>
+        <td>
+            r.className
+        </td>
+        <td>
+            <input name="appchk" type="checkbox" checked/>
+        </td>
+        <td>
+            <input name="disappchk" type="checkbox"/>
+        </td>
+    </tr>
+    {% for r in pendingUsers%}
+    <!--<tr>-->
+
+        <!--<td>-->
+            <!--r.username-->
+        <!--</td>-->
+        <!--<td>-->
+            <!--r.email-->
+        <!--</td>-->
+        <!--<td>-->
+            <!--r.role-->
+        <!--</td>-->
+        <!--<td>-->
+            <!--r.instituteName-->
+        <!--</td>-->
+        <!--<td>-->
+            <!--r.username-->
+        <!--</td>-->
+        <!--<td>-->
+            <!--r.className-->
+        <!--</td>-->
+        <!--<td>-->
+            <!--<input id="appchk" type="checkbox"/>-->
+        <!--</td>-->
+        <!--<td>-->
+            <!--<input id="disappchk" type="checkbox"/>-->
+        <!--</td>-->
+        <!--{% endfor%}-->
+    <!--</tr>-->
+    <!--{% endfor %}-->
+    <tr>
+
+        <td>
+            r.useasnsrname
+        </td>
+        <td>
+            r.email
+        </td>
+        <td>
+            r.role
+        </td>
+        <td>
+            r.instituteName
+        </td>
+        <td>
+            r.username
+        </td>
+        <td>
+            r.className
+        </td>
+        <td>
+            <input name="appchk" type="checkbox"/>
+        </td>
+        <td>
+            <input name="disappchk" type="checkbox" checked/>
+        </td>
+
+    </tr>
+</table>
+<div>
+    <input type="submit" id="approvebutton" value="Bulk Approve">
+</div>
+<table>
+    <th>
+    <td>
+        username
+    </td>
+    <td>
+        email
+    </td>
+    <td>
+        role
+    </td>
+    <td>
+        Institute Name
+    </td>
+    <td>
+        username
+    </td>
+    <td>
+        class name
+    </td>
+    <td>
+        unblock
+    </td>
+    </th>
+    {% for r in blockedUsers%}
+    <tr>
+
+        <td>
+            r.username
+        </td>
+        <td>
+            r.email
+        </td>
+        <td>
+            r.role
+        </td>
+        <td>
+            r.instituteName
+        </td>
+        <td>
+            r.username
+        </td>
+        <td>
+            r.className
+        </td>
+        <td>
+            <input type="checkbox"/>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<div>
+    <input type="submit" value="Bulk Unblock">
+</div>
+</body>
+</html>
