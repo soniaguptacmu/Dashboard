@@ -21,6 +21,7 @@ var compareMaxValues = [];
 var pendingRequests = 0; // number of requests that are sent but not received yet
 var maxItemLevel = 3; // students (read-only)
 var debug = true; // whether to print debug outputs to console
+var selfServe = true;
 
 /** Pragma Mark - Starting Points **/
 
@@ -777,6 +778,14 @@ var updatePerformanceView = function() {
     }
 };
 
+var sendPOSTRequest = function(url, dataObject, callback) {
+    if (selfServe) {
+        sendPOSTRequest_test(url, dataObject, callback);
+    } else {
+        sendPOSTRequest_real(url, dataObject, callback);  
+    }
+};
+
 // Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
 // `callback` called when a response is received, with the actual response as the parameter.
 var sendPOSTRequest_real = function(url, dataObject, callback) {
@@ -1053,8 +1062,7 @@ var topicsData = function() {
     };
 };
 
-var sendPOSTRequest = function(url, dataObject, callback) {
-    
+var sendPOSTRequest_test = function(url, dataObject, callback) {
     pendingRequests++;
     updateLoadingInfo();
     
@@ -1107,12 +1115,11 @@ var sendPOSTRequest = function(url, dataObject, callback) {
         
         pendingRequests--;
         updateLoadingInfo();
-    }, 900);
+    }, getRandomInt(100, 2000));
 };
 
 $(function() {
     google.charts.load('current', {'packages':['line', 'corechart']});
-    
     updateLoadingInfo();
     setupDateRangePicker();
     refreshTopicsDropdown();
