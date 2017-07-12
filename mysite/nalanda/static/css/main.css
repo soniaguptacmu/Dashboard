@@ -19,6 +19,19 @@ a:hover {
     color: #039be5;
 }
 
+a.dt-button,
+a.dt-button:hover {
+    color: black;
+}
+
+mark,
+.mark {
+    padding: 0;
+    font-weight: bold;
+    background: none;
+    text-decoration: underline;
+}
+
 .site-header {
     background-color: #1f1f1f;
     width: 100%;
@@ -289,17 +302,29 @@ a:hover {
 	z-index: 9999;
 	margin-left: 41px;
 	margin-top: 2px;
-	min-width: 175px;
+	min-width: 250px;
 	display: none;
-	padding: 6px;
+	padding: 0;
 	background: white;
 	border: 1px solid #ccc;
     border-radius: 4px;
     box-shadow: 0 3px 8px #ddd;
 }
 
+.topic-dropdown-container .search {
+    padding: 6px;
+}
+
 .topic-dropdown-container .controls {
-	margin: 6px 6px 2px;
+	background: #f6f6f6;
+    margin: 0;
+    padding: 10px;
+    border-radius: 0 0 4px 4px; /* avoid background cutting the container's rounded border */
+    border-top: 1px solid #ddd;
+}
+
+.topic-dropdown-container .expand-button {
+    float: right;
 }
 
 .topic-dropdown-container.shown {
@@ -309,11 +334,12 @@ a:hover {
 #topics-tree {
     max-height: 85vh;
     overflow-y: scroll;
+    margin: 0 0 6px;
 }
 
 #topic-filter-field {
     outline: none;
-    margin-bottom: 6px;
+    width: 100%;
     border: 1px solid #ccc;
     border-radius: 12px;
     padding: 3px 5px 3px 25px;
@@ -359,7 +385,7 @@ input.daterangepicker {
 
 .report-breadcrumb {
     margin: 15px 0 20px;
-    background: #f3f3f3;
+    background: #f5f5f5;
 	padding: 10px 14px;
 	/* border: 1px solid #ddd; */
 	border-radius: 6px;
@@ -464,7 +490,11 @@ th.name-column {
 }
 
 .progress-bar-danger {
-    background-color: #FF9800;
+    background-color: #F44336;
+}
+
+.progress-bar-success {
+    background-color: #4CAF50;
 }
 
 .btn-default {

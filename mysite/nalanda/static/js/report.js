@@ -374,7 +374,7 @@ var compareViewSetCompareMetricIndex = function(metricIndex) {
         maxValue = 100; // value type is percentage
     } else {
         for (idx in tableData.rows) {
-            var rowValue = parseInt(tableData.rows[idx].values[metricIndex]);
+            var rowValue = parseFloat(tableData.rows[idx].values[metricIndex]);
             if (rowValue > maxValue) {
                 maxValue = rowValue;
             }
@@ -383,12 +383,17 @@ var compareViewSetCompareMetricIndex = function(metricIndex) {
     
     // update data rows
     for (idx in tableData.rows) {
-        var rowValue = parseInt(tableData.rows[idx].values[metricIndex]);
-        var percentage = maxValue == 0 ? 0 : (rowValue / maxValue * 100);
+        var rowValue = parseFloat(tableData.rows[idx].values[metricIndex]);
+        var percentage = Math.round(maxValue == 0 ? 0 : (rowValue / maxValue * 100));
         var barHTML =   '<div class="progress">'+
-                        '<div class="progress-bar" role="progressbar" aria-valuenow="' + percentage + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + percentage + '%;">'+
+                        '<div class="progress-bar" role="progressbar" aria-valuenow="' + percentage + 
+                        '" aria-valuemin="0" aria-valuemax="100" style="width: ' + percentage + '%;">'+
                         '</div></div>';
-        var compareArray = [drilldownColumnHTML(tableData.rows[idx].name, tableData.rows[idx].id), tableData.rows[idx].values[metricIndex], barHTML];
+        var compareArray = [
+            drilldownColumnHTML(tableData.rows[idx].name, tableData.rows[idx].id), 
+            tableData.rows[idx].values[metricIndex], 
+            barHTML
+        ];
         compareTable.row('#row-' + tableData.rows[idx].id).data(compareArray).draw(false);
     }
 };
@@ -398,13 +403,14 @@ var compareViewSetCompareMetricIndex = function(metricIndex) {
 var performanceViewSetCompareMetricIndex = function(metricIndex) {
     performanceMetricIndex = metricIndex;
     var metricName = tableMeta.metrics[metricIndex].displayName;
+    var isPercentage = typeof tableData.rows[0].values[metricIndex] === 'string';
     $('#data-performance-table .current-metric').text(metricName);
     
     // update compared-to values
     var values = [];
     var idx;
     for (idx in tableData.rows) {
-        values.push(parseInt(tableData.rows[idx].values[metricIndex]));
+        values.push(parseFloat(tableData.rows[idx].values[metricIndex]));
     }
     
     values.sort(function(a, b) { 
@@ -419,6 +425,7 @@ var performanceViewSetCompareMetricIndex = function(metricIndex) {
     var average = sum / values.length;
     var half = Math.floor(values.length / 2);
     var median = (values.length % 2) ? values[half] : ((values[half-1] + values[half]) / 2.0);
+    var suffix = isPercentage ? '%' : '';
     
     // set globals
     
@@ -426,15 +433,16 @@ var performanceViewSetCompareMetricIndex = function(metricIndex) {
         min: min,
         max: max,
         average: average,
-        median: median  
+        median: median,
+        suffix: suffix
     };
     
     // update dropdown
     
-    $('.compare-max a').text('Max: ' + max);
-    $('.compare-min a').text('Min: ' + min);
-    $('.compare-average a').text('Average: ' + Math.floor(average));
-    $('.compare-median a').text('Median: ' + median);
+    $('.compare-max a').text('Max: ' + max + suffix);
+    $('.compare-min a').text('Min: ' + min + suffix);
+    $('.compare-average a').text('Average: ' + (Math.round(average * 10) / 10) + suffix);
+    $('.compare-median a').text('Median: ' + median + suffix);
     
     // update dropdown title and bars
     // updating compare metric will also affect the value of chosen compared values (different base values)
@@ -522,6 +530,26 @@ var toggleTopicDropdown = function() {
 // UIAction
 var closeTopicDropdown = function() {
     $('#topic-dropdown-container').removeClass('shown');
+};
+
+// UIAction
+var toggleTopicDropdownExpandAll = function() {
+    var $button = $('#topic-dropdown-container .expand-button');
+    if ($button.data('expand')) {
+        $button.data('expand', false);
+        $button.html('Collapse All');
+        $('#topics-tree').fancytree('getTree').visit(function(node) {
+            node.setExpanded();
+        });
+    } else {
+        $button.data('expand', true);
+        $button.html('Expand All');
+        $('#topics-tree').fancytree('getTree').visit(function(node) {
+            if (node.title !== 'Everything') {
+                node.setExpanded(false); // collapse all except the root node (which there will be only 1)
+            }
+        });
+    }
 };
 
 // Apply currently selected topic, dismiss the dropdown, and update the page (async)
@@ -649,19 +677,19 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
     var pivot;
     
     if (performanceComparedValueName === 'max') {
-        $('.current-compared-value').text('Max: ' + (performanceComparedValues.max));
+        $('.current-compared-value').text('Max: ' + (performanceComparedValues.max) + performanceComparedValues.suffix);
         pivot = performanceComparedValues.max;
     }
     if (performanceComparedValueName === 'min') {
-        $('.current-compared-value').text('Min: ' + (performanceComparedValues.min));
+        $('.current-compared-value').text('Min: ' + (performanceComparedValues.min) + performanceComparedValues.suffix);
         pivot = performanceComparedValues.min;
     }
     if (performanceComparedValueName === 'average') {
-        $('.current-compared-value').text('Average: ' + Math.floor(performanceComparedValues.average));
+        $('.current-compared-value').text('Average: ' + (Math.round(performanceComparedValues.average * 10) / 10) + performanceComparedValues.suffix);
         pivot = performanceComparedValues.average;
     }
     if (performanceComparedValueName === 'median') {
-        $('.current-compared-value').text('Median: ' + (performanceComparedValues.median));
+        $('.current-compared-value').text('Median: ' + (performanceComparedValues.median) + performanceComparedValues.suffix);
         pivot = performanceComparedValues.median;
     }
     
@@ -701,10 +729,10 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
                 
         if (compareValue > 0) {
             positiveValue = compareValue / max * 100;
-            positiveLabel = '+' + Math.floor(compareValue) + '%';
+            positiveLabel = '+' + (Math.round(compareValue * 10) / 10) + '%';
         } else if (compareValue < 0) {
             negativeValue = compareValue / min * 100; // the variable holds a positive number, but `represents` a negative value
-            negativeLabel = Math.floor(compareValue) + '%';
+            negativeLabel = (Math.round(compareValue * 10) / 10) + '%';
         }
         
         var barHTML =   '<div class="progress progress-negative">' +
@@ -855,9 +883,6 @@ var tableMetaData = function() {
         }, {
             id: 10,
             name: "Westwood School"
-        }, {
-            id: 11,
-            name: "Eastwood School"
         }]
     };
 };
@@ -954,15 +979,6 @@ var tableDataData = function() {
                 120,
                 "20%"
             ]
-        }, {
-            id: 11,
-            name: "Eastwood School",
-            values: [
-                "35%",
-                "16%",
-                70,
-                "17%"
-            ]
         }],
         aggregation: [{
             name: "Average",
@@ -1040,7 +1056,7 @@ var sendPOSTRequest = function(url, dataObject, callback) {
         
         pendingRequests--;
         updateLoadingInfo();
-    }, 2000);
+    }, 500);
 };
 
 $(function() {
