@@ -370,7 +370,7 @@ var compareViewSetCompareMetricIndex = function(metricIndex) {
     // find max value
     var maxValue = 0;
     var idx;
-    if (typeof tableData.rows[0].values[metricIndex] === 'string') {
+    if ((tableData.rows.length > 0) && (typeof tableData.rows[0].values[metricIndex] === 'string')) {
         maxValue = 100; // value type is percentage
     } else {
         for (idx in tableData.rows) {
@@ -403,7 +403,7 @@ var compareViewSetCompareMetricIndex = function(metricIndex) {
 var performanceViewSetCompareMetricIndex = function(metricIndex) {
     performanceMetricIndex = metricIndex;
     var metricName = tableMeta.metrics[metricIndex].displayName;
-    var isPercentage = typeof tableData.rows[0].values[metricIndex] === 'string';
+    var isPercentage = (tableData.rows.length > 0) && (typeof tableData.rows[0].values[metricIndex] === 'string');
     $('#data-performance-table .current-metric').text(metricName);
     
     // update compared-to values
@@ -462,6 +462,12 @@ var drawTrendChart = function(itemId, itemName) {
     dismissTrendChart();
     getTrendData(itemId, function(trendData) {
         var chartData = new google.visualization.DataTable();
+        
+        if (trendData.points.length == 0) {
+            toastr.info('No trend data is available for the selected period.');
+            return;
+        }
+        
         var earlyDate = trendData.points[0][0];
         var lateDate = trendData.points[trendData.points.length - 1][0];
         var options = {
@@ -764,11 +770,21 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
         type: 'POST',
         url: url,
         data: JSON.stringify(dataObject),
-        success: function(result, textStatus, jqXHR) {
+        success: function(response, textStatus, jqXHR) {
             if (debug) {
-                console.log('Response: ' + JSON.stringify(result));
+                console.log('Response: ' + JSON.stringify(response));
             }
-            callback(result);
+            if (response.code) {
+                toastr.error(response.info.message, response.info.title);
+            } else if (!response.data) {
+                toastr.error('There is an error communicating with the server. Please try again later.');
+                console.error('Invalid response: A valid `data` field is not found.');
+            } else {
+                if (response.info) {
+                    toastr.info(response.info.message, response.info.title);
+                }
+                callback(response);
+            }
             pendingRequests--;
             updateLoadingInfo();
         },
@@ -799,7 +815,7 @@ var getRandomInt = function(min, max) {
 }
 
 var trendData = function() {
-    var i=0,j=0,k=0;
+    var i = 0, j = 0, k = 0;
     var data = {
         series: [
             {
@@ -1026,32 +1042,46 @@ var sendPOSTRequest = function(url, dataObject, callback) {
     }
     
     setTimeout(function() {
+        var response;
+        
         if (url === '/api/mastery/get-page-meta') {
-            callback({
+            response = ({
                 code: 0,
                 data: tableMetaData()
             });
         }
         
         if (url === '/api/mastery/get-page-data') {
-            callback({
+            response = ({
                 code: 0,
                 data: tableDataData()
             });
         }
         
         if (url === '/api/mastery/topics') {
-            callback({
+            response = ({
                 code: 0,
                 data: topicsData()
             });
         }
         
         if (url === '/api/mastery/trend') {
-            callback({
+            response = ({
                 code: 0,
                 data: trendData()
             });
+        }
+        
+        if (response.code) {
+            toastr.error(response.info.message, response.info.title);
+        } else if (!response.data) {
+            toastr.error('There is an error communicating with the server. Please try again later.');
+            console.error('Invalid response: A valid `data` field is not found.');
+        } else {
+            if (response.info) {
+                toastr.info(response.info.message, response.info.title);
+            }
+            callback(response);
         }
         
         pendingRequests--;
