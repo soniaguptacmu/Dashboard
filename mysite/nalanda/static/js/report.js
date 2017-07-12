@@ -15,8 +15,9 @@ var parentLevel = 0; // default: parent-of-root-level
 var parentId = -1; // default: none (at root level already, no parent)
 var compareMetricIndex = 0; // current metric index of the compare table
 var performanceMetricIndex = 0; // current metric index of the performance table
-var performanceComparedValueName = 'average'; // name of the type of currently used compared values
-var performanceComparedValues = {}; // compared values, for all types, of the performance table
+var performanceCompareToValueName = 'average'; // name of the type of currently used compared values
+var performanceCompareToValues = []; // compared values, for all types, of the performance table
+var compareMaxValues = [];
 var pendingRequests = 0; // number of requests that are sent but not received yet
 var maxItemLevel = 3; // students (read-only)
 var debug = true; // whether to print debug outputs to console
@@ -239,8 +240,8 @@ var setTableMeta = function(data) {
         for (idx in data.metrics) {
             $('#data-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
             $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
-            $('#data-compare-table .dropdown-menu').append('<li><a href="#" onclick="compareViewSetCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
-            $('#data-performance-table .dropdown-menu-metric').append('<li><a href="#" onclick="performanceViewSetCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
+            $('#data-compare-table .dropdown-menu').append('<li><a href="#" onclick="setCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
+            $('#data-performance-table .dropdown-menu-metric').append('<li><a href="#" onclick="setPerformanceMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
         }
         
         // initialize tables
@@ -354,33 +355,81 @@ var setTableData = function(data) {
         aggregationTable.row.add(array).draw(false);
     }
     
-    compareViewSetCompareMetricIndex(compareMetricIndex);
-    performanceViewSetCompareMetricIndex(performanceMetricIndex);
+    precalculate();
+    setCompareMetricIndex(compareMetricIndex);
+    setPerformanceMetricIndex(performanceMetricIndex);
 };
+
+// Calculate statistical values
+var precalculate = function() {
+	compareMaxValues = [];
+	performanceCompareToValues = [];
+	
+	var metricIndex;
+	for (metricIndex in tableMeta.metrics) {
+		// find max value
+	    var maxVal = 0;
+	    if ((tableData.rows.length > 0) && (typeof tableData.rows[0].values[metricIndex] === 'string')) {
+	        maxVal = 100; // value type is percentage
+	    } else {
+		    var idx;
+	        for (idx in tableData.rows) {
+	            var rowValue = parseFloat(tableData.rows[idx].values[metricIndex]);
+	            if (rowValue > maxVal) {
+	                maxVal = rowValue;
+	            }
+	        }
+	    }
+	    compareMaxValues[metricIndex] = maxVal;
+	}
+	
+	for (metricIndex in tableMeta.metrics) {
+		// update compared-to values
+		var isPercentage = (tableData.rows.length > 0) && (typeof tableData.rows[0].values[metricIndex] === 'string');
+	    var values = [];
+	    var idx;
+	    for (idx in tableData.rows) {
+	        values.push(parseFloat(tableData.rows[idx].values[metricIndex]));
+	    }
+	    
+	    values.sort(function(a, b) { 
+	        return a - b;
+	    });
+	    
+	    var min = values[0];
+	    var max = values[values.length - 1];
+	    var sum = values.reduce(function(a, b) {
+	        return a + b; 
+	    }, 0);
+	    var average = sum / values.length;
+	    var half = Math.floor(values.length / 2);
+	    var median = (values.length % 2) ? values[half] : ((values[half-1] + values[half]) / 2.0);
+	    var suffix = isPercentage ? '%' : '';
+	    
+	    // set globals
+	    
+	    performanceCompareToValues[metricIndex] = {
+	        min: min,
+	        max: max,
+	        average: average,
+	        median: median,
+	        suffix: suffix
+	    };
+	}
+}
 
 /** Pragma Mark - UIAction **/
 
 // Set index of compare metric in the compare view
 // UIAction
-var compareViewSetCompareMetricIndex = function(metricIndex) {
+var setCompareMetricIndex = function(metricIndex) {
     compareMetricIndex = metricIndex;
     var metricName = tableMeta.metrics[metricIndex].displayName;
     $('#data-compare-table .current-metric').html(metricName);
     
     // find max value
-    var maxValue = 0;
+    var maxValue = compareMaxValues[metricIndex];
     var idx;
-    if ((tableData.rows.length > 0) && (typeof tableData.rows[0].values[metricIndex] === 'string')) {
-        maxValue = 100; // value type is percentage
-    } else {
-        for (idx in tableData.rows) {
-            var rowValue = parseFloat(tableData.rows[idx].values[metricIndex]);
-            if (rowValue > maxValue) {
-                maxValue = rowValue;
-            }
-        }
-    }
-    
     // update data rows
     for (idx in tableData.rows) {
         var rowValue = parseFloat(tableData.rows[idx].values[metricIndex]);
@@ -400,60 +449,31 @@ var compareViewSetCompareMetricIndex = function(metricIndex) {
 
 // Set index of compare metric in performance view
 // UIAction
-var performanceViewSetCompareMetricIndex = function(metricIndex) {
+var setPerformanceMetricIndex = function(metricIndex) {
     performanceMetricIndex = metricIndex;
     var metricName = tableMeta.metrics[metricIndex].displayName;
     var isPercentage = (tableData.rows.length > 0) && (typeof tableData.rows[0].values[metricIndex] === 'string');
     $('#data-performance-table .current-metric').text(metricName);
-    
-    // update compared-to values
-    var values = [];
-    var idx;
-    for (idx in tableData.rows) {
-        values.push(parseFloat(tableData.rows[idx].values[metricIndex]));
-    }
-    
-    values.sort(function(a, b) { 
-        return a - b;
-    });
-    
-    var min = values[0];
-    var max = values[values.length - 1];
-    var sum = values.reduce(function(a, b) {
-        return a + b; 
-    }, 0);
-    var average = sum / values.length;
-    var half = Math.floor(values.length / 2);
-    var median = (values.length % 2) ? values[half] : ((values[half-1] + values[half]) / 2.0);
-    var suffix = isPercentage ? '%' : '';
-    
-    // set globals
-    
-    performanceComparedValues = {
-        min: min,
-        max: max,
-        average: average,
-        median: median,
-        suffix: suffix
-    };
+
+	var vals = performanceCompareToValues[metricIndex];
     
     // update dropdown
     
-    $('.compare-max a').text('Max: ' + max + suffix);
-    $('.compare-min a').text('Min: ' + min + suffix);
-    $('.compare-average a').text('Average: ' + (Math.round(average * 10) / 10) + suffix);
-    $('.compare-median a').text('Median: ' + median + suffix);
+    $('.compare-max a').text('Max: ' + vals.max + vals.suffix);
+    $('.compare-min a').text('Min: ' + vals.min + vals.suffix);
+    $('.compare-average a').text('Average: ' + (Math.round(vals.average * 10) / 10) + vals.suffix);
+    $('.compare-median a').text('Median: ' + vals.median + vals.suffix);
     
     // update dropdown title and bars
     // updating compare metric will also affect the value of chosen compared values (different base values)
-    performanceViewUpdateComparedValueTitleAndTableRows();
+    updatePerformanceView();
 };
 
 // Set the compared value for performance view
 // UIAction
-var performanceViewSetComparedValue = function(valueName) {
-    performanceComparedValueName = valueName;
-    performanceViewUpdateComparedValueTitleAndTableRows();
+var setPerformanceCompareToValue = function(valueName) {
+    performanceCompareToValueName = valueName;
+    updatePerformanceView();
 };
 
 // Get data remotely via `getTrendData` (async) and draw the chart (after removing previous chart -- if any)
@@ -676,27 +696,28 @@ var setTrendChartVisible = function(visible) {
 };
 
 // Update the title of compared value and all actual table rows in performance view
-var performanceViewUpdateComparedValueTitleAndTableRows = function() {
+var updatePerformanceView = function() {
+    var vals = performanceCompareToValues[performanceMetricIndex];
     
     // dropdown title and pivot value
     
     var pivot;
     
-    if (performanceComparedValueName === 'max') {
-        $('.current-compared-value').text('Max: ' + (performanceComparedValues.max) + performanceComparedValues.suffix);
-        pivot = performanceComparedValues.max;
+    if (performanceCompareToValueName === 'max') {
+        $('.current-compared-value').text('Max: ' + (vals.max) + vals.suffix);
+        pivot = vals.max;
     }
-    if (performanceComparedValueName === 'min') {
-        $('.current-compared-value').text('Min: ' + (performanceComparedValues.min) + performanceComparedValues.suffix);
-        pivot = performanceComparedValues.min;
+    if (performanceCompareToValueName === 'min') {
+        $('.current-compared-value').text('Min: ' + (vals.min) + vals.suffix);
+        pivot = vals.min;
     }
-    if (performanceComparedValueName === 'average') {
-        $('.current-compared-value').text('Average: ' + (Math.round(performanceComparedValues.average * 10) / 10) + performanceComparedValues.suffix);
-        pivot = performanceComparedValues.average;
+    if (performanceCompareToValueName === 'average') {
+        $('.current-compared-value').text('Average: ' + (Math.round(vals.average * 10) / 10) + vals.suffix);
+        pivot = vals.average;
     }
-    if (performanceComparedValueName === 'median') {
-        $('.current-compared-value').text('Median: ' + (performanceComparedValues.median) + performanceComparedValues.suffix);
-        pivot = performanceComparedValues.median;
+    if (performanceCompareToValueName === 'median') {
+        $('.current-compared-value').text('Median: ' + (vals.median) + vals.suffix);
+        pivot = vals.median;
     }
     
     // table rows
@@ -1086,7 +1107,7 @@ var sendPOSTRequest = function(url, dataObject, callback) {
         
         pendingRequests--;
         updateLoadingInfo();
-    }, 500);
+    }, 900);
 };
 
 $(function() {
