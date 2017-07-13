@@ -9,48 +9,50 @@
 
         $("#approvebutton").click(function(){
 
-            var approveresult={};
-            var disapproveresult=[];
+            var approveresult;
+            var disapproveresult;
 
             $('#approvetable').find('tr').each(function () {
                 var row = $(this);
 
-                if (row.find('input[name="appchk"]').is(':checked')) {
-                    var rowapprove={};
-
-                    if(approveresult[row[0].children[0].innerHTML]!=null) {
-                        if (row[0].children[4].id) {
-                            approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
-                        }
-                    }
-                    else
-                    {
-                        approveresult[row[0].children[0].innerHTML]=[];
-                        if(row[0].children[4].id) {
-                            approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
-                        }
-                    }
-
-                }
-
-                if(row.find('input[name="disappchk"]').is(':checked'))
-                {
-                    var rowdisapprove={};
-                    if(disapproveresult[row[0].children[0].innerHTML]!=null) {
-                        if (row[0].children[4].id) {
-                            disapproveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
-                        }
-                    }
-                    else {
-                        disapproveresult[row[0].children[0].innerHTML] = [];
-                        if (row[0].children[4].id) {
-                            disapproveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
-                        }
-                    }
-                }
+                approveresult=parseTable(row,'appchk');
+                disapproveresult=parseTable(row,'disappchk');
 
             });
 
+            var approveresultobj=createRequestObject(approveresult);
+            var disapproveresultobj=createRequestObject(disapproveresult);
+
+            ajaxrequest('/nalanda/approve', approveresultobj,removeallrows('appchk') );
+            ajaxrequest('/nalanda/disapprove', disapproveresultobj, removeallrows('disappchk'));
+
+        });
+
+        function parseTable(row, text)
+        {
+            var approveresult={};
+            if (row.find('input[name="appchk"]').is(':checked')) {
+                var rowapprove={};
+
+                if(approveresult[row[0].children[0].innerHTML]!=null) {
+                    if (row[0].children[4].id) {
+                        approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                    }
+                }
+                else
+                {
+                    approveresult[row[0].children[0].innerHTML]=[];
+                    if(row[0].children[4].id) {
+                        approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                    }
+                }
+            }
+            return approveresult;
+
+        }
+
+        function createRequestObject(approveresult)
+        {
             var finalresult=[];
 
             for( obj in approveresult)
@@ -63,33 +65,29 @@
 
             var approveresultobj={};
             approveresultobj.users=finalresult;
+            return approveresultobj;
+        }
 
-            finalresult=[];
+        function removeallrows(text)
+        {
+            $('#approvetable').find('tr').each(function () {
+                $('#approvetable').find('tr').each(function () {
+                    var row = $(this);
 
-            for( obj in disapproveresult)
-            {
-                var result={};
-                result.username=obj;
-                result.classes=approveresult[obj];
-                finalresult.push(result);
-            }
+                    if (row.find('input[name='+text+']').is(':checked')) {
+                        row.remove();
+                    }
+                });
 
-            var disapproveresultobj={};
-            disapproveresultobj.users=finalresult;
+            });
+        }
 
-            ajaxrequest('/nalanda/approve', approveresultobj);
-
-            ajaxrequest('/nalanda/disapprove', disapproveresultobj);
-
-        });
-
-        function ajaxrequest(url, dataObject) {
+        function ajaxrequest(url, dataObject, successcallback) {
             $.ajax({
                 type: 'POST',
                 url: url,
                 data: JSON.stringify(dataObject),
-                success: function (result, textStatus, jqXHR) {
-                },
+                success: successcallback,
                 error: function (jqXHR, textStatus, errorThrown) {
                 },
                 dataType: 'json'
