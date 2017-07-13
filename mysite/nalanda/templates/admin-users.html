@@ -3,6 +3,7 @@
 <head>
     <script type="text/javascript" src="../static/node_modules/jquery/dist/jquery.min.js"></script>
     <link rel="stylesheet" href="../static/node_modules/bootstrap/dist/css/bootstrap.min.css" media="all">
+    
     <!--<link rel="stylesheet" href="../static/css/main.css" media="all">-->
 <script>
     $(document).ready(function () {
@@ -113,9 +114,8 @@
 </script>
 </head>
 <body>
-<table class="table table-bordered">
-
-</table>
+<div class="site-content">
+<h1 class="site-title"> User registration approval  </h1>
 <table id="approvetable" class="table  table-hover">
     <thead>
     <td>Username</td>
@@ -123,8 +123,8 @@
     <td>Role</td>
     <td>Institute Name</td>
     <td>Class name</td>
-    <td>Approved</td>
-    <td>Disapproved</td>
+    <td>Approve</td>
+    <td>Disapprove</td>
     </thead>
     {% for r in pendingUsers%}
     <tr>
@@ -133,17 +133,17 @@
         <td>{{r.role}}</td>
         <td>{{r.instituteName}}</td>
         <td id={{r.classId}}>{{r.className}}</td>
-        <td><input name="appchk" id={{r.classId}} type="checkbox"/></td>
+        <td><input class="checkbox checkbox-success" name="appchk" id={{r.classId}}  type="checkbox"/></td>
         <td><input name="disappchk" id={{r.classId}} type="checkbox"/></td>
     </tr>
     {% endfor %}
 </table>
-<div>
-    <input type="submit" id="approvebutton" value="Bulk Approve">
+<div style="text-align: center">
+    <input type="submit" class="btn-success" id="approvebutton" value="Submit">
 </div>
 
 <hr />
-
+<h1 class="site-title"> User unblock  </h1>
 <table id="unblocktable" class="table  table-hover" >
     <thead>
     <td>Username</td>
@@ -164,8 +164,9 @@
     </tr>
     {% endfor %}
 </table>
-<div>
-    <input  id="unblock" type="submit" value="Bulk Unblock">
+<div style="text-align: center">
+    <input  id="unblock" type="submit" class="btn-success" value="Submit">
+</div>
 </div>
 </body>
 </html>
