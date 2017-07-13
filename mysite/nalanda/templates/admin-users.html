@@ -9,30 +9,75 @@
 
         $("#approvebutton").click(function(){
 
-            var approveresult=[];
+            var approveresult={};
             var disapproveresult=[];
+
             $('#approvetable').find('tr').each(function () {
                 var row = $(this);
-                var rowapprove={};
+
                 if (row.find('input[name="appchk"]').is(':checked')) {
-                    rowapprove.username=row[0].children[0].innerHTML;
-                    approveresult.push(rowapprove);
+                    var rowapprove={};
+
+                    if(approveresult[row[0].children[0].innerHTML]!=null) {
+                        if (row[0].children[4].id) {
+                            approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                        }
+                    }
+                    else
+                    {
+                        approveresult[row[0].children[0].innerHTML]=[];
+                        if(row[0].children[4].id) {
+                            approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                        }
+                    }
+
                 }
+
                 if(row.find('input[name="disappchk"]').is(':checked'))
                 {
-                    rowapprove.username=row[0].children[0].innerHTML;
-                    disapproveresult.push(rowapprove);
+                    var rowdisapprove={};
+                    if(disapproveresult[row[0].children[0].innerHTML]!=null) {
+                        if (row[0].children[4].id) {
+                            disapproveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                        }
+                    }
+                    else {
+                        disapproveresult[row[0].children[0].innerHTML] = [];
+                        if (row[0].children[4].id) {
+                            disapproveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                        }
+                    }
                 }
 
             });
 
-            var approveresultobj={};
-            approveresultobj.users=approveresult;
+            var finalresult=[];
 
-            ajaxrequest('/nalanda/approve', approveresultobj);
+            for( obj in approveresult)
+            {
+                var result={};
+                result.username=obj;
+                result.classes=approveresult[obj];
+                finalresult.push(result);
+            }
+
+            var approveresultobj={};
+            approveresultobj.users=finalresult;
+
+            finalresult=[];
+
+            for( obj in disapproveresult)
+            {
+                var result={};
+                result.username=obj;
+                result.classes=approveresult[obj];
+                finalresult.push(result);
+            }
 
             var disapproveresultobj={};
-            disapproveresultobj.users=disapproveresult;
+            disapproveresultobj.users=finalresult;
+
+            ajaxrequest('/nalanda/approve', approveresultobj);
 
             ajaxrequest('/nalanda/disapprove', disapproveresultobj);
 
@@ -69,9 +114,6 @@
             Institute Name
         </td>
         <td>
-            username
-        </td>
-        <td>
             class name
         </td>
         <td>
@@ -95,53 +137,45 @@
         <td>
             r.instituteName
         </td>
-        <td>
-            r.username
-        </td>
-        <td>
+        <td id="1">
             r.className
         </td>
         <td>
-            <input name="appchk" type="checkbox" checked/>
+            <input name="appchk" id="1" type="checkbox" checked/>
         </td>
         <td>
-            <input name="disappchk" type="checkbox"/>
+            <input name="disappchk" id="1" type="checkbox"/>
         </td>
     </tr>
-    {% for r in pendingUsers%}
+    <!--{% for r in pendingUsers%}-->
     <!--<tr>-->
-
         <!--<td>-->
-            <!--r.username-->
+            <!--{{r.username}}-->
         <!--</td>-->
         <!--<td>-->
-            <!--r.email-->
+            <!--{{r.email}}-->
         <!--</td>-->
         <!--<td>-->
-            <!--r.role-->
+            <!--{{r.role}}-->
         <!--</td>-->
         <!--<td>-->
-            <!--r.instituteName-->
+            <!--{{r.instituteName}}-->
         <!--</td>-->
-        <!--<td>-->
-            <!--r.username-->
-        <!--</td>-->
-        <!--<td>-->
+        <!--<td id={{r.classId}}>-->
             <!--r.className-->
         <!--</td>-->
         <!--<td>-->
-            <!--<input id="appchk" type="checkbox"/>-->
+            <!--<input name="appchk" id={{r.classId}} type="checkbox"/>-->
         <!--</td>-->
         <!--<td>-->
-            <!--<input id="disappchk" type="checkbox"/>-->
+            <!--<input name="disappchk" id={{r.classId}} type="checkbox"/>-->
         <!--</td>-->
         <!--{% endfor%}-->
     <!--</tr>-->
     <!--{% endfor %}-->
     <tr>
-
         <td>
-            r.useasnsrname
+            r.username
         </td>
         <td>
             r.email
@@ -152,19 +186,37 @@
         <td>
             r.instituteName
         </td>
-        <td>
-            r.username
-        </td>
-        <td>
+        <td id="2">
             r.className
         </td>
         <td>
-            <input name="appchk" type="checkbox"/>
+            <input name="appchk" type="checkbox" checked/>
         </td>
         <td>
             <input name="disappchk" type="checkbox" checked/>
         </td>
 
+    </tr>
+    <tr>
+        <td>
+            r.emptyclass
+        </td>
+        <td>
+            r.email
+        </td>
+        <td>
+            r.role
+        </td>
+        <td>
+            r.instituteName
+        </td>
+        <td ></td>
+        <td>
+            <input name="appchk" type="checkbox" checked/>
+        </td>
+        <td>
+            <input name="disappchk" type="checkbox"/>
+        </td>
     </tr>
 </table>
 <div>
@@ -185,9 +237,6 @@
         Institute Name
     </td>
     <td>
-        username
-    </td>
-    <td>
         class name
     </td>
     <td>
@@ -196,23 +245,19 @@
     </th>
     {% for r in blockedUsers%}
     <tr>
-
         <td>
-            r.username
+            {{r.username}}
         </td>
         <td>
-            r.email
+            {{r.email}}
         </td>
         <td>
-            r.role
+            {{r.role}}
         </td>
         <td>
-            r.instituteName
+            {{r.instituteName}}
         </td>
-        <td>
-            r.username
-        </td>
-        <td>
+        <td id={{r.classId}}>
             r.className
         </td>
         <td>
