@@ -1,4 +1,4 @@
-<html lang="en">
+<html >
 
 <head>
     <!--<link rel="stylesheet" href="../static/css/main.css" media="all">-->
@@ -17,7 +17,6 @@
 
         // initialize data from the template
         alldata = "{{data|safe}}";
-        //alljsondatasub = alldata.replace(/u&#39;/g, "\"");
         alljsondata = alldata.replace(new RegExp('\'','g'),'"');
         var institutedata = JSON.parse(alljsondata)['data']['institutes'];
 
@@ -148,6 +147,7 @@
                     url: url,
                     data: JSON.stringify(dataObject),
                     success: function (result, textStatus, jqXHR) {
+                        $('#Message').innerText=result.info.title;
                     },
                     error: function (jqXHR, textStatus, errorThrown) {
                     },
@@ -157,13 +157,13 @@
 
         });
 
-
     </script>
 
 </head>
 <body class="login">
 <h1 class="site-title">Kolibri Visualizer</h1>
 <div class="content">
+    <div><label id="Message"></label></div>
     <h2>Register a new account</h2>
     <form id="registration" name="registration", method="POST">
         <label for="firstName">First Name</label>
@@ -204,7 +204,7 @@
         <div id="checkBoxesOuterdiv"></div>
         </br>
         <div>
-            <input name="Register" id="Register" value="Register" type="submit" class="btn btn-success submit-button">
+            <input name="Register" id="Register" value="Register" class="btn btn-success submit-button">
         </div>
     </form>
     <div class="alternate-option">

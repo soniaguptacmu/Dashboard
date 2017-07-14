@@ -363,7 +363,7 @@ input.daterangepicker {
 }
 
 #topics-tree {
-    max-height: 85vh;
+	max-height: 350px;
     overflow-y: scroll;
     margin: 0 0 6px;
 }
