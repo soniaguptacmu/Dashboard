@@ -888,34 +888,34 @@ var tableMetaData = function() {
             toolTip: "help text goes here"
         }],
         rows: [{
-            id: 1,
+            id: "1",
             name: "Allegheny K-5"
         }, {
-            id: 2,
+            id: "2",
             name: "Arsenal Elementary School"
         }, {
-            id: 3,
+            id: "3",
             name: "Banksville Elementary School"
         }, {
-            id: 4,
+            id: "4",
             name: "Beechwood Elementary School"
         }, {
-            id: 5,
+            id: "5",
             name: "Concord Elementary School"
         }, {
-            id: 6,
+            id: "6",
             name: "Dilworth Traditional Academy"
         }, {
-            id: 7,
+            id: "7",
             name: "Grandview Elementary School"
         }, {
-            id: 8,
+            id: "8",
             name: "Brookline School"
         }, {
-            id: 9,
+            id: "9",
             name: "Manchester School"
         }, {
-            id: 10,
+            id: "10",
             name: "Westwood School"
         }]
     };
@@ -924,7 +924,7 @@ var tableMetaData = function() {
 var tableDataData = function() {
     return {
         rows: [{
-            id: 1,
+            id: "1",
             name: "Allegheny K-5",
             values: [
                 "30%",
@@ -933,7 +933,7 @@ var tableDataData = function() {
                 "9%"
             ]
         }, {
-            id: 2,
+            id: "2",
             name: "Arsenal Elementary School",
             values: [
                 "20%",
@@ -942,7 +942,7 @@ var tableDataData = function() {
                 "59%"
             ]
         }, {
-            id: 3,
+            id: "3",
             name: "Banksville Elementary School",
             values: [
                 "80%",
@@ -951,7 +951,7 @@ var tableDataData = function() {
                 "16%"
             ]
         }, {
-            id: 4,
+            id: "4",
             name: "Beechwood Elementary School",
             values: [
                 "15%",
@@ -960,7 +960,7 @@ var tableDataData = function() {
                 "44%"
             ]
         }, {
-            id: 5,
+            id: "5",
             name: "Concord Elementary School",
             values: [
                 "34%",
@@ -969,7 +969,7 @@ var tableDataData = function() {
                 "8%"
             ]
         }, {
-            id: 6,
+            id: "6",
             name: "Dilworth Traditional Academy",
             values: [
                 "21%",
@@ -978,7 +978,7 @@ var tableDataData = function() {
                 "25%"
             ]
         }, {
-            id: 7,
+            id: "7",
             name: "Grandview Elementary School",
             values: [
                 "58%",
@@ -987,7 +987,7 @@ var tableDataData = function() {
                 "33%"
             ]
         }, {
-            id: 8,
+            id: "8",
             name: "Brookline School",
             values: [
                 "98%",
@@ -996,7 +996,7 @@ var tableDataData = function() {
                 "88%"
             ]
         }, {
-            id: 9,
+            id: "9",
             name: "Manchester School",
             values: [
                 "14%",
@@ -1005,7 +1005,7 @@ var tableDataData = function() {
                 "3%"
             ]
         }, {
-            id: 10,
+            id: "10",
             name: "Westwood School",
             values: [
                 "45%",
