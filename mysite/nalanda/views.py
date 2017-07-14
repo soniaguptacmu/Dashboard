@@ -644,16 +644,18 @@ def report_homepage_view(request):
             message = 'Sorry, you have to login to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
-            return HttpResponse(response_object)
+            response_text = json.dumps(response_object,ensure_ascii=False)
+            return HttpResponse(response_text,content_type='application/json')
 
         else:
             code = 0
             title = ''
             message = ''
             try:
-                lastest_date = LatestFetchDate.objects.filter()
-                if lastest_date:
-                    data = {'dateUpdated': lastest_date[0].lastest_date}
+                latest_date = LatestFetchDate.objects.filter()
+
+                if latest_date:
+                    data = {'dateUpdated': latest_date[0].latest_date}
                 else:
                     data = {}
                 response_object = construct_response(code, title, message, data)
@@ -698,12 +700,10 @@ def construct_breadcrumb(parentName, parentLevel, parentId):
 
 def construct_metrics():
     metrics = [
-        {},
         {'displayName': '% exerciese completed', 'toolTip': ''},
         {'displayName': '% exerciese correct', 'toolTip': ''},
         {'displayName': '# attempts completed', 'toolTip': ''},
         {'displayName': '% students completed the topic', 'toolTip': ''},
-        {}
     ]
     return metrics
 
@@ -815,16 +815,18 @@ def get_page_meta_view(request):
             message = 'Sorry, you have to login to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
-
-            return HttpResponse(response_object)
+            response_text = json.dumps(response_object,ensure_ascii=False)
+            return HttpResponse(response_text,content_type='application/json')
 
         else:
             data = json.loads(request.body)
             parent_level = data.get('parentLevel', -1)
             parent_id = data.get('parentId', -1)
             response_object= get_page_meta(parent_id, parent_level) 
+            response_text = json.dumps(response_object,ensure_ascii=False)
+            return HttpResponse(response_text,content_type='application/json')
           
-            return HttpResponse(response_object)
+            
     else:
         return HttpResponse()
         
@@ -1131,8 +1133,8 @@ def get_page_data_view(request):
             message = 'Sorry, you have to login to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
-            print(response_object)
-            return HttpResponse(response_object)
+            response_text = json.dumps(response_object,ensure_ascii=False)
+            return HttpResponse(response_text,content_type='application/json')
 
         else:
             data = json.loads(request.body)
@@ -1143,8 +1145,9 @@ def get_page_data_view(request):
             parent_id = data.get('parentId', -1)
             channel_id = data.get('channelId', '').strip()
             response_object= get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timestamp, channel_id) 
-            print(response_object)
-            return HttpResponse(response_object)
+            response_text = json.dumps(response_object,ensure_ascii=False)
+            return HttpResponse(response_text,content_type='application/json')
+           
     else:
         return HttpResponse()
 
@@ -1161,7 +1164,7 @@ def get_topics(request):
         return HttpResponse(response_text,content_type='application/json')
     else:
         response = construct_response(1111,'wrong request','wrong request','')
-        response_text = serializers.serialize('json',response)
+        response_text = json.dumps(response,ensure_ascii=False)
         return HttpResponse(response_text,content_type='application/json')
 
 #@login_required
@@ -1216,11 +1219,12 @@ def get_trend(request):
         return HttpResponse(response_text,content_type='application/json')
     else:
         response = construct_response(1111,'wrong request','wrong request','')
-        response_text = serializers.serialize('json',response)
+        response_text = json.dumps(response,ensure_ascii=False)
         return HttpResponse(response_text,content_type='application/json')
 
 @csrf_exempt
 def get_report_mastery(request):
+    print("here")
     if request.method == 'GET':
         return render(request,'report-mastery.html')
     else:

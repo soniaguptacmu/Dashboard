@@ -35,7 +35,7 @@ var updatePageContent = function() {
     var tableData1 = null;
     var tableData2 = null;
     
-    sendPOSTRequest('/api/mastery/get-page-meta', {
+    sendPOSTRequest('./api/mastery/get-page-meta', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
         contentId: contentId,
@@ -51,7 +51,7 @@ var updatePageContent = function() {
         }
     });
     
-    sendPOSTRequest('/api/mastery/get-page-data', {
+    sendPOSTRequest('./api/mastery/get-page-data', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
         contentId: contentId,
@@ -71,7 +71,7 @@ var updatePageContent = function() {
 // Fetch topics by calling API and update the dropdown menu
 // Called only once upon page initialization
 var refreshTopicsDropdown = function() {
-    sendPOSTRequest('/api/mastery/topics', {
+    sendPOSTRequest('./api/mastery/topics', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
         parentLevel: parentLevel,
@@ -84,7 +84,7 @@ var refreshTopicsDropdown = function() {
 // Get trend data with specific item id from server (via POST) and sanitize it 
 // Used by `drawTrendChart`
 var getTrendData = function(itemId, callback) {    
-    sendPOSTRequest('/api/mastery/trend', {
+    sendPOSTRequest('./api/mastery/trend', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
         contentId: contentId,
@@ -152,7 +152,7 @@ var setBreadcrumb = function(data) {
 // Called only once upon page initialization
 var buildTopicsDropdown = function(data) {
     var content = [];
-    _setTopics(content, data.topics);
+    _setTopics(content, data.topic);
 
     // wrap "everything"
     content = [{
@@ -645,7 +645,7 @@ var _setTopics = function(toArray, dataArray) {
         var dict = dataArray[idx];
         var newDict = {
             title: dict.name,
-            key: dict.channelId + ',' + dict.contentId,
+            key: dict.channel_id + ',' + dict.content_id,
             folder: dict.children !== null
         };
         if (dict.children !== null) {
@@ -1042,9 +1042,9 @@ var tableDataData = function() {
 
 var topicsData = function() {
     return {
-        "topics": [{
-            "contentId": "bb",
-            "channelId": "aa",
+        "topic": [{
+            "content_id": "bb",
+            "channel_id": "aa",
             "name": "Channel 1",
             "children": [{
                 "id": 10,
@@ -1052,8 +1052,8 @@ var topicsData = function() {
                 "children": null
             }]
         },{
-            "contentId": "bdb",
-            "channelId": "adsa",
+            "content_id": "bdb",
+            "channel_id": "adsa",
             "name": "Channel 2",
             "children": [{
                 "id": 24,
