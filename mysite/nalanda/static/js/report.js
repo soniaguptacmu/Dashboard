@@ -802,9 +802,6 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
                 toastr.error('There is an error communicating with the server. Please try again later.');
                 console.error('Invalid response: A valid `data` field is not found.');
             } else {
-                if (response.info) {
-                    toastr.info(response.info.message, response.info.title);
-                }
                 callback(response);
             }
             pendingRequests--;
@@ -1080,9 +1077,6 @@ var sendPOSTRequest_test = function(url, dataObject, callback) {
             toastr.error('There is an error communicating with the server. Please try again later.');
             console.error('Invalid response: A valid `data` field is not found.');
         } else {
-            if (response.info) {
-                toastr.info(response.info.message, response.info.title);
-            }
             callback(response);
         }
         
