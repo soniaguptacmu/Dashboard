@@ -64,6 +64,8 @@ var updatePageContent = function() {
             setTableData(tableData2);
         }
     });
+    
+    dismissTrendChart();
 };
 
 // Fetch topics by calling API and update the dropdown menu

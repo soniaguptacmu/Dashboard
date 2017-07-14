@@ -37,7 +37,7 @@
     <title>Student Mastery Report</title>
 </head>
 
-<body class="">
+<body class="report mastery">
     <header id="masthead" class="site-header">
         <div class="inner">
             <h1 class="site-title"><a class="site-title-link" href="/">Kolibri Visualizer</a></h1>
@@ -52,19 +52,19 @@
                     <h1 class="page-title">Report: Student Mastery</h1>
                     <div class="btn-group report-types" role="group">
                         <button type="button" class="btn btn-primary switch-view-button switch-view-button-1 current" onclick="switchView(1);">
-                        	<i class="fa fa-table" aria-hidden="true"></i> Table
+                        	<i class="fa fa-table" aria-hidden="true"></i><span class="text"> Table</span>
                         </button>
                         <button type="button" class="btn btn-default switch-view-button switch-view-button-2" onclick="switchView(2);">
-                        	<i class="fa fa-align-left" aria-hidden="true"></i> Compare
+                        	<i class="fa fa-align-left" aria-hidden="true"></i><span class="text"> Compare</span>
                         </button>
                         <button type="button" class="btn btn-default switch-view-button switch-view-button-3" onclick="switchView(3);">
-                        	<i class="fa fa-tachometer" aria-hidden="true"></i> Performance
+                        	<i class="fa fa-tachometer" aria-hidden="true"></i><span class="text"> Performance</span>
                         </button>
                     </div>
                     <div class="clearfix"></div>
                 </div>
                 <div class="report-settings row">
-                    <div class="topic col-md-6">
+                    <div class="topic">
                         Topic: 
                         <button class="btn btn-default toggle-button" type="button">
                             <span class="topic-dropdown-text">Everything</span>
@@ -83,7 +83,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="dates col-md-6">
+                    <div class="dates">
                         <div class="datepicker-title">Date Range:</div>
                         <input class="daterangepicker" name="daterange">
                     </div>
@@ -162,7 +162,7 @@
                                         </div>
                                     </th>
                                     <th class="bar-column">
-                                        Compare to:
+                                        Compare To:
                                         <div class="dropdown">
                                             <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu3" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                                 <span class="current-compared-value">Max</span>
