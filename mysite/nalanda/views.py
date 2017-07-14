@@ -295,7 +295,8 @@ def register_view(request):
         print(response_object)
         
         if is_success:
-            response = redirect(reverse('login'))
+            response_text = json.dumps(response_object,ensure_ascii=False)
+            response = HttpResponse(response_text)
         else:
             response_text = json.dumps(response_object,ensure_ascii=False)
             response = HttpResponse(response_text)
@@ -947,7 +948,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 school = UserInfoSchool.objects.filter(school_id = parent_id)
                 # Return all the classrooms inside a school
                 if school:
-                    classes = UserInfoClass.objects.filter(parent = school[0])
+                    classes = UserInfoClass.objects.filter(parent_id = school[0])
                     if classes:
                         for curr_class in classes:
                             # Get class id and name
@@ -1014,7 +1015,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 curr_class = UserInfoClass.objects.filter(class_id = parent_id)
                 # Return all the classrooms inside a school
                 if curr_class:
-                    students = UserInfoStudent.objects.filter(parent = curr_class[0])
+                    students = UserInfoStudent.objects.filter(parent_id = curr_class[0])
                     if students:
                         for student in students:
                             # Get class id and name
