@@ -74,13 +74,13 @@ def login_post(username, password):
         response_object = construct_response(code, title, message, data)
         return response_object, is_success, role
     except ValueError:
-    code = 2002
-    title = 'Sorry, error occurred when coverting values'
-    message = 'Sorry, error occurred when coverting values'
-    data = {} 
-    is_success = False
-    response_object = construct_response(code, title, message, data)
-    return response_object, is_success, role
+        code = 2002
+        title = 'Sorry, error occurred when coverting values'
+        message = 'Sorry, error occurred when coverting values'
+        data = {} 
+        is_success = False
+        response_object = construct_response(code, title, message, data)
+        return response_object, is_success, role
     except OperationalError:
         code = 2011
         title = 'Sorry, operational error occurred'
@@ -281,8 +281,8 @@ def register_view(request):
         return render(request, 'register.html', response_object)  
 
     elif request.method == 'POST':
+        body_unicode = request.body.decode('utf-8')
         data = json.loads(request.body)
-
         username = data.get('username', '').strip()
         password = data.get('password', '').strip()
         first_name = data.get('firstName', '').strip()
@@ -380,6 +380,7 @@ def admin_approve_pending_users_view(request):
             response_object = construct_response(code, title, message, data)
 
         else:
+            body_unicode = request.body.decode('utf-8')
             data = json.loads(request.body)
             users = data.get('users',[])       
             response_object = admin_approve_pending_users_post(users)
@@ -451,6 +452,7 @@ def admin_disapprove_pending_users_view(request):
             response_object = construct_response(code, title, message, data)
 
         else:
+            body_unicode = request.body.decode('utf-8')
             data = json.loads(request.body)
             users = data.get('users',[])       
             response_object = admin_disapprove_pending_users_post(users)
