@@ -1047,7 +1047,8 @@ var topicsData = function() {
             "channel_id": "aa",
             "name": "Channel 1",
             "children": [{
-                "id": 10,
+				"content_id": "bb",
+				"channel_id": "aa",
                 "name": "Physics",
                 "children": null
             }]
@@ -1056,7 +1057,8 @@ var topicsData = function() {
             "channel_id": "adsa",
             "name": "Channel 2",
             "children": [{
-                "id": 24,
+				"content_id": "bdb",
+				"channel_id": "adsa",
                 "name": "Algorithms",
                 "children": null
             }]
@@ -1075,28 +1077,28 @@ var sendPOSTRequest_test = function(url, dataObject, callback) {
     setTimeout(function() {
         var response;
         
-        if (url === '/api/mastery/get-page-meta') {
+        if (url === './api/mastery/get-page-meta') {
             response = ({
                 code: 0,
                 data: tableMetaData()
             });
         }
         
-        if (url === '/api/mastery/get-page-data') {
+        if (url === './api/mastery/get-page-data') {
             response = ({
                 code: 0,
                 data: tableDataData()
             });
         }
         
-        if (url === '/api/mastery/topics') {
+        if (url === './api/mastery/topics') {
             response = ({
                 code: 0,
                 data: topicsData()
             });
         }
         
-        if (url === '/api/mastery/trend') {
+        if (url === './api/mastery/trend') {
             response = ({
                 code: 0,
                 data: trendData()
