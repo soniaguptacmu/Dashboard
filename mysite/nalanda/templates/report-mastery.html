@@ -1,6 +1,5 @@
 <!DOCTYPE HTML>
 <html>
-
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=EDGE">
@@ -10,14 +9,12 @@
     <!-- bootstrap -->
     <script type="text/javascript" src="../static/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="../static/node_modules/bootstrap/dist/css/bootstrap.min.css" media="all">
-    <!-- jquery validation -->
-    <script type="text/javascript" src="../static/node_modules/jquery-validation/dist/jquery.validate.min.js"></script>
     <!-- jquery fancytree -->
     <script type="text/javascript" src="../static/node_modules/jquery.fancytree/dist/jquery.fancytree-all-deps.min.js"></script>
     <link rel="stylesheet" href="../static/node_modules/jquery.fancytree/dist/skin-lion/ui.fancytree.min.css" media="all">
 	<!-- datatables -->
-	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/jszip-3.1.3/pdfmake-0.1.27/dt-1.10.15/b-1.3.1/b-html5-1.3.1/b-print-1.3.1/datatables.min.css"/>
-	<script type="text/javascript" src="https://cdn.datatables.net/v/dt/jszip-3.1.3/pdfmake-0.1.27/dt-1.10.15/b-1.3.1/b-html5-1.3.1/b-print-1.3.1/datatables.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="../static/css/datatables.min.css"/>
+	<script type="text/javascript" src="../static/js/datatables.min.js"></script>
     <!-- bootstrap daterangepicker -->
     <script type="text/javascript" src="../static/node_modules/moment/min/moment.min.js"></script>
     <script type="text/javascript" src="../static/node_modules/bootstrap-daterangepicker/daterangepicker.js"></script>
@@ -29,16 +26,18 @@
     <!-- toastr -->
     <script type="text/javascript" src="../static/node_modules/toastr/build/toastr.min.js"></script>
     <link rel="stylesheet" href="../static/node_modules/toastr/build/toastr.min.css" media="all">
+    <!-- google fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700" rel="stylesheet">
     
     <!-- PAGE SPECIFICS -->
     <script type="text/javascript" src="../static/js/common.js"></script>
     <script type="text/javascript" src="../static/js/report.js"></script>
     <link rel="stylesheet" href="../static/css/main.css" media="all">
 
-    <title>Report Mastery</title>
+    <title>Student Mastery Report</title>
 </head>
 
-<body class="">
+<body class="report mastery">
     <header id="masthead" class="site-header">
         <div class="inner">
             <h1 class="site-title"><a class="site-title-link" href="/">Kolibri Visualizer</a></h1>
@@ -50,40 +49,41 @@
         <div class="content-area">
             <div id="primary" class="site-content">
                 <div class="report-header">
-                    <h1 class="page-title">Mastery Report</h1>
+                    <h1 class="page-title">Report: Student Mastery</h1>
                     <div class="btn-group report-types" role="group">
-                        <button type="button" class="btn btn-primary switch-view-button switch-view-button-1" onclick="switchView(1);">
-                        	<i class="fa fa-table" aria-hidden="true"></i> Table
+                        <button type="button" class="btn btn-primary switch-view-button switch-view-button-1 current" onclick="switchView(1);">
+                        	<i class="fa fa-table" aria-hidden="true"></i><span class="text"> Table</span>
                         </button>
                         <button type="button" class="btn btn-default switch-view-button switch-view-button-2" onclick="switchView(2);">
-                        	<i class="fa fa-align-left" aria-hidden="true"></i> Compare
+                        	<i class="fa fa-align-left" aria-hidden="true"></i><span class="text"> Compare</span>
                         </button>
                         <button type="button" class="btn btn-default switch-view-button switch-view-button-3" onclick="switchView(3);">
-                        	<i class="fa fa-tachometer" aria-hidden="true"></i> Performance
+                        	<i class="fa fa-tachometer" aria-hidden="true"></i><span class="text"> Performance</span>
                         </button>
                     </div>
                     <div class="clearfix"></div>
                 </div>
                 <div class="report-settings row">
-                    <div class="topic col-md-6">
+                    <div class="topic">
                         Topic: 
-                        <button class="btn btn-default" type="button" onclick="toggleTopicDropdown();">
+                        <button class="btn btn-default toggle-button" type="button">
                             <span class="topic-dropdown-text">Everything</span>
                             <span class="caret"></span>
                         </button>
                         <div id="topic-dropdown-container" class="topic-dropdown-container">
 	                        <div class="search">
+    	                        <i class="fa fa-search search-icon" aria-hidden="true"></i>
 		                        <input type="search" id="topic-filter-field" placeholder="Filter topics...">
-		                        <i id="reset-search" class="fa fa-times" aria-hidden="true"></i>
 	                        </div>
                             <div id="topics-tree"></div>
                             <div class="controls">
-	                            <button class="btn btn-default btn-xs btn-primary" onclick="applyAndDismissTopicDropdown()">Apply</button>
-	                            <button class="btn btn-default btn-xs" onclick="toggleTopicDropdown()">Cancel</button>
+	                            <button class="btn btn-success btn-xs apply-button" onclick="applyAndDismissTopicDropdown();">Apply</button>
+	                            <button class="btn btn-default btn-xs cancel-button" onclick="closeTopicDropdown();">Cancel</button>
+	                            <button class="btn btn-default btn-xs expand-button" onclick="toggleTopicDropdownExpandAll();" data-expand="true">Expand All</button>
                             </div>
                         </div>
                     </div>
-                    <div class="dates col-md-6">
+                    <div class="dates">
                         <div class="datepicker-title">Date Range:</div>
                         <input class="daterangepicker" name="daterange">
                     </div>
@@ -100,9 +100,7 @@
                                     <th class="trend-column">Trend</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- data rows -->
-                            </tbody>
+                            <tbody><!-- data rows --></tbody>
                         </table>
                         <h2 class="section-title">Aggregations</h2>
                         <table id="aggregation-table" class="display" cellspacing="0" width="100%">
@@ -113,9 +111,7 @@
                                     <th class="trend-column"></th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- data rows -->
-                            </tbody>
+                            <tbody><!-- data rows --></tbody>
                         </table>
                         <div class="trend-chart hidden">
                             <div class="chart-container">
@@ -140,12 +136,13 @@
                                             <ul class="dropdown-menu dropdown-dropdownMenu1" aria-labelledby="dropdownMenu1"></ul>
                                         </div>
                                     </th>
-                                    <th class="bar-column"></th>
+                                    <th class="bar-column">
+                                        <span>Compare to:</span>
+                                        <div class="dropdown"><button class="btn btn-default">Text</button></div>
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- data rows -->
-                            </tbody>
+                            <tbody><!-- data rows --></tbody>
                         </table>
                     </div>
                     <div class="performance-view report-view report-view-3 hidden">
@@ -155,6 +152,7 @@
                                 <tr>
                                     <th class="name-column">Name</th>
                                     <th>
+                                        Metric: 
                                         <div class="dropdown">
                                             <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                                 <span class="current-metric">Metric to Compare</span>
@@ -164,32 +162,28 @@
                                         </div>
                                     </th>
                                     <th class="bar-column">
-                                        Compare to:
+                                        Compare To:
                                         <div class="dropdown">
                                             <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu3" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                                                 <span class="current-compared-value">Max</span>
                                                 <span class="caret"></span>
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-value dropdown-dropdownMenu3" aria-labelledby="dropdownMenu3">
-                                                <li class="compare-max"><a href="#" onclick="performanceViewSetComparedValue('max');">Max</a></li>
-                                                <li class="compare-min"><a href="#" onclick="performanceViewSetComparedValue('min');">Min</a></li>
-                                                <li class="compare-average"><a href="#" onclick="performanceViewSetComparedValue('average');">Average</a></li>
-                                                <li class="compare-median"><a href="#" onclick="performanceViewSetComparedValue('median');">Median</a></li>
+                                                <li class="compare-max"><a href="#" onclick="setPerformanceCompareToValue('max');">Max</a></li>
+                                                <li class="compare-min"><a href="#" onclick="setPerformanceCompareToValue('min');">Min</a></li>
+                                                <li class="compare-average"><a href="#" onclick="setPerformanceCompareToValue('average');">Average</a></li>
+                                                <li class="compare-median"><a href="#" onclick="setPerformanceCompareToValue('median');">Median</a></li>
                                             </ul>
                                         </div>
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- data rows -->
-                            </tbody>
+                            <tbody><!-- data rows --></tbody>
                         </table>                        
                     </div>
                 </div>
                 <div class="loading-info-container hidden">
-                    <div class="loading-info">
-                        Loading…
-                    </div>
+                    <div class="loading-info">Loading…</div>
                 </div>
                 <div class="prevents-interaction hidden"></div>
             </div>
@@ -203,9 +197,5 @@
             </ul>
         </div>
     </div>
-    <!-- .site-main -->
-    <footer id="colophon" class="site-footer">
-        &copy; 2017 Carnegie Mellon University
-    </footer>
 </body>
 </html>

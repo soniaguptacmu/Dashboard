@@ -1,7 +1,174 @@
-{% extends "__base_sidebar.html" %}
+<html>
+<head>
+    <script type="text/javascript" src="../static/node_modules/jquery/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="../static/node_modules/bootstrap/dist/css/bootstrap.min.css" media="all">
 
-{% block content %}
+    <link rel="stylesheet" href="../static/css/main.css" media="all">
+    <script>
+        $(document).ready(function () {
 
-<!-- content goes here -->
+            $("#approvebutton").click(function () {
 
-{% endblock %}
+                var approveresult;
+                var disapproveresult;
+
+                $('#approvetable').find('tr').each(function () {
+                    var row = $(this);
+
+                    approveresult = parseTable(row, 'appchk');
+                    disapproveresult = parseTable(row, 'disappchk');
+
+                });
+
+                var approveresultobj = createRequestObject(approveresult);
+                var disapproveresultobj = createRequestObject(disapproveresult);
+
+                ajaxrequest('/api/user/approve', approveresultobj, removeallrows('appchk'));
+                ajaxrequest('/api/user/disapprove', disapproveresultobj, removeallrows('disappchk'));
+
+            });
+
+            $('#unblock').click(function () {
+
+                var unblockresult;
+                $('#unblocktable').find('tr').each(function () {
+                    var row = $(this);
+                    unblockresult = parseTable(row, 'unblockchk');
+                });
+
+                var unblockresultobj = createRequestObject(unblockresult);
+                ajaxrequest('/api/user/unblock', unblockresultobj, removeallrows('unblockchk'));
+            });
+
+            function parseTable(row, text) {
+                var approveresult = {};
+                if (row.find('input[name="' + text + '"]').is(':checked')) {
+                    var rowapprove = {};
+
+                    if (approveresult[row[0].children[0].innerHTML] != null) {
+                        if (row[0].children[4].id) {
+                            approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                        }
+                    }
+                    else {
+                        approveresult[row[0].children[0].innerHTML] = [];
+                        if (row[0].children[4].id) {
+                            approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                        }
+                    }
+                }
+                return approveresult;
+
+            }
+
+            function createRequestObject(approveresult) {
+                var finalresult = [];
+                for (obj in approveresult) {
+                    var result = {};
+                    result.username = obj;
+                    result.classes = approveresult[obj];
+                    finalresult.push(result);
+                }
+                var approveresultobj = {};
+                approveresultobj.users = finalresult;
+                return approveresultobj;
+            }
+
+            function removeallrows(text) {
+                $('#approvetable').find('tr').each(function () {
+                    $('#approvetable').find('tr').each(function () {
+                        var row = $(this);
+
+                        if (row.find('input[name=' + text + ']').is(':checked')) {
+                            row.remove();
+                        }
+                    });
+
+                });
+            }
+
+            function ajaxrequest(url, dataObject, successcallback) {
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    data: JSON.stringify(dataObject),
+                    success: successcallback,
+                    error: function (jqXHR, textStatus, errorThrown) {
+                    },
+                    dataType: 'json'
+                });
+            };
+
+            $(':checkbox').click(function () {
+                var currentRow = this.parentNode.parentNode;
+
+                if($(this).attr('name')=="appchk" && $(this).is(':checked'))
+                {
+                    $(currentRow).find('input[name=disappchk]').prop('checked', false);
+                }
+                else if($(this).attr('name')=="disappchk" && $(this).is(':checked'))
+                {
+                    $(currentRow).find('input[name=appchk]').prop('checked', false);
+                }
+            });
+
+        });
+    </script>
+</head>
+<body>
+<div class="site-content">
+    <h1 class="site-title"> User registration approval </h1>
+    <table id="approvetable" class="table table-hover">
+        <thead class="thead-default">
+        <td>Username</td>
+        <td>Email</td>
+        <td>Role</td>
+        <td>Institute Name</td>
+        <td>Class name</td>
+        <td>Approve</td>
+        <td>Disapprove</td>
+        </thead>
+        {% for r in pendingUsers%}
+        <tr>
+            <td>{{r.username}}</td>
+            <td>{{r.email}}</td>
+            <td>{{r.role}}</td>
+            <td>{{r.instituteName}}</td>
+            <td id={{r.classId}}>{{r.className}}</td>
+            <td><input class="checkbox checkbox-success" name="appchk" id={{r.classId}} type="checkbox"/></td>
+            <td><input name="disappchk" id={{r.classId}} type="checkbox"/></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <div style="text-align: center">
+        <input type="submit" class="btn-success" id="approvebutton" value="Submit">
+    </div>
+
+    <hr/>
+    <h1 class="site-title"> User unblock </h1>
+    <table id="unblocktable" class="table  table-hover">
+        <thead class="thead-default">
+        <td>Username</td>
+        <td>Email</td>
+        <td>Role</td>
+        <td>Institute Name</td>
+        <td>Class name</td>
+        <td>Unblock</td>
+        </thead>
+        {% for r in blockedUsers%}
+        <tr>
+            <td>{{r.username}}</td>
+            <td>{{r.email}}</td>
+            <td>{{r.role}}</td>
+            <td>{{r.instituteName}}</td>
+            <td id={{r.classId}}>{{r.className}}</td>
+            <td><input name="unblockchk" type="checkbox"/></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <div style="text-align: center">
+        <input id="unblock" type="submit" class="btn-success" value="Submit">
+    </div>
+</div>
+</body>
+</html>

@@ -20,7 +20,7 @@ $(document).ready(function() {
         return a > b ? a : b;
     };
     var resizeSiteContent = function() {
-        $('.site-content')[0].style.minHeight = maxVal($('.site-sidebar').height(), $(window).height() - 84) + 'px';
+        $('.site-content')[0].style.minHeight = maxVal($('.site-sidebar').height(), $(window).height()) + 'px';
     };
     resizeSiteContent();
     $(window).on('resize', resizeSiteContent);

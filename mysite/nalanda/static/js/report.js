@@ -1,8 +1,10 @@
+"use strict";
+
 // globals
-var table; // main data table
-var aggregationTable; // aggregation rows table
-var compareTable; // // datatables object
-var performanceTable; // datatables object
+var table = null; // main data table
+var aggregationTable = null; // aggregation rows table
+var compareTable = null; // // datatables object
+var performanceTable = null; // datatables object
 var tableData; // see API specs
 var tableMeta; // see API specs
 var startTimestamp = 1496948693; // default: from server
@@ -13,71 +15,93 @@ var parentLevel = 0; // default: parent-of-root-level
 var parentId = -1; // default: none (at root level already, no parent)
 var compareMetricIndex = 0; // current metric index of the compare table
 var performanceMetricIndex = 0; // current metric index of the performance table
-var performanceComparedValueName = 'average'; // name of the type of currently used compared values
-var performanceComparedValues = {}; // compared values, for all types, of the performance table
+var performanceCompareToValueName = 'average'; // name of the type of currently used compared values
+var performanceCompareToValues = []; // compared values, for all types, of the performance table
+var compareMaxValues = [];
 var pendingRequests = 0; // number of requests that are sent but not received yet
-var loadedTables = 0;
+var maxItemLevel = 3; // students (read-only)
 var debug = true; // whether to print debug outputs to console
+var selfServe = true;
 
 /** Pragma Mark - Starting Points **/
 
 // Update page (incl. new breadcrumb and all table/diagrams)
 // Uses global variables `startTimestamp`, `endTimestamp`, `contentId`, `channelId`, `parentLevel`, and `parentId`
+// Called every time the page needs update
 var updatePageContent = function() {
-    
-    var tableData1;
-    var tableData2;
     
     // Making sure `setTableData` happens AFTER `setTableMeta`
     
-	sendPOSTRequest('/api/mastery/get-page-meta', {
-		startTimestamp: startTimestamp,
-		endTimestamp: endTimestamp,
-		contentId: contentId,
-		channelId: channelId,
-		parentLevel: parentLevel,
-		parentId: parentId
-	}, function(data) {
-		tableData1 = data;
-		setBreadcrumb(data);
-		setTableMeta(data);
-		if (tableData2 !== null) {
-			setTableData(tableData2);
-		}
-	});
-	
-	sendPOSTRequest('/api/mastery/get-page-data', {
-		startTimestamp: startTimestamp,
-		endTimestamp: endTimestamp,
-		contentId: contentId,
-		channelId: channelId,
-		parentLevel: parentLevel,
-		parentId: parentId
-	}, function(data) {
-		tableData2 = data;
-		if (tableData1 !== null) {
-			setTableData(data);
-		}
-	});
+    var tableData1 = null;
+    var tableData2 = null;
+    
+    sendPOSTRequest('/api/mastery/get-page-meta', {
+        startTimestamp: startTimestamp,
+        endTimestamp: endTimestamp,
+        contentId: contentId,
+        channelId: channelId,
+        parentLevel: parentLevel,
+        parentId: parentId
+    }, function(response) {
+        tableData1 = response.data;
+        setBreadcrumb(tableData1);
+        setTableMeta(tableData1);
+        if (tableData2 !== null) {
+            setTableData(tableData2);
+        }
+    });
+    
+    sendPOSTRequest('/api/mastery/get-page-data', {
+        startTimestamp: startTimestamp,
+        endTimestamp: endTimestamp,
+        contentId: contentId,
+        channelId: channelId,
+        parentLevel: parentLevel,
+        parentId: parentId
+    }, function(response) {
+        tableData2 = response.data;
+        if (tableData1 !== null) {
+            setTableData(tableData2);
+        }
+    });
+    
+    dismissTrendChart();
 };
 
 // Fetch topics by calling API and update the dropdown menu
+// Called only once upon page initialization
 var refreshTopicsDropdown = function() {
     sendPOSTRequest('/api/mastery/topics', {
         startTimestamp: startTimestamp,
-		endTimestamp: endTimestamp,
-		parentLevel: parentLevel,
-		parentId: parentId
-    }, function(data) {
-        buildTopicsDropdown(data);
+        endTimestamp: endTimestamp,
+        parentLevel: parentLevel,
+        parentId: parentId
+    }, function(response) {
+        buildTopicsDropdown(response.data);
     });
 };
 
+// Get trend data with specific item id from server (via POST) and sanitize it 
+// Used by `drawTrendChart`
+var getTrendData = function(itemId, callback) {    
+    sendPOSTRequest('/api/mastery/trend', {
+        startTimestamp: startTimestamp,
+        endTimestamp: endTimestamp,
+        contentId: contentId,
+        channelId: channelId,
+        level: parentLevel + 1,
+        itemId: itemId
+    }, function(response) {
+        callback(processTrendData(response.data));
+    });            
+};
+
 // Instantiate date range picker
+// Called only once upon page initialization
 var setupDateRangePicker = function() {
-	$('.daterangepicker').daterangepicker({
-		startDate: new Date(startTimestamp * 1000),
-		endDate: new Date(endTimestamp * 1000)
+    $('.daterangepicker').daterangepicker({
+        startDate: new Date(startTimestamp * 1000),
+        endDate: new Date(endTimestamp * 1000)
     }, function(start, end, label) {
         startTimestamp = new Date(start.format('YYYY-MM-DD')).getTime() / 1000;
         endTimestamp = new Date(start.format('YYYY-MM-DD')).getTime() / 1000;
@@ -85,12 +109,10 @@ var setupDateRangePicker = function() {
     });
 };
 
+// Update loading info (on top of screen) according to current system status. Calling this method will either show it, change it, or hide it.
 var updateLoadingInfo = function() {
     if (pendingRequests > 0) {
         setLoadingInfo('Crunching data, hang tight…');
-        $('.prevents-interaction').removeClass('hidden');
-    } else if (loadedTables < 4) {
-        setLoadingInfo('Preparing report…');
         $('.prevents-interaction').removeClass('hidden');
     } else {
         setLoadingInfo(null);
@@ -100,6 +122,7 @@ var updateLoadingInfo = function() {
 
 /** Pragma Mark - Page Manipulation **/
 
+// Set a specific loading message.
 var setLoadingInfo = function(message) {
     if (message === null) {
         $('.loading-info-container').addClass('hidden');
@@ -112,158 +135,173 @@ var setLoadingInfo = function(message) {
 
 // Clears current breadcrumb and sets it to a new one according to given data.
 // Uses `appendBreadcrumbItem`
+// Called every time the page needs update
 var setBreadcrumb = function(data) {
     $('.report-breadcrumb').html('');
     var len = data.breadcrumb.length;
+    var idx;
     for (idx in data.breadcrumb) {
         var o = data.breadcrumb[idx];
         var lastItem = idx == len - 1;
         appendBreadcrumbItem(o.parentName, o.parentLevel, o.parentId, lastItem);
-        if (lastItem) {
-            break;
-        }
     }
 };
 
 // Initializes the topics dropdown according to given data
 // Calls `_setTopics` recursively
+// Called only once upon page initialization
 var buildTopicsDropdown = function(data) {
-	var content = [];
-	_setTopics(content, data.topics);
+    var content = [];
+    _setTopics(content, data.topics);
 
     // wrap "everything"
     content = [{
         title: "Everything", 
         key: 1000, 
         folder: true, 
-        children:content,
+        children: content,
         expanded: true
     }];
-	
-	$('#topics-tree').html('');
-	$('#topics-tree').fancytree({
+    
+    var opts = {
+        autoApply: true,            // Re-apply last filter if lazy data is loaded
+        autoExpand: true,           // Expand all branches that contain matches while filtered
+        counter: false,             // Show a badge with number of matching child nodes near parent icons
+        fuzzy: false,               // Match single characters in order, e.g. 'fb' will match 'FooBar'
+        hideExpandedCounter: true,  // Hide counter badge if parent is expanded
+        hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
+        highlight: true,            // Highlight matches by wrapping inside <mark> tags
+        leavesOnly: false,          // Match end nodes only
+        nodata: false,              // Display a 'no data' status node if result is empty
+        mode: 'hide'                // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
+    };
+    
+    $('#topics-tree').html('');
+    $('#topics-tree').fancytree({
         checkbox: false,
         selectMode: 1,
         extensions: ['filter'],
-		quicksearch: true,
-		filter: {
-	        autoApply: true,            // Re-apply last filter if lazy data is loaded
-	        autoExpand: false,          // Expand all branches that contain matches while filtered
-	        counter: true,              // Show a badge with number of matching child nodes near parent icons
-	        fuzzy: false,               // Match single characters in order, e.g. 'fb' will match 'FooBar'
-	        hideExpandedCounter: true,  // Hide counter badge if parent is expanded
-	        hideExpanders: false,       // Hide expanders if all child nodes are hidden by filter
-	        highlight: true,            // Highlight matches by wrapping inside <mark> tags
-	        leavesOnly: false,          // Match end nodes only
-	        nodata: true,               // Display a 'no data' status node if result is empty
-	        mode: 'dimm'                // Grayout unmatched nodes (pass "hide" to remove unmatched node instead)
-        },
-        source: content
+        quicksearch: true,
+        source: content,
+        filter: opts
     });
     
+    // filter field
     $('#topic-filter-field').keyup(function(e) {
         var n; // number of results
-		var tree = $.ui.fancytree.getTree();
-		var args = 'autoApply autoExpand fuzzy hideExpanders highlight leavesOnly nodata'.split(' ');
-		var opts = {};
-		var filterFunc = tree.filterBranches;
-		var match = $(this).val();
+        var tree = $.ui.fancytree.getTree();
+        var filterFunc = tree.filterBranches;
+        var match = $(this).val();
 
-		$.each(args, function(i, o) {
-			opts[o] = $('#' + o).is(':checked');
-			});
-			opts.mode = 'hide';
+        if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ''){
+            // reset search
+            $('#topic-filter-field').val('');
+            var tree = $.ui.fancytree.getTree();
+            tree.clearFilter();
+            return;
+        }
 
-			if (e && e.which === $.ui.keyCode.ESCAPE || $.trim(match) === ''){
-				$('#reset-search').click();
-				return;
-			}
-
-			n = filterFunc.call(tree, match, opts);
+        n = filterFunc.call(tree, match, opts);
     });
     
+    // automatic reset
     $('#reset-search').click(function(e){
-		$('#topic-filter-field').val('');
-		var tree = $.ui.fancytree.getTree();
-		tree.clearFilter();
-	});
+        $('#topic-filter-field').val('');
+        var tree = $.ui.fancytree.getTree();
+        tree.clearFilter();
+    });
+    
+    // click background to dismiss
+    $('html').click(function() {
+        closeTopicDropdown();
+    });
+    
+    $('#topic-dropdown-container').click(function(e) {
+        e.stopPropagation();
+    });
+    
+    $('.topic .toggle-button').click(function(e) {
+        toggleTopicDropdown();
+        e.stopPropagation();
+    });
 };
 
 // Instantiate both tables, insert rows with data partially populated
+// Called every time the page needs update
+var metaSetOnce = false;
 var setTableMeta = function(data) {
     tableMeta = data;
     
-    var lengthMenu = [[5, 10, 25, 50, 100], [5, 10, 25, 50, 100]];
+    // initialization run only once
+    if (!metaSetOnce) {
+        metaSetOnce = true;
+        
+        var sharedLengthMenu = [[10, 25, 50, 100], [10, 25, 50, 100]];
 
-    // insert columns
-    for (idx in data.metrics) {
-        $('#data-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
-        $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
-        $('#data-compare-table .dropdown-menu').append('<li><a href="#" onclick="compareViewSetCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
-        $('#data-performance-table .dropdown-menu-metric').append('<li><a href="#" onclick="performanceViewSetCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
+        // insert columns
+        var idx;
+        for (idx in data.metrics) {
+            $('#data-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
+            $('#aggregation-table .trend-column').before('<th>' + data.metrics[idx].displayName + '</th>');
+            $('#data-compare-table .dropdown-menu').append('<li><a href="#" onclick="setCompareMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
+            $('#data-performance-table .dropdown-menu-metric').append('<li><a href="#" onclick="setPerformanceMetricIndex(' + idx + ')">' + data.metrics[idx].displayName + '</a></li>');
+        }
+        
+        // initialize tables
+        
+        table = $('#data-table').DataTable({
+            columnDefs: [
+                { orderable: false, targets: 5 }
+            ],
+            order: [[0, 'asc']],
+            dom: 'Bfrtip',
+            buttons: ['pageLength'/*, 'copy'*/, 'csv', 'excel', 'pdf'/*, 'print'*/],
+            lengthMenu: sharedLengthMenu
+        });
+        
+        aggregationTable = $('#aggregation-table').DataTable({
+            paging: false,
+            ordering: false,
+            info: false,
+            bFilter: false
+        });
+        
+        compareTable = $('#data-compare-table').DataTable({
+            columnDefs: [
+                { orderable: false, targets: 2 }
+            ],
+            order: [[0, 'asc']],
+            dom: 'Bfrtip',
+            buttons: ['pageLength'],
+            lengthMenu: sharedLengthMenu
+        });
+        
+        performanceTable = $('#data-performance-table').DataTable({
+            columnDefs: [
+                { orderable: false, targets: 2 }
+            ],
+            order: [[0, 'asc']],
+            dom: 'Bfrtip',
+            buttons: ['pageLength'],
+            lengthMenu: sharedLengthMenu
+        });
+    
+        // manually toggle dropdown; stop event propagation to avoid unintentional table reorders
+        $('thead .dropdown button').on('click', function(e){
+            e.stopPropagation();  
+            $('.dropdown-' + $(this).attr('id')).dropdown('toggle');
+        });
     }
     
-    // initialize tables
-    table = $('#data-table').DataTable({
-        columnDefs: [
-            { orderable: false, targets: 5 }
-        ],
-        order: [[0, 'asc']],
-        initComplete: function(settings, json) {
-            loadedTables++;
-            updateLoadingInfo();
-        },
-        dom: 'Bfrtip',
-        buttons: ['pageLength', 'copy', 'csv', 'excel', 'pdf', 'print'],
-        lengthMenu: lengthMenu
-    });
+    // remove current rows
     
-    aggregationTable = $('#aggregation-table').DataTable({
-        paging: false,
-        ordering: false,
-        info: false,
-        bFilter: false,
-        initComplete: function(settings, json) {
-            loadedTables++;
-            updateLoadingInfo();
-        }
-    });
-    
-    compareTable = $('#data-compare-table').DataTable({
-        columnDefs: [
-            { orderable: false, targets: 2 }
-        ],
-        order: [[0, 'asc']],
-        initComplete: function(settings, json) {
-            loadedTables++;
-            updateLoadingInfo();
-        },
-        dom: 'Bfrtip',
-        buttons: ['pageLength'],
-        lengthMenu: lengthMenu
-    });
-    
-    performanceTable = $('#data-performance-table').DataTable({
-        columnDefs: [
-            { orderable: false, targets: 2 }
-        ],
-        order: [[0, 'asc']],
-        initComplete: function(settings, json) {
-            loadedTables++;
-            updateLoadingInfo();
-        },
-        dom: 'Bfrtip',
-        buttons: ['pageLength'],
-        lengthMenu: lengthMenu
-    });
-
-    // manually toggle dropdown; stop event propagation to avoid unintentional table reorders
-    $('.dropdown button').on('click', function(e){
-        e.stopPropagation();  
-        $('.dropdown-' + $(this).attr('id')).dropdown('toggle');
-    });
+    table.clear();
+    compareTable.clear();
+    performanceTable.clear();
+    aggregationTable.clear();
     
     // insert placeholder rows for data table
+    var idx;
     for (idx in data.rows) {
         // data table
         var array = [drilldownColumnHTML(data.rows[idx].name, data.rows[idx].id)];
@@ -271,7 +309,7 @@ var setTableMeta = function(data) {
         while (nItems--) {
             array.push('');
         }
-        array.push(drawTrendButtonHTML(data.rows[idx].id));
+        array.push(drawTrendButtonHTML(data.rows[idx].id, data.rows[idx].name));
         var rowNode = table.row.add(array).draw(false).node();
         var rowId = 'row-' + data.rows[idx].id;
         $(rowNode).attr('id', rowId);
@@ -295,135 +333,394 @@ var setTableMeta = function(data) {
 };
 
 // Replace dummy data inserted in `setTableMeta` with real data
+// Called every time the page needs update
 var setTableData = function(data) {
     tableData = data;
+    var idx;
+    
     // update data rows
     for (idx in data.rows) {
         var array = JSON.parse(JSON.stringify(data.rows[idx].values)); // deep copy an array
         array.unshift(drilldownColumnHTML(data.rows[idx].name, data.rows[idx].id));
-        array.push(drawTrendButtonHTML(data.rows[idx].id));
+        array.push(drawTrendButtonHTML(data.rows[idx].id, data.rows[idx].name));
         table.row('#row-' + data.rows[idx].id).data(array).draw(false);
         
         // compare table
         var compareArray = [drilldownColumnHTML(data.rows[idx].name, data.rows[idx].id), '', ''];
         compareTable.row('#row-' + data.rows[idx].id).data(compareArray).draw(false);
     }
+    
     // add aggregation rows
     for (idx in data.aggregation) {
         var array = data.aggregation[idx].values;
         array.unshift(data.aggregation[idx].name);
         array.push('');
-        console.log(array);
         aggregationTable.row.add(array).draw(false);
     }
     
-    compareViewSetCompareMetricIndex(compareMetricIndex);
-    performanceViewSetCompareMetricIndex(performanceMetricIndex);
+    precalculate();
+    setCompareMetricIndex(compareMetricIndex);
+    setPerformanceMetricIndex(performanceMetricIndex);
 };
 
-// IBAction
-var compareViewSetCompareMetricIndex = function(metricIndex) {
+// Calculate statistical values
+var precalculate = function() {
+	compareMaxValues = [];
+	performanceCompareToValues = [];
+	
+	var metricIndex;
+	for (metricIndex in tableMeta.metrics) {
+		// find max value
+	    var maxVal = 0;
+	    if ((tableData.rows.length > 0) && (typeof tableData.rows[0].values[metricIndex] === 'string')) {
+	        maxVal = 100; // value type is percentage
+	    } else {
+		    var idx;
+	        for (idx in tableData.rows) {
+	            var rowValue = parseFloat(tableData.rows[idx].values[metricIndex]);
+	            if (rowValue > maxVal) {
+	                maxVal = rowValue;
+	            }
+	        }
+	    }
+	    compareMaxValues[metricIndex] = maxVal;
+	}
+	
+	for (metricIndex in tableMeta.metrics) {
+		// update compared-to values
+		var isPercentage = (tableData.rows.length > 0) && (typeof tableData.rows[0].values[metricIndex] === 'string');
+	    var values = [];
+	    var idx;
+	    for (idx in tableData.rows) {
+	        values.push(parseFloat(tableData.rows[idx].values[metricIndex]));
+	    }
+	    
+	    values.sort(function(a, b) { 
+	        return a - b;
+	    });
+	    
+	    var min = values[0];
+	    var max = values[values.length - 1];
+	    var sum = values.reduce(function(a, b) {
+	        return a + b; 
+	    }, 0);
+	    var average = sum / values.length;
+	    var half = Math.floor(values.length / 2);
+	    var median = (values.length % 2) ? values[half] : ((values[half-1] + values[half]) / 2.0);
+	    var suffix = isPercentage ? '%' : '';
+	    
+	    // set globals
+	    
+	    performanceCompareToValues[metricIndex] = {
+	        min: min,
+	        max: max,
+	        average: average,
+	        median: median,
+	        suffix: suffix
+	    };
+	}
+}
+
+/** Pragma Mark - UIAction **/
+
+// Set index of compare metric in the compare view
+// UIAction
+var setCompareMetricIndex = function(metricIndex) {
     compareMetricIndex = metricIndex;
     var metricName = tableMeta.metrics[metricIndex].displayName;
     $('#data-compare-table .current-metric').html(metricName);
     
     // find max value
-    var maxValue = 0;
-    if (typeof tableData.rows[0].values[metricIndex] === 'string') {
-        maxValue = 100; // value type is percentage
-    } else {
-        for (idx in tableData.rows) {
-            var rowValue = parseInt(tableData.rows[idx].values[metricIndex]);
-            if (rowValue > maxValue) {
-                maxValue = rowValue;
-            }
-        }
-    }
-    
+    var maxValue = compareMaxValues[metricIndex];
+    var idx;
     // update data rows
     for (idx in tableData.rows) {
-        var rowValue = parseInt(tableData.rows[idx].values[metricIndex]);
-        var percentage = maxValue == 0 ? 0 : (rowValue / maxValue * 100);
+        var rowValue = parseFloat(tableData.rows[idx].values[metricIndex]);
+        var percentage = Math.round(maxValue == 0 ? 0 : (rowValue / maxValue * 100));
         var barHTML =   '<div class="progress">'+
-                        '<div class="progress-bar" role="progressbar" aria-valuenow="' + percentage + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + percentage + '%;">'+
+                        '<div class="progress-bar" role="progressbar" aria-valuenow="' + percentage + 
+                        '" aria-valuemin="0" aria-valuemax="100" style="width: ' + percentage + '%;">'+
                         '</div></div>';
-        var compareArray = [drilldownColumnHTML(tableData.rows[idx].name, tableData.rows[idx].id), tableData.rows[idx].values[metricIndex], barHTML];
+        var compareArray = [
+            drilldownColumnHTML(tableData.rows[idx].name, tableData.rows[idx].id), 
+            tableData.rows[idx].values[metricIndex], 
+            barHTML
+        ];
         compareTable.row('#row-' + tableData.rows[idx].id).data(compareArray).draw(false);
     }
 };
 
-// IBAction
-var performanceViewSetCompareMetricIndex = function(metricIndex) {
+// Set index of compare metric in performance view
+// UIAction
+var setPerformanceMetricIndex = function(metricIndex) {
     performanceMetricIndex = metricIndex;
     var metricName = tableMeta.metrics[metricIndex].displayName;
+    var isPercentage = (tableData.rows.length > 0) && (typeof tableData.rows[0].values[metricIndex] === 'string');
     $('#data-performance-table .current-metric').text(metricName);
-    
-    // update compared-to values
-    var values = [];
-    for (idx in tableData.rows) {
-        values.push(parseInt(tableData.rows[idx].values[metricIndex]));
-    }
-    
-    values.sort(function(a, b) { 
-        return a - b;
-    });
-    
-    var min = values[0];
-    var max = values[values.length - 1];
-    var sum = values.reduce(function(a, b) {
-        return a + b; 
-    }, 0);
-    var average = sum / values.length;
-    var half = Math.floor(values.length / 2);
-    var median = (values.length % 2) ? values[half] : ((values[half-1] + values[half]) / 2.0);
-    
-    // set globals
-    
-    performanceComparedValues = {
-        min: min,
-        max: max,
-        average: average,
-        median: median  
-    };
+
+	var vals = performanceCompareToValues[metricIndex];
     
     // update dropdown
     
-    $('.compare-max a').text('Max: ' + max);
-    $('.compare-min a').text('Min: ' + min);
-    $('.compare-average a').text('Average: ' + Math.floor(average));
-    $('.compare-median a').text('Median: ' + median);
+    $('.compare-max a').text('Max: ' + vals.max + vals.suffix);
+    $('.compare-min a').text('Min: ' + vals.min + vals.suffix);
+    $('.compare-average a').text('Average: ' + (Math.round(vals.average * 10) / 10) + vals.suffix);
+    $('.compare-median a').text('Median: ' + vals.median + vals.suffix);
     
     // update dropdown title and bars
-    performanceViewUpdateComparedValueTitleAndTableRows();
+    // updating compare metric will also affect the value of chosen compared values (different base values)
+    updatePerformanceView();
 };
 
-// IBAction
-var performanceViewSetComparedValue = function(valueName) {
-    performanceComparedValueName = valueName;
-    performanceViewUpdateComparedValueTitleAndTableRows();
+// Set the compared value for performance view
+// UIAction
+var setPerformanceCompareToValue = function(valueName) {
+    performanceCompareToValueName = valueName;
+    updatePerformanceView();
 };
 
-var performanceViewUpdateComparedValueTitleAndTableRows = function() {
+// Get data remotely via `getTrendData` (async) and draw the chart (after removing previous chart -- if any)
+// UIAction
+var drawTrendChart = function(itemId, itemName) {
+    dismissTrendChart();
+    getTrendData(itemId, function(trendData) {
+        var chartData = new google.visualization.DataTable();
+        
+        if (trendData.points.length == 0) {
+            toastr.info('No trend data is available for the selected period.');
+            return;
+        }
+        
+        var earlyDate = trendData.points[0][0];
+        var lateDate = trendData.points[trendData.points.length - 1][0];
+        var options = {
+            chart: {
+                title: itemName + ' Mastery Trend',
+                subtitle: 'Data from ' + moment(earlyDate).format('MM/DD/YYYY') + ' to ' + moment(lateDate).format('MM/DD/YYYY')
+            },
+            legend: { position: 'bottom' },
+            width: 900,
+            height: 500,
+            series: {
+            },
+            axes: {
+                y: {
+                    percentage: {label: 'Percentage'},
+                    number: {label: 'Number'}
+                }
+            }
+        };
+        
+        chartData.addColumn('date', 'Date');
+        
+        var seriesIndex = 0;
+        var idx;
+        for (idx in trendData.series) {
+            var dict = trendData.series[idx];
+            var type = dict.isPercentage ? 'percentage' : 'number';
+            chartData.addColumn('number', dict.name);
+            options.series[seriesIndex++] = {axis: type};
+        }
+        
+        chartData.addRows(trendData.points);
+        
+        var chartContainer = document.getElementById('chart-wrapper');
+        var chart = new google.charts.Line(chartContainer);
+        
+        chart.draw(chartData, options);
+        setTrendChartVisible(true);
+        
+        // scroll to chart w/ animation
+        $('html, body').animate({
+            scrollTop: $('#chart-wrapper').offset().top
+        }, 500);
+    });
+};
+
+/** Pragma Mark - UIActions **/
+
+// UIAction
+var switchView = function(viewId) {
+    $('.switch-view-button').removeClass('btn-primary current');
+    $('.switch-view-button').addClass('btn-default');
+    $('.switch-view-button-' + viewId).removeClass('btn-default');
+    $('.switch-view-button-' + viewId).addClass('btn-primary current');
+    
+    $('.report-view').addClass('hidden');
+    $('.report-view-' + viewId).removeClass('hidden');
+};
+
+// Toggle topics dropdown menu
+// UIAction
+var toggleTopicDropdown = function() {
+    $('#topic-dropdown-container').toggleClass('shown');
+};
+
+// UIAction
+var closeTopicDropdown = function() {
+    $('#topic-dropdown-container').removeClass('shown');
+};
+
+// UIAction
+var toggleTopicDropdownExpandAll = function() {
+    var $button = $('#topic-dropdown-container .expand-button');
+    if ($button.data('expand')) {
+        $button.data('expand', false);
+        $button.html('Collapse All');
+        $('#topics-tree').fancytree('getTree').visit(function(node) {
+            node.setExpanded();
+        });
+    } else {
+        $button.data('expand', true);
+        $button.html('Expand All');
+        $('#topics-tree').fancytree('getTree').visit(function(node) {
+            if (node.title !== 'Everything') {
+                node.setExpanded(false); // collapse all except the root node (which there will be only 1)
+            }
+        });
+    }
+};
+
+// Apply currently selected topic, dismiss the dropdown, and update the page (async)
+// UIAction
+var applyAndDismissTopicDropdown = function() {
+    var node = $('#topics-tree').fancytree('getTree').getActiveNode();
+    if (node !== null) {
+        var topicIdentifiers = node.key.split(','); // update global state
+        channelId = topicIdentifiers[0];
+        contentId = topicIdentifiers[1];
+        $('.topic-dropdown-text').html(node.title);
+        updatePageContent();
+    } else {
+        // a node is not selected
+        toastr.warning('You must select a topic to apply the filter.');
+    }
+    toggleTopicDropdown();
+};
+
+// Handle click event of a drilldown link
+// UIAction
+var performDrilldown = function(itemId) {
+    parentId = itemId;
+    parentLevel++;
+    updatePageContent();
+};
+
+// Handle click event of a breadcrumb link
+// UIAction
+var clickBreadcrumbLink = function(level, id) {
+    parentId = id;
+    parentLevel = level;
+    updatePageContent();  
+};
+
+// Dismiss trend diagram
+// UIAction
+var dismissTrendChart = function() {
+    $('#chart-wrapper').html('');
+    setTrendChartVisible(false);
+};
+
+/** Pragma Mark - Utilities **/
+
+// Append a new breadcrumb item to the current list
+var appendBreadcrumbItem = function(name, level, id, isLast) {
+    var html;
+    if (isLast) {
+        html = '<span class="breadcrumb-text">' + name + '</span>';
+    } else {
+        html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', ' + id + ')">' + name + '</a>';
+        if (!isLast) {
+            html += ' > ';
+        }
+    }
+    
+    $('.report-breadcrumb').append(html);
+};
+
+// Recursively build the topics structure. See `buildTopicsDropdown`.
+var _setTopics = function(toArray, dataArray) {
+    var idx;
+    for (idx in dataArray) {
+        var dict = dataArray[idx];
+        var newDict = {
+            title: dict.name,
+            key: dict.channelId + ',' + dict.contentId,
+            folder: dict.children !== null
+        };
+        if (dict.children !== null) {
+            newDict['children'] = [];
+            _setTopics(newDict['children'], dict.children);
+        }
+        toArray.push(newDict);
+    }
+};
+
+// Returns the HTML code for draw trend button
+var drawTrendButtonHTML = function(itemId, itemName) {
+    return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' 
+           + itemId + ', \'' + itemName + '\')"><i class="fa fa-line-chart" aria-hidden="true"></i> Show Trend</button>';
+};
+        
+// HTML code of drilldown column in data table
+var drilldownColumnHTML = function(name, id) {
+    if (parentLevel + 1 === maxItemLevel) {
+        return '<span>' + name + '</span>';
+    } else {
+        return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
+    }
+};
+
+// Trend data preprocessing. Converts timestamp to date object.
+var processTrendData = function(data) {
+    // API issue: data.points and data.data are both used historically. 
+    // We use data.points as the official one but accept data.data also as a compatibility patch.
+    if (data.data !== null && data.points === null) {
+        data.points = data.data;
+    }
+
+    var idx;
+    for (idx in data.points) {
+        var timestamp = data.points[idx][0];
+        var dateObject = new Date(timestamp * 1000);
+        data.points[idx][0] = dateObject;
+    }
+    
+    return data;
+};
+
+// Sets whether the trend chart is visible.
+var setTrendChartVisible = function(visible) {
+    if (visible) {
+        $('.trend-chart').removeClass('hidden');
+    } else {
+        $('.trend-chart').addClass('hidden');
+    }
+};
+
+// Update the title of compared value and all actual table rows in performance view
+var updatePerformanceView = function() {
+    var vals = performanceCompareToValues[performanceMetricIndex];
     
     // dropdown title and pivot value
     
     var pivot;
     
-    if (performanceComparedValueName === 'max') {
-        $('.current-compared-value').text('Max: ' + (performanceComparedValues.max));
-        pivot = performanceComparedValues.max;
+    if (performanceCompareToValueName === 'max') {
+        $('.current-compared-value').text('Max: ' + (vals.max) + vals.suffix);
+        pivot = vals.max;
     }
-    if (performanceComparedValueName === 'min') {
-        $('.current-compared-value').text('Min: ' + (performanceComparedValues.min));
-        pivot = performanceComparedValues.min;
+    if (performanceCompareToValueName === 'min') {
+        $('.current-compared-value').text('Min: ' + (vals.min) + vals.suffix);
+        pivot = vals.min;
     }
-    if (performanceComparedValueName === 'average') {
-        $('.current-compared-value').text('Average: ' + Math.floor(performanceComparedValues.average));
-        pivot = performanceComparedValues.average;
+    if (performanceCompareToValueName === 'average') {
+        $('.current-compared-value').text('Average: ' + (Math.round(vals.average * 10) / 10) + vals.suffix);
+        pivot = vals.average;
     }
-    if (performanceComparedValueName === 'median') {
-        $('.current-compared-value').text('Median: ' + (performanceComparedValues.median));
-        pivot = performanceComparedValues.median;
+    if (performanceCompareToValueName === 'median') {
+        $('.current-compared-value').text('Median: ' + (vals.median) + vals.suffix);
+        pivot = vals.median;
     }
     
     // table rows
@@ -438,6 +735,7 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
     
     var max = 100;
     var min = -100;
+    var idx;
     
     for (idx in tableData.rows) {
         var rawValue = parseFloat(tableData.rows[idx].values[performanceMetricIndex]);
@@ -461,10 +759,10 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
                 
         if (compareValue > 0) {
             positiveValue = compareValue / max * 100;
-            positiveLabel = '+' + Math.floor(compareValue) + '%';
+            positiveLabel = '+' + (Math.round(compareValue * 10) / 10) + '%';
         } else if (compareValue < 0) {
             negativeValue = compareValue / min * 100; // the variable holds a positive number, but `represents` a negative value
-            negativeLabel = Math.floor(compareValue) + '%';
+            negativeLabel = (Math.round(compareValue * 10) / 10) + '%';
         }
         
         var barHTML =   '<div class="progress progress-negative">' +
@@ -482,250 +780,74 @@ var performanceViewUpdateComparedValueTitleAndTableRows = function() {
     }
 };
 
-// Get data remotely via `getTrendData` (async) and draw the chart (after removing previous chart -- if any)
-// IBAction
-var drawTrendChart = function(itemId) {
-    dismissTrendChart();
-    setTrendChartVisible(true);
-    // TODO - chart loading screen
-    getTrendData(itemId, function(trendData) {
-        var chartData = new google.visualization.DataTable();
-        
-        var options = {
-            chart: {
-                title: 'Trend'
-            },
-            width: 900,
-            height: 500,
-            series: {
-            },
-            axes: {
-                y: {
-                    percentage: {label: 'Percentage'},
-                    number: {label: 'Number'}
-                }
-            }
-        };
-        
-        chartData.addColumn('date', 'Date');
-        
-        var seriesIndex = 0;
-        for (idx in trendData.series) {
-            var dict = trendData.series[idx];
-            var type = dict.isPercentage ? 'percentage' : 'number';
-            chartData.addColumn('number', dict.name);
-            options.series[seriesIndex++] = {axis: type};
-        }
-        
-        chartData.addRows(trendData.points);
-        
-        var chartContainer = document.getElementById('chart-wrapper');
-        var chart = new google.charts.Line(chartContainer);
-        chart.draw(chartData, options);
-        
-        // scroll to chart w/ animation
-        $('html, body').animate({
-            scrollTop: $('#chart-wrapper').offset().top
-        }, 500);
-    });
+var sendPOSTRequest = function(url, dataObject, callback) {
+    if (selfServe) {
+        sendPOSTRequest_test(url, dataObject, callback);
+    } else {
+        sendPOSTRequest_real(url, dataObject, callback);  
+    }
 };
-
-/** Pragma Mark - IBActions **/
-
-// IBAction
-var switchView = function(viewId) {
-    $('.switch-view-button').removeClass('btn-primary');
-    $('.switch-view-button').addClass('btn-default');
-    $('.switch-view-button-' + viewId).addClass('btn-primary');
-    
-    $('.report-view').addClass('hidden');
-    $('.report-view-' + viewId).removeClass('hidden');
-};
-
-// Toggle topics dropdown menu
-// IBAction
-var toggleTopicDropdown = function() {
-    $('#topic-dropdown-container').toggleClass('shown');
-};
-
-// Apply currently selected topic, dismiss the dropdown, and update the page (async)
-// IBAction
-var applyAndDismissTopicDropdown = function() {
-    var node = $('#topics-tree').fancytree('getTree').getActiveNode();
-	if (node !== null) {
-		topicIdentifiers = node.key.split(','); // update global state
-		channelId = topicIdentifiers[0];
-		contentId = topicIdentifiers[1];
-		$('.topic-dropdown-text').html(node.title);
-		updatePageContent();
-	} else {
-    	// a node is not selected
-    	toastr.warning('You must select a topic to apply the filter.');
-	}
-    toggleTopicDropdown();
-};
-
-// IBAction
-var performDrilldown = function(id) {
-  	  parentId = id;
-  	  parentLevel++;
-  	  updatePageContent();
-};
-
-// IBAction
-var clickBreadcrumbLink = function(level, id) {
-  	parentId = id;
-  	parentLevel = level;
-  	updatePageContent();  
-};
-
-// Dismiss trend diagram
-// IBAction
-var dismissTrendChart = function() {
-    $('#chart-wrapper').html('');
-    setTrendChartVisible(false);
-};
-
-/** Pragma Mark - Utilities **/
 
 // Sends a POST request. Both request and return data are JSON object (non-stringified!!1!)
 // `callback` called when a response is received, with the actual response as the parameter.
-var sendPOSTRequest = function(url, dataObject, callback) {
-    
+var sendPOSTRequest_real = function(url, dataObject, callback) {
     pendingRequests++;
     updateLoadingInfo();
     
     if (debug) {
-        console.log('POST request sent to: ' + url);
-        console.log('POST data: ');
-        console.log(dataObject);
+        console.log('POST request sent to: ' + JSON.stringify(url) + '. POST data: ' + JSON.stringify(dataObject));
     }
     
     $.ajax({
-		type: 'POST',
-		url: url,
-		data: JSON.stringify(dataObject),
-		success: function(result, textStatus, jqXHR) {
-			if (debug) {
-				console.log('Response:');
-				console.log(result);
-			}
-			callback(result);
-			pendingRequests--;
-			updateLoadingInfo();
-		},
-		error: function(jqXHR, textStatus, errorThrown) {
+        type: 'POST',
+        url: url,
+        data: JSON.stringify(dataObject),
+        success: function(response, textStatus, jqXHR) {
             if (debug) {
-                console.log('Request Error:');
-                console.log(textStatus + ', ' + errorThrown);
+                console.log('Response: ' + JSON.stringify(response));
             }
+            if (response.code) {
+                toastr.error(response.info.message, response.info.title);
+            } else if (!response.data) {
+                toastr.error('There is an error communicating with the server. Please try again later.');
+                console.error('Invalid response: A valid `data` field is not found.');
+            } else {
+                if (response.info) {
+                    toastr.info(response.info.message, response.info.title);
+                }
+                callback(response);
+            }
+            pendingRequests--;
+            updateLoadingInfo();
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
             if (!textStatus) {
                 textStatus = 'error';
             }
             if (!errorThrown) {
                 errorThrown = 'Unknown error';
             }
+            if (debug) {
+                console.log('Request failed with status: ' + textStatus + '. Error Thrown: ' + errorThrown);
+            }
             toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
             pendingRequests--;
             updateLoadingInfo();
-		},
-		dataType: 'json'
-	});
-};
-
-// Append a new breadcrumb item to the current list
-var appendBreadcrumbItem = function(name, level, id, isLast) {
-    var html;
-    if (isLast) {
-        html = '<span class="breadcrumb-text">' + name + '</span>';
-    } else {
-        html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', ' + id + ')">' + name + '</a>';
-        if (!isLast) {
-            html += ' > ';
-        }
-    }
-    
-    $('.report-breadcrumb').append(html);
-};
-
-// See `buildTopicsDropdown`
-var _setTopics = function(toArray, dataArray) {
-    for (idx in dataArray) {
-        var dict = dataArray[idx];
-        var newDict = {
-	        title: dict.name,
-	        key: dict.channelId + ',' + dict.contentId,
-	        folder: dict.children !== null
-        };
-        if (dict.children !== null) {
-	        newDict['children'] = [];
-	        _setTopics(newDict['children'], dict.children);
-        }
-        toArray.push(newDict);
-    }
-};
-
-// Returns the HTML code for draw trend button
-var drawTrendButtonHTML = function(itemId) {
-    return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' 
-           + itemId + ')"><i class="fa fa-line-chart" aria-hidden="true"></i> Show Trend</button>';
-};
-        
-// HTML code of drilldown column in data table
-var drilldownColumnHTML = function(name, id) {
-    if (parentLevel == 2) {
-    	return '<span>' + name + '</span>';
-    } else {
-    	return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
-    }
-};
-
-var processTrendData = function(data) {
-    // API issue: data.points and data.data are both used historically. 
-    // We use data.points as the official one but accept data.data also as a compatibility patch.
-    if (data.data !== null && data.points === null) {
-        data.points = data.data;
-    }
-                
-    for (idx in data.points) {
-        var timestamp = data.points[idx][0];
-        var dateObject = new Date(timestamp * 1000);
-        data.points[idx][0] = dateObject;
-    }
-    
-    return data;
-};
-
-// Get trend data with specific item id from server (via POST) and sanitize it 
-// Used by `drawTrendChart`
-var getTrendData = function(itemId, callback) {
-    // Test
-    callback(processTrendData(fakeTrendData()));
-    return;
-    
-    sendPOSTRequest('/api/mastery/trend', {
-        startTimestamp: startTimestamp,
-        endTimestamp: endTimestamp,
-		contentId: contentId,
-		channelId: channelId,
-        level: parentLevel + 1,
-        itemId: itemId
-    }, function(data) {
-        callback(processTrendData(data));
-    });            
-};
-
-var setTrendChartVisible = function(visible) {
-    if (visible) {
-        $('.trend-chart').removeClass('hidden');
-    } else {
-        $('.trend-chart').addClass('hidden');
-    }
+        },
+        dataType: 'json'
+    });
 };
 
 /** Testing **/
 
-var fakeTrendData = function() {
+var getRandomInt = function(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+}
+
+var trendData = function() {
+    var i = 0, j = 0, k = 0;
     var data = {
         series: [
             {
@@ -740,24 +862,23 @@ var fakeTrendData = function() {
             }
         ],
         points: [
-            [1496941452, 15, 15, 2],
-            [1497042452, 32, 20, 5],
-            [1497143452, 45, 30, 12],
-            [1497344452, 52, 45, 14],
-            [1497945452, 65, 64, 18],
-            [1499246452, 77, 77, 21],
-            [1499347452, 80, 78, 23],
-            [1499448452, 99, 79, 25],
-            [1499949452, 100, 95, 30]
+            [1496941452, i=getRandomInt(0,20), j=getRandomInt(0,20), k=getRandomInt(0,50)],
+            [1497042452, i=getRandomInt(i,40), j=getRandomInt(j,40), k=k+getRandomInt(0,50)],
+            [1497143452, i=getRandomInt(i,40), j=getRandomInt(j,40), k=k+getRandomInt(0,50)],
+            [1497344452, i=getRandomInt(i,60), j=getRandomInt(j,60), k=k+getRandomInt(0,50)],
+            [1497945452, i=getRandomInt(i,60), j=getRandomInt(j,60), k=k+getRandomInt(0,50)],
+            [1499246452, i=getRandomInt(i,80), j=getRandomInt(j,80), k=k+getRandomInt(0,50)],
+            [1499347452, i=getRandomInt(i,80), j=getRandomInt(j,80), k=k+getRandomInt(0,50)],
+            [1499448452, i=getRandomInt(i,100), j=getRandomInt(j,100), k=k+getRandomInt(0,50)],
+            [1499949452, i=getRandomInt(i,100), j=getRandomInt(j,100), k=k+getRandomInt(0,50)]
         ]
     };            
     
     return data;
 };
 
-var runTest = function() {
-    // Test
-    setBreadcrumb({
+var tableMetaData = function() {
+    return {
         breadcrumb: [{
             parentName: "All Regions",
             parentLevel: 0,
@@ -766,11 +887,7 @@ var runTest = function() {
             parentName: "East Sector",
             parentLevel: 1,
             parentId: 10
-        }]
-    });
-    
-    // Test
-    setTableMeta({
+        }],
         metrics: [{
             displayName: "% exercise completed",
             toolTip: "help text goes here"
@@ -814,15 +931,12 @@ var runTest = function() {
         }, {
             id: 10,
             name: "Westwood School"
-        }, {
-            id: 11,
-            name: "Eastwood School"
         }]
-    });
-    
-    // Test
+    };
+};
 
-    setTableData({
+var tableDataData = function() {
+    return {
         rows: [{
             id: 1,
             name: "Allegheny K-5",
@@ -913,15 +1027,6 @@ var runTest = function() {
                 120,
                 "20%"
             ]
-        }, {
-            id: 11,
-            name: "Eastwood School",
-            values: [
-                "35%",
-                "16%",
-                70,
-                "17%"
-            ]
         }],
         aggregation: [{
             name: "Average",
@@ -932,40 +1037,93 @@ var runTest = function() {
                 "10%"
             ]
         }]
-    });
+    };
+};
 
-	// Test
-    buildTopicsDropdown({
-		"topics": [{
-			"contentId": "bb",
-			"channelId": "aa",
-			"name": "Channel 1",
-			"children": [{
-				"id": 10,
-				"name": "Physics",
-				"children": null
-			}]
-		},{
-			"contentId": "bdb",
-			"channelId": "adsa",
-			"name": "Channel 2",
-			"children": [{
-				"id": 24,
-				"name": "Algorithms",
-				"children": null
-			}]
-		}]
-	});
+var topicsData = function() {
+    return {
+        "topics": [{
+            "contentId": "bb",
+            "channelId": "aa",
+            "name": "Channel 1",
+            "children": [{
+                "id": 10,
+                "name": "Physics",
+                "children": null
+            }]
+        },{
+            "contentId": "bdb",
+            "channelId": "adsa",
+            "name": "Channel 2",
+            "children": [{
+                "id": 24,
+                "name": "Algorithms",
+                "children": null
+            }]
+        }]
+    };
+};
+
+var sendPOSTRequest_test = function(url, dataObject, callback) {
+    pendingRequests++;
+    updateLoadingInfo();
+    
+    if (debug) {
+        console.log('POST request sent to: ' + JSON.stringify(url) + '. POST data: ' + JSON.stringify(dataObject));
+    }
+    
+    setTimeout(function() {
+        var response;
+        
+        if (url === '/api/mastery/get-page-meta') {
+            response = ({
+                code: 0,
+                data: tableMetaData()
+            });
+        }
+        
+        if (url === '/api/mastery/get-page-data') {
+            response = ({
+                code: 0,
+                data: tableDataData()
+            });
+        }
+        
+        if (url === '/api/mastery/topics') {
+            response = ({
+                code: 0,
+                data: topicsData()
+            });
+        }
+        
+        if (url === '/api/mastery/trend') {
+            response = ({
+                code: 0,
+                data: trendData()
+            });
+        }
+        
+        if (response.code) {
+            toastr.error(response.info.message, response.info.title);
+        } else if (!response.data) {
+            toastr.error('There is an error communicating with the server. Please try again later.');
+            console.error('Invalid response: A valid `data` field is not found.');
+        } else {
+            if (response.info) {
+                toastr.info(response.info.message, response.info.title);
+            }
+            callback(response);
+        }
+        
+        pendingRequests--;
+        updateLoadingInfo();
+    }, getRandomInt(100, 2000));
 };
 
 $(function() {
     google.charts.load('current', {'packages':['line', 'corechart']});
-    
     updateLoadingInfo();
     setupDateRangePicker();
-    //refreshTopicsDropdown();
-    //updatePageContent();
-    
-    // Test
-    runTest();
+    refreshTopicsDropdown();
+    updatePageContent();
 });

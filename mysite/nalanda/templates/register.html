@@ -1,11 +1,11 @@
-<!--{% include "_header.html" with bodyClass="register standalone" %}-->
-
 <html lang="en">
-
 
 <head>
     <!--<link rel="stylesheet" href="../static/css/main.css" media="all">-->
+    <link rel="stylesheet" href="../static/node_modules/bootstrap/dist/css/bootstrap.min.css" media="all">
+    <!--<script type="text/javascript" src="https://cdn.jsdelivr.net/jquery.validation/1.16.0/jquery.validate.min.js"></script>-->
     <!--<script type="text/javascript" src="http://yourjavascript.com/7174319415/script.js"></script>-->
+        <link rel="stylesheet" href="../static/css/main.css" media="all">
     <!-- jquery -->
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=EDGE">
@@ -25,8 +25,6 @@
             // on page load follloiwng actions should be taken
             // 1. hide institutes drop down and classes drop donw
             $("#InstitutesSelecDiv").hide();
-            $("#instituteId").hide();
-            $("#role").hide();
             $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>')
             $("#checkBoxesInnerdiv").hide();
 
@@ -34,10 +32,6 @@
             for (j = 0; j < institutedata[0]['classes'].length; j++) {
                 $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]"  value="' + institutedata[0]['classes'][j]['id'] + '"/> ' + institutedata[0]['classes'][j]['name'] + '<br />');
             }
-
-            // 3. Set values of hidden fields
-            $("#instituteId").val(institutedata[0]['id']);
-            $("#role").val(1);
 
             // This function is performed when role is changed
             // It shows institutes or classes based on role sleected
@@ -48,18 +42,15 @@
                 if (idselected == "BoardMem") {
                     $("#InstitutesSelecDiv").hide();
                     $("#checkBoxesInnerdiv").hide();
-                    $("#role").val(1);
+
                 }
                 else if (idselected == "SchoolLed") {
                     $("#InstitutesSelecDiv").show();
                     $("#checkBoxesInnerdiv").hide();
-                    $("#role").val(2);
+
                 }
                 else if (idselected == "Teacher") {
                     $("#InstitutesSelecDiv").show();
-
-                    $("#role").val(3);
-
                     $("#checkBoxesInnerdiv").remove();
                     $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>');
                     $('#checkBoxesInnerdiv').append('<label >Classes</label></br>');
@@ -70,7 +61,6 @@
                     for (i = 0; i < institutedata.length; i++) {
                         if (institutedata[i]['name'] == valueSelected) {
                             for (j = 0; j < institutedata[i]['classes'].length; j++) {
-
                                 $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]"  value="' + institutedata[0]['classes'][j]['id'] + '"/> ' + institutedata[0]['classes'][j]['name'] + '<br />');
                             }
                             $("#checkBoxesInnerdiv").show();
@@ -88,7 +78,7 @@
                 var optionSelected = $(this).find("option:selected");
                 var valueSelected = optionSelected.val();
 
-                var optionSelected = $('#RoleSelect').find("option:selected");
+                optionSelected = $('#RoleSelect').find("option:selected");
                 var idselected = optionSelected[0].id;
 
                 if (idselected == "Teacher") {
@@ -101,74 +91,114 @@
                             for (j = 0; j < institutedata[i]['classes'].length; j++) {
                                 $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]" value="' + institutedata[i]['classes'][j]['id'] + '"/> ' + institutedata[i]['classes'][j]['name'] + '<br />');
                             }
-                            $("#instituteId").val(institutedata[i]['id']);
+
                             break;
                         }
                     }
                 }
             });
 
+            $('#Register').click(function () {
+                register();
+            });
+
+            function register() {
+                var object = {};
+                object.firstName = $('#firstName').val();
+                object.lastName = $('#lastName').val();
+                object.username = $('#username').val();
+                object.password = $('#password').val();
+                object.email = $('#email').val();
+
+                idselected = $('RoleSelect').id;
+                if (idselected === "BoardMem") {
+                    object.role = 1;
+                }
+                else if (idselected === "SchoolLed") {
+                    object.role = 2;
+                    object.instituteId = $('#InstitutesSelect').children(":selected").attr("id");
+                }
+                else if (idselected === "Teacher") {
+                    object.role = 3;
+                    object.instituteId = $('#InstitutesSelect').children(":selected").attr("id");
+
+                    var classes = [];
+                    $('#checkBoxesInnerdiv').find(':checkbox:checked').each(function () {
+                        classes.push(parseInt($(this).val()));
+                    });
+
+                    object.classes = classes;
+                }
+
+                ajaxrequest('/nalanda/register', object);
+            }
+
+            function ajaxrequest(url, dataObject) {
+                $.ajax({
+                    type: 'POST',
+                    url: url,
+                    data: JSON.stringify(dataObject),
+                    success: function (result, textStatus, jqXHR) {
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                    },
+                    dataType: 'json'
+                });
+            };
+
         });
+
 
     </script>
 
 </head>
-<h1 class="site-title">Kolibri Visualizer</h1>
-<body>
+<body class="login">
+	<h1 class="site-title">Kolibri Visualizer</h1>
 <div class="content">
-    <h2>Login to your account</h2>
-    <form id="registration" name="registration" method="POST" action="/nalanda/register">
+    <h2>Register a new account</h2>
+    <form id="registration" name="registration">
+	    <label for="firstName">First Name</label>
         <div class="input">
-            <i class="glyphicon glyphicon-user"></i>
-            <label for="firstName">First Name</label>
-            <input name="firstName" id="firstName" required type="text" class="form-control">
+            <input name="firstName" id="firstName" required type="text" >
         </div>
+        <label for="lastName">Last Name</label>
         <div class="input">
-            <i class="glyphicon glyphicon-user"></i>
-            <label for="lastName">Last Name</label>
-            <input id="lastName" name="lastName" required type="text" class="form-control">
+            <input id="lastName" name="lastName" required type="text" >
         </div>
+        <label for="username">Username</label>
         <div class="input">
-            <i class="glyphicon glyphicon-user"></i>
-            <label for="username">Username</label>
-            <input id="username" name="username" type="text" required class="form-control">
+            <input id="username" name="username" type="text" required >
         </div>
+        <label for="password">Password</label>
         <div class="input">
-            <i class="glyphicon glyphicon-lock"></i>
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password" required class="form-control">
+            <input id="password" name="password" type="password" required>
         </div>
+        <label for="email" >Email</label>
         <div class="input">
-            <i class="glyphicon glyphicon-lock"></i>
-            <label for="email" class="form-control">Email</label>
-            <input id="email" name="email" type="text" required class="form-control">
+            <input id="email" name="email" type="text" required>
         </div>
+        <label for="RoleSelect" class="label-size">Role</label>
         <div class="input">
-            <i class="glyphicon glyphicon-lock"></i>
-            <label for="RoleSelect" class="label-size">Role</label>
             <select id="RoleSelect" name="RoleSelect">
                 <option value="Board Member" id="BoardMem">Board Member</option>
                 <option value="School Leader" id="SchoolLed">School Leader</option>
                 <option value="Teacher" id="Teacher">Teacher</option>
             </select>
-            <input type="text" id="role" name="role"/>
         </div>
-        <div class="input" id="InstitutesSelecDiv">
-            <i class="glyphicon glyphicon-lock"></i>
+        <div id="InstitutesSelecDiv">
             <label for="InstitutesSelect">Institue</label>
+            <div class="input">
             <select id="InstitutesSelect" name="InstitutesSelect">
                 {% for choice in data.institutes %}
-                <option id="{{ choice.name }}">{{ choice.name }}</option>
+                <option id="{{choice.id}}">{{ choice.name }}</option>
                 {% endfor %}
             </select>
-            <input type="text" id="instituteId" name="instituteId"/>
+            </div>
         </div>
-        <div id="checkBoxesOuterdiv">
-        </div>
+        <div id="checkBoxesOuterdiv"></div>
         </br>
         <div>
-            <input name="Register" value="Register" type="submit" class="btn btn-success submit-button"> <i
-                class="glyphicon glyphicon-log-in"></i></input>
+            <input name="Register" id="Register" value="Register" type="submit" class="btn btn-success submit-button">
         </div>
     </form>
     <div class="alternate-option">
