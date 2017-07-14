@@ -102,6 +102,11 @@ def login_post(username, password):
 @csrf_exempt
 def login_view(request):
     if request.method == 'GET':
+        code = 0
+        title = ""
+        message = ""
+        data = {}
+        response_object = construct_response(code, title, message, data)
         return render(request, 'login.html')
         
     elif request.method == 'POST':
