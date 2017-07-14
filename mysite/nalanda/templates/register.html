@@ -16,9 +16,10 @@
     <script type="text/javascript">
 
         // initialize data from the template
-        alldata = "{{data}}";
-        alljsondata = alldata.replace(/&#39;/g, "\"");
-        var institutedata = JSON.parse(alljsondata)['institutes'];
+        alldata = "{{data|safe}}";
+        //alljsondatasub = alldata.replace(/u&#39;/g, "\"");
+        alljsondata = alldata.replace(new RegExp('\'','g'),'"');
+        var institutedata = JSON.parse(alljsondata)['data']['institutes'];
 
         $(document).ready(function () {
 
@@ -156,7 +157,7 @@
 	<h1 class="site-title">Kolibri Visualizer</h1>
 <div class="content">
     <h2>Register a new account</h2>
-    <form id="registration" name="registration">
+    <form id="registration" name="registration", method="POST">
 	    <label for="firstName">First Name</label>
         <div class="input">
             <input name="firstName" id="firstName" required type="text" >

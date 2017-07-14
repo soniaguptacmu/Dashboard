@@ -17,9 +17,9 @@ import time
 
 def construct_response(code, title, message, data):
     response_object = {}
-    response_object['code'] = code
-    response_object['info'] = {'title': title,'message': message}
-    response_object['data'] = data
+    response_object["code"] = code
+    response_object["info"] = {"title": title,"message": message}
+    response_object["data"] = data
     return response_object            
 
 
@@ -97,12 +97,6 @@ def login_view(request):
         return render(request, 'login.html')
         
     elif request.method == 'POST':
-<<<<<<< HEAD
-        #data = json.loads(request.body)
-
-=======
-       
->>>>>>> d1bb86274fe0bbdf67fe27cb29edc4a461dbf5ee
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '').strip()
         response_object, is_success, role = login_post(username, password)
@@ -170,76 +164,76 @@ def get_school_and_classes():
 
 @csrf_exempt
 def register_post(username, password, first_name, last_name, email, role_id, institute_id, classes): 
-    try:
-        not_complete = False
-        username_exists = False
+    #try:
+    not_complete = False
+    username_exists = False
+    is_success = False
+    if (not username) or (not password) or (not email) or (not role_id) or role_id == '0' or (not first_name) or (not last_name):
+        not_complete = True
+    
+    if (role_id == '2' or role_id == '3') and (not institute_id):
+        not_complete = True
+    
+    if role_id == '3' and (not classes):
+        not_complete = True
+
+    if not not_complete:
+        user = Users.objects.filter(username=username)
+        if user:
+            username_exists = True
+
+    if not_complete:
+        code = 1004
+        title = 'The registration info provided is not complete'
+        message = 'The registration info provided is not complete'           
+
+    elif username_exists:
+        code = 1005
+        title = 'The username already exists'
+        message = 'The username already exists'
+    
+    role_id = int(role_id)  
+    if not institute_id:
+        institute_id = ''
+    else:
+        institute_id = int(institute_id)
+
+    if not_complete or username_exists:
+        autoComplete = {'username': username, 'firstName': first_name, 'lastName': last_name, 'email': email, 'role': role_id, 'instituteId': institute_id, 'classes': classes}
+        institutes = get_school_and_classes()
+        data = {'autoComplete': autoComplete, 'institutes': institutes}   
         is_success = False
-        if (not username) or (not password) or (not email) or (not role_id) or role_id == '0' or (not first_name) or (not last_name):
-            not_complete = True
-        
-        if (role_id == '2' or role_id == '3') and (not institute_id):
-            not_complete = True
-        
-        if role_id == '3' and (not classes):
-            not_complete = True
 
-        if not not_complete:
-            user = Users.objects.filter(username=username)
-            if user:
-                username_exists = True
-
-        if not_complete:
-            code = 1004
-            title = 'The registration info provided is not complete'
-            message = 'The registration info provided is not complete'           
-
-        elif username_exists:
-            code = 1005
-            title = 'The username already exists'
-            message = 'The username already exists'
-        
-        role_id = int(role_id)  
-        if not institute_id:
-            institute_id = ''
-        else:
-            institute_id = int(institute_id)
-
-        if not_complete or username_exists:
-            autoComplete = {'username': username, 'firstName': first_name, 'lastName': last_name, 'email': email, 'role': role_id, 'instituteId': institute_id, 'classes': classes}
-            institutes = get_school_and_classes()
-            data = {'autoComplete': autoComplete, 'institutes': institutes}   
-            is_success = False
-
-        else:
-            number_of_failed_attempts = 0
-            create_date = timezone.now()
-            new_user = Users(username=username, password=password, first_name=first_name, last_name=last_name, email=email, number_of_failed_attempts=number_of_failed_attempts, create_date=create_date, role_id=role_id)
-            new_user.save()
-            if role_id == '1':
-                user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user)
+    else:
+        number_of_failed_attempts = 0
+        create_date = timezone.now()
+        new_user = Users(username=username, password=password, first_name=first_name, last_name=last_name, email=email, number_of_failed_attempts=number_of_failed_attempts, create_date=create_date, role_id=role_id)
+        new_user.save()
+        if role_id == '1':
+            user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user)
+            user_role_collection_mapping.save()
+        elif role_id == '2':
+            school = UserInfoSchool.objects.filter(school_id=int(institute_id))
+            if school:
+                user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0])
                 user_role_collection_mapping.save()
-            elif role_id == '2':
-                school = UserInfoSchool.objects.filter(school_id=int(institute_id))
-                if school:
-                    user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0])
-                    user_role_collection_mapping.save()
-            elif role_id == '3':
-                school = UserInfoSchool.objects.filter(school_id=int(institute_id))
-                if school:
-                    for i in range(0, len(classes)):
-                        current_class = UserInfoClass.objects.filter(class_id=classes[i])
-                        if current_class:
-                            user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0], class_id = current_class[0])
-                            user_role_collection_mapping.save()         
-            code = 0
-            title = ''
-            message = ''
-            data = {}
-            is_success = True
-        response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        elif role_id == '3':
+            school = UserInfoSchool.objects.filter(school_id=int(institute_id))
+            if school:
+                for i in range(0, len(classes)):
+                    current_class = UserInfoClass.objects.filter(class_id=classes[i])
+                    if current_class:
+                        user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0], class_id = current_class[0])
+                        user_role_collection_mapping.save()         
+        code = 0
+        title = ''
+        message = ''
+        data = {}
+        is_success = True
+    response_object = construct_response(code, title, message, data)
+    return response_object, is_success
 
-    except DatabaseError:
+    '''except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
         message = 'Sorry, error occurred in database operations'
@@ -262,7 +256,7 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
         data = {} 
         is_success = False
         response_object = construct_response(code, title, message, data)
-        return response_object, is_success
+        return response_object, is_success'''
 
 
 @csrf_exempt
@@ -274,10 +268,19 @@ def register_view(request):
         title = ''
         message = ''
         response_object = construct_response(code, title, message, data)
-        return render(request, 'register.html', response_object)  
+        response_text = json.dumps(response_object,ensure_ascii=False)
+        response_str = json.loads(response_text)
+        print(response_str)
+        return render(request, 'register.html', {'data':response_str})  
 
     elif request.method == 'POST':
-        data = json.loads(request.body)
+        '''print("body")
+        print()
+        body_unicode = request.body.decode('utf-8')
+        print("unicode")
+        print(body_unicode)
+        data = json.loads(body_unicode)'''
+        data = request.POST
 
         username = data.get('username', '').strip()
         password = data.get('password', '').strip()
