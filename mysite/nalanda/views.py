@@ -516,6 +516,7 @@ def admin_unblock_users_view(request):
             response_object = construct_response(code, title, message, data)
 
         else:
+            body_unicode = request.body.decode('utf-8')
             data = json.loads(request.body)
             usernames = data.get('usernames',[])
             response_object = admin_unblock_users_post(usernames)
@@ -818,6 +819,7 @@ def get_page_meta_view(request):
             return HttpResponse(response_object)
 
         else:
+            body_unicode = request.body.decode('utf-8')
             data = json.loads(request.body)
             parent_level = data.get('parentLevel', -1)
             parent_id = data.get('parentId', -1)
@@ -1134,6 +1136,7 @@ def get_page_data_view(request):
             return HttpResponse(response_object)
 
         else:
+            body_unicode = request.body.decode('utf-8')
             data = json.loads(request.body)
             start_timestamp = data.get('startTimestamp', '').strip()
             end_timestamp = data.get('endTimestamp', '').strip()
