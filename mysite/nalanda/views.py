@@ -1166,7 +1166,7 @@ def get_topics(request):
         return HttpResponse(response_text,content_type='application/json')
     else:
         response = construct_response(1111,'wrong request','wrong request','')
-        response_text = serializers.serialize('json',response)
+        response_text = json.dumps(response,ensure_ascii=False)
         return HttpResponse(response_text,content_type='application/json')
 
 #@login_required
@@ -1221,7 +1221,7 @@ def get_trend(request):
         return HttpResponse(response_text,content_type='application/json')
     else:
         response = construct_response(1111,'wrong request','wrong request','')
-        response_text = serializers.serialize('json',response)
+        response_text = json.dumps(response,ensure_ascii=False)
         return HttpResponse(response_text,content_type='application/json')
 
 @csrf_exempt

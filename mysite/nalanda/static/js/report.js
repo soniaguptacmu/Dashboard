@@ -152,7 +152,7 @@ var setBreadcrumb = function(data) {
 // Called only once upon page initialization
 var buildTopicsDropdown = function(data) {
     var content = [];
-    _setTopics(content, data.topics);
+    _setTopics(content, data.topic);
 
     // wrap "everything"
     content = [{
@@ -1042,7 +1042,7 @@ var tableDataData = function() {
 
 var topicsData = function() {
     return {
-        "topics": [{
+        "topic": [{
             "contentId": "bb",
             "channelId": "aa",
             "name": "Channel 1",
