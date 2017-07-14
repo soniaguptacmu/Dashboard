@@ -890,6 +890,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                         number_of_attempts = 0
                         students_completed = 0
                         number_of_content = 0
+                        total_questions = 0 
+                        total_students = 0 
 
 
                         # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
@@ -959,6 +961,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             number_of_attempts = 0
                             students_completed = 0
                             number_of_content = 0
+                            total_questions = 0 
+                            total_students = 0 
 
 
                             # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
@@ -1024,6 +1028,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             completed_questions = 0
                             correct_questions = 0
                             number_of_attempts = 0
+                            number_of_content = 0
+                            total_questions = 0 
                             completed = True
 
 
