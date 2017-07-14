@@ -12,7 +12,7 @@ var endTimestamp = 1596948693; // default: from server
 var contentId = '-1'; // default: everything
 var channelId = '-1'; // default: everything
 var parentLevel = 0; // default: parent-of-root-level
-var parentId = -1; // default: none (at root level already, no parent)
+var parentId = '-1'; // default: none (at root level already, no parent)
 var compareMetricIndex = 0; // current metric index of the compare table
 var performanceMetricIndex = 0; // current metric index of the performance table
 var performanceCompareToValueName = 'average'; // name of the type of currently used compared values
@@ -618,7 +618,7 @@ var appendBreadcrumbItem = function(name, level, id, isLast) {
     if (isLast) {
         html = '<span class="breadcrumb-text">' + name + '</span>';
     } else {
-        html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', ' + id + ')">' + name + '</a>';
+        html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', \'' + id + '\')">' + name + '</a>';
         if (!isLast) {
             html += ' > ';
         }
@@ -656,7 +656,7 @@ var drilldownColumnHTML = function(name, id) {
     if (parentLevel + 1 === maxItemLevel) {
         return '<span>' + name + '</span>';
     } else {
-        return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
+        return '<a href="#" class="drilldown-link" onclick="performDrilldown(\'' + id + '\')">' + name + '</a>';
     }
 };
 
@@ -868,11 +868,11 @@ var tableMetaData = function() {
         breadcrumb: [{
             parentName: "All Regions",
             parentLevel: 0,
-            parentId: 0
+            parentId: '0'
         }, {
             parentName: "East Sector",
             parentLevel: 1,
-            parentId: 10
+            parentId: '10'
         }],
         metrics: [{
             displayName: "% exercise completed",
