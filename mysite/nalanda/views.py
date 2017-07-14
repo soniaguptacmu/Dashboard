@@ -784,7 +784,7 @@ def get_page_meta(parent_id, parent_level):
             data = {'breadcrumb': breadcrumb, 'metrics': metrics, 'rows': rows}
         response_object = construct_response(code, title, message, data)
         return response_object
-    '''
+        '''
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -806,7 +806,7 @@ def get_page_meta(parent_id, parent_level):
         data = {} 
         response_object = construct_response(code, title, message, data)
         return response_object
-    '''
+        '''
 
 
 @csrf_exempt
@@ -1101,7 +1101,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 data = {'rows': rows, 'aggregation': aggregation}
         response_object = construct_response(code, title, message, data)
         return response_object
-    '''
+        '''
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -1123,7 +1123,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
         data = {} 
         response_object = construct_response(code, title, message, data)
         return response_object
-    '''
+        '''
 
 
 
