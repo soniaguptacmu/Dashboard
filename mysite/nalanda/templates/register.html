@@ -119,7 +119,7 @@
                 object.password = $('#password').val();
                 object.email = $('#email').val();
 
-                idselected = $('RoleSelect').id;
+                idselected = $('#RoleSelect').children(":selected").attr("id")
                 if (idselected === "BoardMem") {
                     object.role = 1;
                 }
