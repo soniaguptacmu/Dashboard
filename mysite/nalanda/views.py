@@ -700,12 +700,10 @@ def construct_breadcrumb(parentName, parentLevel, parentId):
 
 def construct_metrics():
     metrics = [
-        {},
         {'displayName': '% exerciese completed', 'toolTip': ''},
         {'displayName': '% exerciese correct', 'toolTip': ''},
         {'displayName': '# attempts completed', 'toolTip': ''},
         {'displayName': '% students completed the topic', 'toolTip': ''},
-        {}
     ]
     return metrics
 
