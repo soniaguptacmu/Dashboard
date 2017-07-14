@@ -30,7 +30,10 @@ var selfServe = false;
 // Called every time the page needs update
 var updatePageContent = function() {
     
-    // Making sure `setTableData` happens AFTER `setTableMeta`
+    // Making sure `setTableData` happens AFTER `setTableMeta` 
+    
+    var data1 = null;
+    var data2 = null;
     
     sendPOSTRequest('./api/mastery/get-page-meta', {
         startTimestamp: startTimestamp,
@@ -42,6 +45,7 @@ var updatePageContent = function() {
     }, function(response) {
         setBreadcrumb(response.data);
         setTableMeta(response.data);
+        data1 = response.data;
 	    sendPOSTRequest('./api/mastery/get-page-data', {
 	        startTimestamp: startTimestamp,
 	        endTimestamp: endTimestamp,
@@ -50,11 +54,17 @@ var updatePageContent = function() {
 	        parentLevel: parentLevel,
 	        parentId: parentId
 	    }, function(response) {
+		    data2 = response.data;
+		    checkDataConsistancy(data1, data2);
             setTableData(response.data);
 	    });
     });
     
     dismissTrendChart();
+};
+
+var checkDataConsistancy = function(data1, data2) {
+	
 };
 
 // Fetch topics by calling API and update the dropdown menu
@@ -647,8 +657,8 @@ var _setTopics = function(toArray, dataArray) {
 
 // Returns the HTML code for draw trend button
 var drawTrendButtonHTML = function(itemId, itemName) {
-    return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(' 
-           + itemId + ', \'' + itemName + '\')"><i class="fa fa-line-chart" aria-hidden="true"></i> Show Trend</button>';
+    return '<button class="btn btn-default draw-trend-button" onclick="drawTrendChart(\'' 
+           + itemId + '\', \'' + itemName + '\')"><i class="fa fa-line-chart" aria-hidden="true"></i> Show Trend</button>';
 };
         
 // HTML code of drilldown column in data table
