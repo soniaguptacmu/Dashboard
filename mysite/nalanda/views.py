@@ -97,10 +97,9 @@ def login_view(request):
         return render(request, 'login.html')
         
     elif request.method == 'POST':
-        data = json.loads(request.body)
-
-        username = data.get('username', '').strip()
-        password = data.get('password', '').strip()
+       
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
         response_object, is_success, role = login_post(username, password)
         
 
