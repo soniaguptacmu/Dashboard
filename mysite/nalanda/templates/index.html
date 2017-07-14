@@ -34,17 +34,20 @@
     <link rel="stylesheet" href="../static/css/main.css" media="all">
 
     <title>Kolibri Visualizer</title>
-    
+
     {% if code != 0 %}
-	<script>
-		{% if info.title %}
-		toastr.error('{{ info.message }}', '{{ info.title }}');
-		{% endif %}
-		{% if not info.title %}
-		toastr.error('{{ info.message }}');
-		{% endif %}
-	</script>
+    <script>
+	    $(document).ready(function() {
+			{% if info.title %}
+			toastr.error('{{ info.message }}', '{{ info.title }}');
+			{% endif %}
+			{% if not info.title %}
+			toastr.error('{{ info.message }}');
+			{% endif %}
+    	});
+    </script>
     {% endif %}
+
 </head>
 
 <body class="report mastery">
