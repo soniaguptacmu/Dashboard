@@ -645,7 +645,7 @@ var _setTopics = function(toArray, dataArray) {
         var dict = dataArray[idx];
         var newDict = {
             title: dict.name,
-            key: dict.channelId + ',' + dict.contentId,
+            key: dict.channel_id + ',' + dict.content_id,
             folder: dict.children !== null
         };
         if (dict.children !== null) {
@@ -1043,8 +1043,8 @@ var tableDataData = function() {
 var topicsData = function() {
     return {
         "topic": [{
-            "contentId": "bb",
-            "channelId": "aa",
+            "content_id": "bb",
+            "channel_id": "aa",
             "name": "Channel 1",
             "children": [{
                 "id": 10,
@@ -1052,8 +1052,8 @@ var topicsData = function() {
                 "children": null
             }]
         },{
-            "contentId": "bdb",
-            "channelId": "adsa",
+            "content_id": "bdb",
+            "channel_id": "adsa",
             "name": "Channel 2",
             "children": [{
                 "id": 24,
