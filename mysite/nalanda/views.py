@@ -55,8 +55,7 @@ def login_post(username, password):
                     result[0].last_login_time = timezone.now()
                     result[0].save()
                     role = result[0].role_id
-                    is_success = True
-            
+                    is_success = True     
         else:
             code = 1003
             title = 'The username/password are required'
