@@ -1,50 +1,110 @@
-{% extends "__base_sidebar.html" %}
 
 <html>
 <head>
     <script type="text/javascript" src="../static/node_modules/jquery/dist/jquery.min.js"></script>
-<script>
+    <link rel="stylesheet" href="../static/node_modules/bootstrap/dist/css/bootstrap.min.css" media="all">
 
+    <link rel="stylesheet" href="../static/css/main.css" media="all">
+<script>
     $(document).ready(function () {
 
         $("#approvebutton").click(function(){
 
-            var approveresult=[];
-            var disapproveresult=[];
+            var approveresult;
+            var disapproveresult;
+
             $('#approvetable').find('tr').each(function () {
                 var row = $(this);
-                var rowapprove={};
-                if (row.find('input[name="appchk"]').is(':checked')) {
-                    rowapprove.username=row[0].children[0].innerHTML;
-                    approveresult.push(rowapprove);
-                }
-                if(row.find('input[name="disappchk"]').is(':checked'))
-                {
-                    rowapprove.username=row[0].children[0].innerHTML;
-                    disapproveresult.push(rowapprove);
-                }
+
+                approveresult=parseTable(row,'appchk');
+                disapproveresult=parseTable(row,'disappchk');
 
             });
 
-            var approveresultobj={};
-            approveresultobj.users=approveresult;
+            var approveresultobj=createRequestObject(approveresult);
+            var disapproveresultobj=createRequestObject(disapproveresult);
 
-            ajaxrequest('/nalanda/approve', approveresultobj);
-
-            var disapproveresultobj={};
-            disapproveresultobj.users=disapproveresult;
-
-            ajaxrequest('/nalanda/disapprove', disapproveresultobj);
+            ajaxrequest('/api/user/approve', approveresultobj,removeallrows('appchk') );
+            ajaxrequest('/api/user/disapprove', disapproveresultobj, removeallrows('disappchk'));
 
         });
 
-        function ajaxrequest(url, dataObject) {
+        $('#unblock').click(function () {
+
+            var unblockresult;
+
+            $('#unblocktable').find('tr').each(function () {
+                var row = $(this);
+
+                unblockresult=parseTable(row,'unblockchk');
+
+            });
+
+            var unblockresultobj=createRequestObject(unblockresult);
+
+            ajaxrequest('/api/user/unblock', unblockresultobj,removeallrows('unblockchk') );
+        });
+
+        function parseTable(row, text)
+        {
+            var approveresult={};
+            if (row.find('input[name="'+text+'"]').is(':checked')) {
+                var rowapprove={};
+
+                if(approveresult[row[0].children[0].innerHTML]!=null) {
+                    if (row[0].children[4].id) {
+                        approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                    }
+                }
+                else
+                {
+                    approveresult[row[0].children[0].innerHTML]=[];
+                    if(row[0].children[4].id) {
+                        approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
+                    }
+                }
+            }
+            return approveresult;
+
+        }
+
+        function createRequestObject(approveresult)
+        {
+            var finalresult=[];
+
+            for( obj in approveresult)
+            {
+                var result={};
+                result.username=obj;
+                result.classes=approveresult[obj];
+                finalresult.push(result);
+            }
+
+            var approveresultobj={};
+            approveresultobj.users=finalresult;
+            return approveresultobj;
+        }
+
+        function removeallrows(text)
+        {
+            $('#approvetable').find('tr').each(function () {
+                $('#approvetable').find('tr').each(function () {
+                    var row = $(this);
+
+                    if (row.find('input[name='+text+']').is(':checked')) {
+                        row.remove();
+                    }
+                });
+
+            });
+        }
+
+        function ajaxrequest(url, dataObject, successcallback) {
             $.ajax({
                 type: 'POST',
                 url: url,
                 data: JSON.stringify(dataObject),
-                success: function (result, textStatus, jqXHR) {
-                },
+                success: successcallback,
                 error: function (jqXHR, textStatus, errorThrown) {
                 },
                 dataType: 'json'
@@ -54,175 +114,59 @@
 </script>
 </head>
 <body>
-<table id="approvetable">
-    <th>
-        <td>
-            username
-        </td>
-        <td>
-            email
-        </td>
-        <td>
-            role
-        </td>
-        <td>
-            Institute Name
-        </td>
-        <td>
-            username
-        </td>
-        <td>
-            class name
-        </td>
-        <td>
-            approved
-        </td>
-        <td>
-            disapproved
-        </td>
-    </th>
-    <tr>
-
-        <td>
-            r.username
-        </td>
-        <td>
-            r.email
-        </td>
-        <td>
-            r.role
-        </td>
-        <td>
-            r.instituteName
-        </td>
-        <td>
-            r.username
-        </td>
-        <td>
-            r.className
-        </td>
-        <td>
-            <input name="appchk" type="checkbox" checked/>
-        </td>
-        <td>
-            <input name="disappchk" type="checkbox"/>
-        </td>
-    </tr>
+<div class="site-content">
+<h1 class="site-title"> User registration approval  </h1>
+<table id="approvetable" class="table  table-hover">
+    <thead>
+    <td>Username</td>
+    <td>Email</td>
+    <td>Role</td>
+    <td>Institute Name</td>
+    <td>Class name</td>
+    <td>Approve</td>
+    <td>Disapprove</td>
+    </thead>
     {% for r in pendingUsers%}
-    <!--<tr>-->
-
-        <!--<td>-->
-            <!--r.username-->
-        <!--</td>-->
-        <!--<td>-->
-            <!--r.email-->
-        <!--</td>-->
-        <!--<td>-->
-            <!--r.role-->
-        <!--</td>-->
-        <!--<td>-->
-            <!--r.instituteName-->
-        <!--</td>-->
-        <!--<td>-->
-            <!--r.username-->
-        <!--</td>-->
-        <!--<td>-->
-            <!--r.className-->
-        <!--</td>-->
-        <!--<td>-->
-            <!--<input id="appchk" type="checkbox"/>-->
-        <!--</td>-->
-        <!--<td>-->
-            <!--<input id="disappchk" type="checkbox"/>-->
-        <!--</td>-->
-        <!--{% endfor%}-->
-    <!--</tr>-->
-    <!--{% endfor %}-->
     <tr>
-
-        <td>
-            r.useasnsrname
-        </td>
-        <td>
-            r.email
-        </td>
-        <td>
-            r.role
-        </td>
-        <td>
-            r.instituteName
-        </td>
-        <td>
-            r.username
-        </td>
-        <td>
-            r.className
-        </td>
-        <td>
-            <input name="appchk" type="checkbox"/>
-        </td>
-        <td>
-            <input name="disappchk" type="checkbox" checked/>
-        </td>
-
-    </tr>
-</table>
-<div>
-    <input type="submit" id="approvebutton" value="Bulk Approve">
-</div>
-<table>
-    <th>
-    <td>
-        username
-    </td>
-    <td>
-        email
-    </td>
-    <td>
-        role
-    </td>
-    <td>
-        Institute Name
-    </td>
-    <td>
-        username
-    </td>
-    <td>
-        class name
-    </td>
-    <td>
-        unblock
-    </td>
-    </th>
-    {% for r in blockedUsers%}
-    <tr>
-
-        <td>
-            r.username
-        </td>
-        <td>
-            r.email
-        </td>
-        <td>
-            r.role
-        </td>
-        <td>
-            r.instituteName
-        </td>
-        <td>
-            r.username
-        </td>
-        <td>
-            r.className
-        </td>
-        <td>
-            <input type="checkbox"/>
-        </td>
+        <td>{{r.username}}</td>
+        <td>{{r.email}}</td>
+        <td>{{r.role}}</td>
+        <td>{{r.instituteName}}</td>
+        <td id={{r.classId}}>{{r.className}}</td>
+        <td><input class="checkbox checkbox-success" name="appchk" id={{r.classId}}  type="checkbox"/></td>
+        <td><input name="disappchk" id={{r.classId}} type="checkbox"/></td>
     </tr>
     {% endfor %}
 </table>
-<div>
-    <input type="submit" value="Bulk Unblock">
+<div style="text-align: center">
+    <input type="submit" class="btn-success" id="approvebutton" value="Submit">
+</div>
+
+<hr />
+<h1 class="site-title"> User unblock  </h1>
+<table id="unblocktable" class="table  table-hover" >
+    <thead>
+    <td>Username</td>
+    <td>Email</td>
+    <td>Role</td>
+    <td>Institute Name</td>
+    <td>Class name</td>
+    <td>Unblock</td>
+    </thead>
+    {% for r in blockedUsers%}
+    <tr>
+        <td>{{r.username}}</td>
+        <td>{{r.email}}</td>
+        <td>{{r.role}}</td>
+        <td>{{r.instituteName}}</td>
+        <td id={{r.classId}}>{{r.className}}</td>
+        <td><input  name="unblockchk" type="checkbox"/></td>
+    </tr>
+    {% endfor %}
+</table>
+<div style="text-align: center">
+    <input  id="unblock" type="submit" class="btn-success" value="Submit">
+</div>
 </div>
 </body>
 </html>
