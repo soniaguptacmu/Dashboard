@@ -297,7 +297,8 @@ def register_view(request):
         if is_success:
             response = redirect(reverse('login'))
         else:
-            response = render(request, 'register.html', response_object) 
+            response_text = json.dumps(response_object,ensure_ascii=False)
+            response = HttpResponse(response_text)
         return response
     else:
         return HttpResponse()
