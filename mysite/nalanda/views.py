@@ -715,7 +715,7 @@ def get_page_meta(parent_id, parent_level):
         code = 0
         title = ''
         message = ''
-        if parent_level == -1 or parent_id == -1:
+        if parent_level == -1 or parent_id == -2:
             code = 2031
             title = 'Parent level or parent id is missing'
             message = 'Parent level or parent id is missing'
@@ -825,7 +825,7 @@ def get_page_meta_view(request):
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
-            parent_level = data.get('parentLevel', -1)
+            parent_level = data.get('parentLevel', -2)
             parent_id = data.get('parentId', -1)
             response_object= get_page_meta(parent_id, parent_level) 
             response_text = json.dumps(response_object,ensure_ascii=False)
@@ -842,7 +842,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
         title = ''
         message = ''
         data = {}
-        if parent_level == -1 or parent_id == -1 or topic_id == '' or (not start_timestamp) or (not end_timestamp) or channel_id == '':
+        if parent_level == -1 or parent_id == -2 or topic_id == '' or (not start_timestamp) or (not end_timestamp) or channel_id == '':
             code = 2031
             title = 'Argument is missing'
             message = 'Argument is missing'
@@ -1148,7 +1148,7 @@ def get_page_data_view(request):
             end_timestamp = data.get('endTimestamp', '').strip()
             topic_id = data.get('contentId', '').strip()
             parent_level = data.get('parentLevel', -1)
-            parent_id = data.get('parentId', -1)
+            parent_id = data.get('parentId', -2)
             channel_id = data.get('channelId', '').strip()
             response_object= get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timestamp, channel_id) 
             response_text = json.dumps(response_object,ensure_ascii=False)
