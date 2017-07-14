@@ -98,7 +98,7 @@ def login_view(request):
         message = ""
         data = {}
         response_object = construct_response(code, title, message, data)
-        return render(request, 'login.html')
+        return render(request, 'login.html', response_object)
         
     elif request.method == 'POST':
         username = request.POST.get('username', '').strip()
