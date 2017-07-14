@@ -651,9 +651,10 @@ def report_homepage_view(request):
             title = ''
             message = ''
             try:
-                lastest_date = LatestFetchDate.objects.filter()
-                if lastest_date:
-                    data = {'dateUpdated': lastest_date[0].lastest_date}
+                latest_date = LatestFetchDate.objects.filter()
+
+                if latest_date:
+                    data = {'dateUpdated': latest_date[0].latest_date}
                 else:
                     data = {}
                 response_object = construct_response(code, title, message, data)
@@ -1221,6 +1222,7 @@ def get_trend(request):
 
 @csrf_exempt
 def get_report_mastery(request):
+    print("here")
     if request.method == 'GET':
         return render(request,'report-mastery.html')
     else:
