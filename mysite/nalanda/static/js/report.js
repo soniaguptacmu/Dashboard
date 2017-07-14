@@ -152,7 +152,7 @@ var setBreadcrumb = function(data) {
 // Called only once upon page initialization
 var buildTopicsDropdown = function(data) {
     var content = [];
-    _setTopics(content, data.topic);
+    _setTopics(content, data.topics);
 
     // wrap "everything"
     content = [{
@@ -645,8 +645,8 @@ var _setTopics = function(toArray, dataArray) {
         var dict = dataArray[idx];
         var newDict = {
             title: dict.name,
-            key: dict.channel_id + ',' + dict.content_id,
-            folder: dict.children !== null
+            key: dict.channelId + ',' + dict.contentId,
+            folder: dict.children !== null && dict.children.length > 0
         };
         if (dict.children !== null) {
             newDict['children'] = [];
@@ -1042,23 +1042,23 @@ var tableDataData = function() {
 
 var topicsData = function() {
     return {
-        "topic": [{
-            "content_id": "bb",
-            "channel_id": "aa",
+        "topics": [{
+            "contentId": "bb",
+            "channelId": "aa",
             "name": "Channel 1",
             "children": [{
-				"content_id": "bb",
-				"channel_id": "aa",
+				"contentId": "bb",
+				"channelId": "aa",
                 "name": "Physics",
                 "children": null
             }]
         },{
-            "content_id": "bdb",
-            "channel_id": "adsa",
+            "contentId": "bdb",
+            "channelId": "adsa",
             "name": "Channel 2",
             "children": [{
-				"content_id": "bdb",
-				"channel_id": "adsa",
+				"contentId": "bdb",
+				"channelId": "adsa",
                 "name": "Algorithms",
                 "children": null
             }]
