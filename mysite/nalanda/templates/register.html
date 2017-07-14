@@ -147,7 +147,16 @@
                     url: url,
                     data: JSON.stringify(dataObject),
                     success: function (result, textStatus, jqXHR) {
-                        $('#Message').innerText=result.info.title;
+                        if(result.code==0) {
+                            $('#Message').text("Successfully Registered!");
+                            $('#Message').removeClass();
+                            $('#Message').addClass('success');
+                        }
+                        else {
+                            $('#Message').text(result.info.title);
+                            $('#Message').removeClass();
+                            $('#Message').addClass('error');
+                        }
                     },
                     error: function (jqXHR, textStatus, errorThrown) {
                     },
@@ -163,8 +172,9 @@
 <body class="login">
 <h1 class="site-title">Kolibri Visualizer</h1>
 <div class="content">
-    <div><label id="Message"></label></div>
     <h2>Register a new account</h2>
+    <!--<div><label id="Message" class="label label-info"></label></div>-->
+    <div  id="Message"></div>
     <form id="registration" name="registration", method="POST">
         <label for="firstName">First Name</label>
         <div class="input">
