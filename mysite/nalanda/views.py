@@ -73,6 +73,14 @@ def login_post(username, password):
         is_success = False
         response_object = construct_response(code, title, message, data)
         return response_object, is_success, role
+    except ValueError:
+    code = 2002
+    title = 'Sorry, error occurred when coverting values'
+    message = 'Sorry, error occurred when coverting values'
+    data = {} 
+    is_success = False
+    response_object = construct_response(code, title, message, data)
+    return response_object, is_success, role
     except OperationalError:
         code = 2011
         title = 'Sorry, operational error occurred'
@@ -97,12 +105,8 @@ def login_view(request):
         return render(request, 'login.html')
         
     elif request.method == 'POST':
-<<<<<<< HEAD
-        #data = json.loads(request.body)
 
-=======
-       
->>>>>>> d1bb86274fe0bbdf67fe27cb29edc4a461dbf5ee
+        #data = json.loads(request.body)
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '').strip()
         response_object, is_success, role = login_post(username, password)
