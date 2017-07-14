@@ -1132,6 +1132,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 def get_page_data_view(request):
     if request.method == 'POST':
         role = request.COOKIES.get('role')
+        print(role)
         if not role:
             code = 2031
             title = 'Sorry, you have to login to perform this action'
@@ -1144,8 +1145,8 @@ def get_page_data_view(request):
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
-            start_timestamp = data.get('startTimestamp', '').strip()
-            end_timestamp = data.get('endTimestamp', '').strip()
+            start_timestamp = data.get('startTimestamp', 0)
+            end_timestamp = data.get('endTimestamp', 0)
             topic_id = data.get('contentId', '').strip()
             parent_level = data.get('parentLevel', -1)
             parent_id = data.get('parentId', -2)
@@ -1163,9 +1164,7 @@ def get_topics(request):
     if request.method == 'POST':
         topics = Content.objects.filter(topic_id='').first()
         obj = json.loads(topics.sub_topics)
-        wrap = {}
-        wrap['topic'] = obj
-        response = construct_response(0, '', '', wrap);
+        response = construct_response(0, '', '', obj);
         response_text = json.dumps(response,ensure_ascii=False)
         return HttpResponse(response_text,content_type='application/json')
     else:
