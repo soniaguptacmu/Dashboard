@@ -35,7 +35,7 @@ var updatePageContent = function() {
     var tableData1 = null;
     var tableData2 = null;
     
-    sendPOSTRequest('/api/mastery/get-page-meta', {
+    sendPOSTRequest('./api/mastery/get-page-meta', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
         contentId: contentId,
@@ -51,7 +51,7 @@ var updatePageContent = function() {
         }
     });
     
-    sendPOSTRequest('/api/mastery/get-page-data', {
+    sendPOSTRequest('./api/mastery/get-page-data', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
         contentId: contentId,
@@ -71,7 +71,7 @@ var updatePageContent = function() {
 // Fetch topics by calling API and update the dropdown menu
 // Called only once upon page initialization
 var refreshTopicsDropdown = function() {
-    sendPOSTRequest('/api/mastery/topics', {
+    sendPOSTRequest('./api/mastery/topics', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
         parentLevel: parentLevel,
@@ -84,7 +84,7 @@ var refreshTopicsDropdown = function() {
 // Get trend data with specific item id from server (via POST) and sanitize it 
 // Used by `drawTrendChart`
 var getTrendData = function(itemId, callback) {    
-    sendPOSTRequest('/api/mastery/trend', {
+    sendPOSTRequest('./api/mastery/trend', {
         startTimestamp: startTimestamp,
         endTimestamp: endTimestamp,
         contentId: contentId,
