@@ -21,7 +21,7 @@ var compareMaxValues = [];
 var pendingRequests = 0; // number of requests that are sent but not received yet
 var maxItemLevel = 3; // students (read-only)
 var debug = true; // whether to print debug outputs to console
-var selfServe = true;
+var selfServe = false;
 
 /** Pragma Mark - Starting Points **/
 
@@ -802,6 +802,7 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
         type: 'POST',
         url: url,
         data: JSON.stringify(dataObject),
+        dataType: 'json',
         success: function(response, textStatus, jqXHR) {
             if (debug) {
                 console.log('Response: ' + JSON.stringify(response));
@@ -833,8 +834,7 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
             toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
             pendingRequests--;
             updateLoadingInfo();
-        },
-        dataType: 'json'
+        }
     });
 };
 

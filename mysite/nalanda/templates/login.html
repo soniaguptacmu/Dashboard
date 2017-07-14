@@ -12,10 +12,9 @@
     <h1 class="site-title">Kolibri Visualizer</h1>
     <div class="content">
         <h2>Login to your account</h2>
-        <!--
         {% if code != 0 %}
-        {%%}
-        -->
+        <div class="error">{{ info.message }}</div>
+        {% endif %}
         <form class="login-form" method="POST" action="/login">
             <div class="input">
                 <i class="glyphicon glyphicon-user"></i>
