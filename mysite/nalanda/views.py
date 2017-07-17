@@ -14,7 +14,8 @@ import json
 import datetime
 import time
 
-
+# This function contructs the dict for every response 
+# code = 0 represents that the processing is sucessful
 def construct_response(code, title, message, data):
     response_object = {}
     response_object["code"] = code
@@ -22,7 +23,7 @@ def construct_response(code, title, message, data):
     response_object["data"] = data
     return response_object            
 
-
+# This function implements the logic for login 
 def login_post(username, password):
     try:
         is_success = False
@@ -31,32 +32,44 @@ def login_post(username, password):
         title = ""
         message = ""
         data = {}
+        # If both username and password are not null or empty
         if username and password:     
+        	# Find if user with corresponding username and password exists
             result = Users.objects.filter(username=username).filter(password=password)
+            # If not, note that the combination is not found 
             if not result:
                 code = 1001
                 title = 'The username/password combination used was not found on the system'
                 message = 'The username/password combination is incorrect'
                 data = {'username': username} 
                 user = Users.objects.filter(username=username)
+                # If the role_id is not 4 (which means that the user is an admin), increase the number of failed attempts
+                # If the user has wrongfully input the password for 4 times, block the user
                 if user and user.role_id != 4:
                     user[0].number_of_failed_attempts += 1
                     if user[0].number_of_failed_attempts >= 4:
                         user[0].is_active = False
                     user[0].save()
+            # If the combination exists, check if the user has been blocked
             else:
+            	# If the user has wrongfully input password for 4 or more than 4 times 
                 if result[0].number_of_failed_attempts >= 4:
-                    print("failed attempts:", result[0].number_of_failed_attempts)
+                    # Notify the user that he has been blocked
                     code = 1002
                     title = 'Sorry, you have been blocked'
                     message = 'The user has been blocked'
                     data = {'username': username} 
+                # If the user has not been blocked
                 else:
-                    result[0].last_login_time = timezone.now()
-                    result[0].save()
-                    role = result[0].role_id
-                    is_success = True     
+                	result[0].number_of_failed_attempts = 0
+                	result[0].last_login_time = timezone.now()
+                	result[0].save()
+                	role = result[0].role_id
+                	is_success = True  
+
+        # If either the username/password is empty
         else:
+        	# Notify the user that the input info is not complete
             code = 1003
             title = 'The username/password are required'
             message = 'The username/password are required'
@@ -64,6 +77,7 @@ def login_post(username, password):
             is_success = False
         response_object = construct_response(code, title, message, data)
         return response_object, is_success, role
+    # If exception occurred, construct corresponding error info to the user
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -90,8 +104,11 @@ def login_post(username, password):
         return response_object, is_success, role
     
 
+
+# This function implements the request receiving and response sending for login 
 @csrf_exempt
 def login_view(request):
+	# If GET request is received, render the login page 
     if request.method == 'GET':
         code = 0
         title = ""
@@ -99,18 +116,21 @@ def login_view(request):
         data = {}
         response_object = construct_response(code, title, message, data)
         return render(request, 'login.html', response_object)
-        
+    # If POST request is received, call login_post function to process    
     elif request.method == 'POST':
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '').strip()
         response_object, is_success, role = login_post(username, password)
         
-
+        # If login is successful, the report page is rendered 
         if is_success:
             response = redirect(reverse('report'))
             response.set_cookie('role', role)
+        # If login fails, return HttpResponse in JSON format
         else:    
-            response = render(request, 'login.html', response_object) 
+            #response = render(request, 'login.html', response_object) 
+            response_text = json.dumps(response_object,ensure_ascii=False)
+            response = HttpResponse(response_text)
             response.delete_cookie('role')
         response.delete_cookie('username')
         return response
@@ -118,9 +138,10 @@ def login_view(request):
         return HttpResponse()
 
 
-
+# This function implements the request receiving and response sending for logout
 @csrf_exempt
 def logout_view(request):
+	# If GET request is received, render the index page 
     if request.method == 'GET':
         try:
             logout(request)
@@ -130,6 +151,7 @@ def logout_view(request):
             data = {}
             response_object = construct_response(code, title, message, data)
             response = render(request, 'index.html', response_object)
+            # Clear the cookie
             response.delete_cookie('role')
             return response
         except:
@@ -143,45 +165,51 @@ def logout_view(request):
     else:
         return HttpResponse()
 
-
+# This function gets all schools and classes in the database
 def get_school_and_classes():
     institutes = []
     school_info = {}
     school_id = ''
     school_name = ''
     school = UserInfoSchool.objects.all()
+    # Get all the schools, if schools exist
     if school:
         for i in range(0, len(school)):
+        	# For each school, get the id and name
             school_id = school[i].school_id
             school_name = school[i].school_name
             classes_array = []
+            # Get all the calsses under a school
             classes_in_school = UserInfoClass.objects.filter(parent=school_id)
             if classes_in_school:
                 for i in range(0, len(classes_in_school)):
                     current_class = {'name': classes_in_school[i].class_name, 'id': classes_in_school[i].class_id}
                     classes_array.append(current_class)
+            # Construct the response object
             school_info = {'name': school_name, 'id': school_id, 'classes': classes_array}
             institutes.append(school_info)
     return institutes
  
 
         
-
+# This function implements the logic for logout
 @csrf_exempt
 def register_post(username, password, first_name, last_name, email, role_id, institute_id, classes): 
     try:
         not_complete = False
         username_exists = False
         is_success = False
+        # Check if all the needed info is complete 
         if (not username) or (not password) or (not email) or (not role_id) or role_id == '0' or (not first_name) or (not last_name):
             not_complete = True
-        
+        # If the user is a school leader(2) or a teacher(3), an institute_id is needed 
         if (role_id == '2' or role_id == '3') and (not institute_id):
             not_complete = True
-        
+        # If the user is a teacher(3), an institute_id is needed 
         if role_id == '3' and (not classes):
             not_complete = True
 
+        # If info is complete, check if the username has exists (username cannot be duplicate)
         if not not_complete:
             user = Users.objects.filter(username=username)
             if user:
@@ -198,30 +226,34 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
             message = 'The username already exists'
         
         role_id = int(role_id)  
+
         if not institute_id:
             institute_id = ''
         else:
             institute_id = int(institute_id)
-
+        # If the info is not complete or username has existed, the registration fails
         if not_complete or username_exists:
             autoComplete = {'username': username, 'firstName': first_name, 'lastName': last_name, 'email': email, 'role': role_id, 'instituteId': institute_id, 'classes': classes}
             institutes = get_school_and_classes()
             data = {'autoComplete': autoComplete, 'institutes': institutes}   
             is_success = False
-
+        # If the registration successed 
         else:
             number_of_failed_attempts = 0
             create_date = timezone.now()
             new_user = Users(username=username, password=password, first_name=first_name, last_name=last_name, email=email, number_of_failed_attempts=number_of_failed_attempts, create_date=create_date, role_id=role_id)
             new_user.save()
+            # If the user is board member
             if role_id == '1':
                 user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user)
                 user_role_collection_mapping.save()
+           	# If the user is a school leader, add school into the user mapping 
             elif role_id == '2':
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if school:
                     user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0])
                     user_role_collection_mapping.save()
+            # If the user is a teacher, add school and classes into the user mapping 
             elif role_id == '3':
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if school:
@@ -237,6 +269,7 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
             is_success = True
         response_object = construct_response(code, title, message, data)
         return response_object, is_success
+    # If exception occurred, construct corresponding error info to the user
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -262,9 +295,10 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
         response_object = construct_response(code, title, message, data)
         return response_object, is_success
 
-
+# This function implements the request receiving and response sending for register
 @csrf_exempt
 def register_view(request):
+	# If GET request is received, render the register page, return the school and class info
     if request.method == 'GET':
         institutes = get_school_and_classes()
         data = {'institutes': institutes}   
@@ -276,6 +310,7 @@ def register_view(request):
         response_str = json.loads(response_text)
         return render(request, 'register.html', {'data':response_str})  
 
+    # If POST request is received, process the request and return JSON object
     elif request.method == 'POST':
         
         body_unicode = request.body.decode('utf-8')
@@ -292,14 +327,11 @@ def register_view(request):
         classes = data.get('classes', [])
         
         response_object, is_success = register_post(username, password, first_name, last_name, email, role_id, institute_id, classes)
-        print(response_object)
         
-        if is_success:
-            response_text = json.dumps(response_object,ensure_ascii=False)
-            response = HttpResponse(response_text)
-        else:
-            response_text = json.dumps(response_object,ensure_ascii=False)
-            response = HttpResponse(response_text)
+        
+        response_text = json.dumps(response_object,ensure_ascii=False)
+        response = HttpResponse(response_text)
+        
         return response
     else:
         return HttpResponse()
@@ -307,29 +339,31 @@ def register_view(request):
     
 
  
-
+# This function implements the logic for admin approve users
 def admin_approve_pending_users_post(users):
     try:
         code = 0
         title = ''
         message = ''
         data = {}
-
+        # If the users to be approved is not empty
         if len(users) != 0:
             for i in range(len(users)):
                 username = users[i]["username"]
                 result = Users.objects.filter(username=username)
                 if result:
+                	# Mark the user as active
                     result[0].is_active = True
                     result[0].update_date = timezone.now()
                     result[0].save()
-                    # If the user is a board memeber, no institute or class will be specified 
+                    # If the user is a board memeber or leader, only one mapping exists
                     if result[0].role_id == 1 or result[0].role_id == 2:
                         mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
                         if mapping:
                             mapping[0].is_approved = True
                             mapping[0].approver_id = 1
                             mapping[0].save()
+                    # If the user is a teacher, multiple mappings to the classrooms exist
                     elif result[0].role_id == 3:
                         classes = users[i]["classes"]
                         for j in range(len(classes)):
@@ -343,7 +377,7 @@ def admin_approve_pending_users_post(users):
         response_object = construct_response(code, title, message, data) 
        
         return response_object
-
+    # If exception occurred, construct corresponding error info to the user
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -368,18 +402,19 @@ def admin_approve_pending_users_post(users):
 
 
 
-   
+# This function implements the request receiving and response sending for admin approve users   
 @csrf_exempt
 def admin_approve_pending_users_view(request):
     if request.method == 'POST':
         role = request.COOKIES.get('role')
-        if role != '5':
+        # If the user is not an admin
+        if role != '4':
             code = 2031
             title = 'Sorry, you have to be admin to perform this action'
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
-
+        # If the user is an admin, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
@@ -390,7 +425,7 @@ def admin_approve_pending_users_view(request):
     else:
         return HttpResponse()
 
-
+# This function implements the logic for admin disapprove users
 def admin_disapprove_pending_users_post(users): 
     code = 0
     title = ''
@@ -398,18 +433,19 @@ def admin_disapprove_pending_users_post(users):
     data = {}
     try:
         if users:
+        	# If the users to be disapproved is not empty
             for i in range(len(users)):
                 username = users[i]['username']
                 result = Users.objects.filter(username=username)
                 if result:
                     result[0].update_date = timezone.now()
                     result[0].save()
-                    # If the user is a board memeber, no institute or class will be specified 
+                    # If the user is a board memeber or leader, only one mapping exists, delete the mapping 
                     if result[0].role_id == 1 or result[0].role_id == 2:
                         mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
                         if mapping:
                             mapping[0].delete()
-                            
+                    # If the user is a teacher, multiple mappings to the classrooms exist. Delete all the mappings       
                     elif result[0].role_id == 3:
                         classes = users[i]["classes"]
                         for j in range(len(classes)):
@@ -420,6 +456,7 @@ def admin_disapprove_pending_users_post(users):
                                     mapping[0].delete()               
         response_object = construct_response(code, title, message, data) 
         return response_object
+    # If exception occurred, construct corresponding error info to the user
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -442,17 +479,19 @@ def admin_disapprove_pending_users_post(users):
         response_object = construct_response(code, title, message, data)
         return response_object
 
+# This function implements the request receiving and response sending for admin approve users   
 @csrf_exempt
 def admin_disapprove_pending_users_view(request):
     if request.method == 'POST':
         role = request.COOKIES.get('role')
-        if role != '5':
+        # If the user is not an admin
+        if role != '4':
             code = 2031
             title = 'Sorry, you have to be admin to perform this action'
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
-
+        # If the user is an admin, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
@@ -463,7 +502,7 @@ def admin_disapprove_pending_users_view(request):
     else:
         return HttpResponse()
     
-
+# This function implements the logic for admin unblock users
 def admin_unblock_users_post(usernames):
     code = 0
     title = ''
@@ -472,8 +511,10 @@ def admin_unblock_users_post(usernames):
     try:
         if usernames:
             for i in range(len(usernames)):
+            	# Check if the username exists
                 username = usernames[i]
                 result = Users.objects.filter(username=username)
+                # If exists, change is_active to True, and clear the number_of_failed_attempts
                 if result:
                     result[0].is_active = True;
                     result[0].number_of_failed_attempts = 0;
@@ -482,6 +523,7 @@ def admin_unblock_users_post(usernames):
                     result[0].save()
         response_object = construct_response(code, title, message, data) 
         return response_object
+    # If exception occurred, construct corresponding error info to the user
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -506,18 +548,19 @@ def admin_unblock_users_post(usernames):
 
 
 
-    
+# This function implements the request receiving and response sending for admin unblock users       
 @csrf_exempt
 def admin_unblock_users_view(request):
     if request.method == 'POST':
         role = request.COOKIES.get('role')
-        if role != '5':
+        # If the user is not an admin
+        if role != '4':
             code = 2031
             title = 'Sorry, you have to be admin to perform this action'
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
-
+        # If the user is an admin, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
@@ -528,6 +571,7 @@ def admin_unblock_users_view(request):
     else:
         return HttpResponse()
 
+# This function implements the logic for admin get pending and blocked users
 def admin_get_post():
     try:
         code = 0
@@ -539,6 +583,7 @@ def admin_get_post():
         pendings = UserRoleCollectionMapping.objects.filter(is_approved = False)
         if pendings:
             for pending in pendings:
+            	# Find the user according to user_id
                 user = pending.user_id
                 if not user:
                     continue
@@ -552,6 +597,7 @@ def admin_get_post():
                 username = user.username
                 email = user.email
                 role = user.role_id
+                # Find corresponding class and school
                 if curr_class:
                     className = curr_class.class_name
                     classId = curr_class.class_id
@@ -561,13 +607,16 @@ def admin_get_post():
                 pending_user = {'username': username, 'email': email, 'role': role, 'instituteId': instituteId, 'instituteName': instituteName, 'classId': classId, 'className': className}
                 pending_users.append(pending_user)
 
+        # Get users that has not been blocked
         blockeds = Users.objects.filter(is_active = False)
         if blockeds:
             for blocked in blockeds:
                 username = blocked.username
                 email = blocked.email
                 role = blocked.role_id
+                # Find the mapping according to user_id
                 mappings = UserRoleCollectionMapping.objects.filter(user_id = blocked)
+                # If corresponding mapping exists 
                 if mappings:
                     for mapping in mappings:
                         instituteId = -1
@@ -576,6 +625,7 @@ def admin_get_post():
                         className = ''
 
                         institute = mapping.institute_id
+                        # Find the schools and classes
                         if institute:
                             instituteId = institute.school_id
                             instituteName = institute.school_name
@@ -585,6 +635,7 @@ def admin_get_post():
                             classId = curr_class.class_id
                         blocked_user = {'username': username, 'email': email, 'role': role, 'instituteId': instituteId, 'instituteName': instituteName, 'classId': classId, 'className': className}
                         blocked_users.append(blocked_user)
+                # If corresponding mapping doesn't exist, put instituteId and classId as -1
                 else:
                     blocked_user = {'username': username, 'email': email, 'role': role, 'instituteId': -1, 'instituteName': '', 'classId': -1, 'className': ''}
                     blocked_users.append(blocked_user)
@@ -592,6 +643,7 @@ def admin_get_post():
         data = {'pendingUsers': pending_users, 'blockedUsers': blocked_users}
         response_object = construct_response(code, title, message, data) 
         return response_object
+    # If exception occurred, construct corresponding error info to the user
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -615,32 +667,33 @@ def admin_get_post():
         return response_object
 
 
-
+# This function implements the request receiving and response sending for admin get pending and blocked users
 @csrf_exempt
 def admin_get_view(request):
     if request.method == 'GET':
         role = request.COOKIES.get('role')
-        if role != '5':
+        # If user is not an admin
+        if role != '4':
             code = 2031
             title = 'Sorry, you have to be admin to perform this action'
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
-
+         # If user is an admin, render the admin-users page
         else:
             response_object = admin_get_post()
-        print(response_object)
         return render(request, 'admin-users.html', response_object)
     else:
         return HttpResponse()
 
 
 
-
+# This function implements the request receiving and response sending for rending report homepage
 @csrf_exempt
 def report_homepage_view(request):
     if request.method == 'GET':
         role = request.COOKIES.get('role')
+        # If the user has not logged in
         if not role:
             code = 2031
             title = 'Sorry, you have to login to perform this action'
@@ -650,6 +703,7 @@ def report_homepage_view(request):
             response_text = json.dumps(response_object,ensure_ascii=False)
             return HttpResponse(response_text,content_type='application/json')
 
+        # If the user has logged in, render the index page
         else:
             code = 0
             title = ''
@@ -663,6 +717,7 @@ def report_homepage_view(request):
                     data = {}
                 response_object = construct_response(code, title, message, data)
                 return render(request, 'index.html', response_object)
+            # If exception occurred, construct corresponding error info to the user
             except DatabaseError:
                 code = 2001
                 title = 'Sorry, error occurred in database operations'
@@ -689,9 +744,7 @@ def report_homepage_view(request):
 
 
      
-            
-
-
+# Construct the breadcrumb format 
 def construct_breadcrumb(parentName, parentLevel, parentId):
     res = {
         "parentName": parentName,
@@ -700,7 +753,7 @@ def construct_breadcrumb(parentName, parentLevel, parentId):
         }
 
     return res
-
+# Construct the metrics format 
 def construct_metrics():
     metrics = [
         {'displayName': '% exerciese completed', 'toolTip': ''},
@@ -710,17 +763,19 @@ def construct_metrics():
     ]
     return metrics
 
-
+# This function implements the logic for get page meta
 def get_page_meta(parent_id, parent_level):
-    #try:
+    try:
         code = 0
         title = ''
         message = ''
+        # If the parent_level and parent_id info is not complete
         if parent_level == -1 or parent_id == -2:
             code = 2031
             title = 'Parent level or parent id is missing'
             message = 'Parent level or parent id is missing'
             data = {} 
+         # If the parent_level and parent_id info is complete
         else: 
             metrics = construct_metrics()
             breadcrumb = []
@@ -757,9 +812,8 @@ def get_page_meta(parent_id, parent_level):
                                 "name": curr_class.class_name
                             }
                             rows.append(temp)
-
+            # If the parent level is class
             elif parent_level == 2:
-                
                 #Add current level class to the breadcrumb
                 curr_class = UserInfoClass.objects.filter(class_id = parent_id)
                 if curr_class:
@@ -773,7 +827,7 @@ def get_page_meta(parent_id, parent_level):
                         breadcrumb.append(construct_breadcrumb(school_name, 2, school_id))
                         breadcrumb.append(construct_breadcrumb(class_name, 2, parent_id))
 
-                    # Return all students inside a classroom
+                # Return all students inside a classroom
                 students = UserInfoStudent.objects.filter(parent = curr_class[0])
                 if students:
                     for student in students:
@@ -785,7 +839,7 @@ def get_page_meta(parent_id, parent_level):
             data = {'breadcrumb': breadcrumb, 'metrics': metrics, 'rows': rows}
         response_object = construct_response(code, title, message, data)
         return response_object
-        '''
+    # If exception occurred, construct corresponding error info to the user
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -807,13 +861,14 @@ def get_page_meta(parent_id, parent_level):
         data = {} 
         response_object = construct_response(code, title, message, data)
         return response_object
-        '''
+        
 
-
+# This function implements the request receiving and response sending for get page meta
 @csrf_exempt
 def get_page_meta_view(request):
     if request.method == 'POST':
         role = request.COOKIES.get('role')
+        # If the user has not logged in
         if not role:
             code = 2031
             title = 'Sorry, you have to login to perform this action'
@@ -822,7 +877,7 @@ def get_page_meta_view(request):
             response_object = construct_response(code, title, message, data)
             response_text = json.dumps(response_object,ensure_ascii=False)
             return HttpResponse(response_text,content_type='application/json')
-
+         # If the user has logged in, response in JSON format
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
@@ -836,18 +891,20 @@ def get_page_meta_view(request):
     else:
         return HttpResponse()
         
-        
+# This function implements the logic for get page data        
 def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timestamp, channel_id):
-    #try:
+    try:
         code = 0
         title = ''
         message = ''
         data = {}
+        # If the input data is not complete
         if parent_level == -1 or parent_id == -2 or topic_id == '' or (not start_timestamp) or (not end_timestamp) or channel_id == '':
             code = 2031
             title = 'Argument is missing'
             message = 'Argument is missing'
             data = {} 
+        # If the input data is complete
         else: 
             rows = []
             aggregation = []
@@ -860,6 +917,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
             total_questions = 0
             # Since in django select range function, the end_date is not included, hence increase the date by one day
             end_timestamp = str(int(end_timestamp) + 86400)
+            # Convert from Unix timestamp to datetime
             start_timestamp = datetime.date.fromtimestamp(int(start_timestamp)).strftime('%Y-%m-%d')
             end_timestamp = datetime.date.fromtimestamp(int(end_timestamp)).strftime('%Y-%m-%d')
             # If the user wants to view everything
@@ -869,7 +927,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                     for topic in topics:
                         total_questions += topic.total_questions
 
-
+            # If the user has specified content_id and channel_id
             else:
                 topic = Content.objects.filter(content_id=topic_id).filter(channel_id = channel_id)
                 if topic:
@@ -894,7 +952,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                         total_students = 0 
 
 
-                        # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
+                        # Filter all mastery level logs belong to a certain school within certain time range
                         if topic_id == '-1':
                             mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(date__range=(start_timestamp, end_timestamp))
                             if mastery_schools:
@@ -904,6 +962,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     number_of_attempts += mastery_school.attempt_questions
                                     students_completed += mastery_school.students_completed
                                 number_of_content = len(mastery_schools)
+                        # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
                         else:
                             mastery_school = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
                             if mastery_school:
@@ -965,7 +1024,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             total_students = 0 
 
 
-                            # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
+                            # Filter all mastery level logs belongs to a certain class within certain time range
                             if topic_id == '-1':
                                 mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(date__range=(start_timestamp, end_timestamp))
                                 if mastery_classes:
@@ -975,6 +1034,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                         number_of_attempts += mastery_class.attempt_questions
                                         students_completed += mastery_class.students_completed
                                     number_of_content = len(mastery_classes)
+                            # Filter mastery level belongs to a certain class with certain topic id, and within certain time range
                             else:
                                 mastery_class = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
                                 if mastery_class:
@@ -1017,12 +1077,12 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
             # If the parent level is class
             elif parent_level == 2:
                 curr_class = UserInfoClass.objects.filter(class_id = parent_id)
-                # Return all the classrooms inside a school
+                # Return all the students inside a class
                 if curr_class:
                     students = UserInfoStudent.objects.filter(parent_id = curr_class[0])
                     if students:
                         for student in students:
-                            # Get class id and name
+                            # Get student id and name
                             student_id = student.student_id
                             student_name = student.student_name
                             completed_questions = 0
@@ -1033,7 +1093,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             completed = True
 
 
-                            # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
+                            # Filter mastery level belongs to a certain student within certain time range
                             if topic_id == '-1':
                                 mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(date__range=(start_timestamp, end_timestamp))
                                 if mastery_students:
@@ -1044,7 +1104,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                         if completed:
                                             completed = mastery_student.completed and completed
                                     number_of_content = len(mastery_students)
-                            
+                            # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
                             else:
                                 mastery_student = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
                                 if mastery_student:
@@ -1087,6 +1147,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
             avg_number_of_attempts = 0
             avg_percent_student_completed = 0
 
+
+            # Calculate the average for these four metrics
             length = len(percent_complete_array)
             if length != 0:
                 for i in range(length):
@@ -1107,8 +1169,9 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 aggregation.append(average)
                 data = {'rows': rows, 'aggregation': aggregation}
         response_object = construct_response(code, title, message, data)
+        
         return response_object
-        '''
+    # If exception occurred, construct corresponding error info to the user
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -1130,16 +1193,16 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
         data = {} 
         response_object = construct_response(code, title, message, data)
         return response_object
-        '''
+        
 
 
 
-
+# This function implements the request receiving and response sending for get page data
 @csrf_exempt
 def get_page_data_view(request):
     if request.method == 'POST':
         role = request.COOKIES.get('role')
-        print(role)
+        # If the user has not logged in
         if not role:
             code = 2031
             title = 'Sorry, you have to login to perform this action'
@@ -1148,7 +1211,7 @@ def get_page_data_view(request):
             response_object = construct_response(code, title, message, data)
             response_text = json.dumps(response_object,ensure_ascii=False)
             return HttpResponse(response_text,content_type='application/json')
-
+        # If the user has logged in, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
@@ -1185,14 +1248,14 @@ def get_trend(request):
     if request.method == 'POST':
         body_unicode = request.body.decode('utf-8')
         params = json.loads(body_unicode)
-        start_timestamp = params['startTimestamp']
+        start_timestamp = params.get('startTimestamp','')
         start = datetime.datetime.fromtimestamp(start_timestamp)
-        end_timestamp = params['endTimestamp']
+        end_timestamp = params.get('endTimestamp', '')
         end = datetime.datetime.fromtimestamp(end_timestamp)
-        topic_id = params['contentId']
-        channel_id = params['channelId']
-        level = params['level']
-        item_id = params['itemId']
+        topic_id = params.get('contentId')
+        channel_id = params.get('channelId')
+        level =params.get('level')
+        item_id = params.get('itemId')
         data = None
         if level == -1 or level == 0:
             pass
