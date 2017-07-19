@@ -20,6 +20,7 @@
         alljsondata = alldata.replace(new RegExp('\'','g'),'"');
         var institutedata = JSON.parse(alljsondata)['data']['institutes'];
 
+
         $(document).ready(function () {
 
             // on page load follloiwng actions should be taken
@@ -27,6 +28,9 @@
             $("#InstitutesSelecDiv").hide();
             $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>')
             $("#checkBoxesInnerdiv").hide();
+            for(i=0;i<institutedata.length;i++) {
+                        $('#InstitutesSelect').append('<option id="' + institutedata[i].id + '">' + institutedata[i].name + '</option>')
+                    }
 
             // 2. initialize classes drop down with respect to first value of school
             for (j = 0; j < institutedata[0]['classes'].length; j++) {
@@ -48,9 +52,6 @@
                     $("#InstitutesSelecDiv").show();
                     $("#checkBoxesInnerdiv").hide();
 
-                    for(i=0;i<institutedata.length;i++) {
-                        $('#InstitutesSelect').append('<option id="' + institutedata[i].id + '">' + institutedata[i].name + '</option>')
-                    }
 
                 }
                 else if (idselected == "Teacher") {
@@ -58,10 +59,6 @@
                     $("#checkBoxesInnerdiv").remove();
                     $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>');
                     $('#checkBoxesInnerdiv').append('<label >Classes</label></br>');
-
-                    for(i=0;i<institutedata.length;i++) {
-                        $('#InstitutesSelect').append('<option id="' + institutedata[i].id + '">' + institutedata[i].name + '</option>')
-                    }
 
                     var optionSelected = $('#InstitutesSelect').find("option:selected");
                     var valueSelected = optionSelected.val();
