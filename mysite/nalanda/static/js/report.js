@@ -55,8 +55,8 @@ var updatePageContent = function() {
 	        parentId: parentId
 	    }, function(response) {
 		    data2 = response.data;
+		    checkTableDataConsistancy(data1, data2);
             setTableData(response.data);
-            checkTableDataConsistancy(data1, data2);
 	    });
     });
     
