@@ -974,6 +974,9 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                         total_students = school.total_students
                         if total_questions == 0 or total_students == 0 or number_of_content == 0:
+                            values = [0%, 0%, 0, 0%]
+                            row = {'id': school_id, 'name': school_name, 'values': values}
+                            rows.append(row)
                             continue
                         
 
@@ -1045,7 +1048,11 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                             total_students = curr_class.total_students
                             if total_questions == 0 or total_students == 0 or number_of_content == 0:
+                                values = [0%, 0%, 0, 0%]
+                                row = {'id': class_id, 'name': class_name, 'values': values}
+                                rows.append(row)
                                 continue
+
                             # Calculate the percentage of completed questions
                             percent_complete_float = float(completed_questions) / (total_questions * total_students)
                             percent_complete = "{0:.2%}".format(percent_complete_float)
@@ -1115,7 +1122,11 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                  
                             if total_questions == 0 or number_of_content == 0:
+                                values = [0%, 0%, 0, 0%]
+                                row = {'id': student_id, 'name': student_name, 'values': values}
+                                rows.append(row)
                                 continue
+                                
                             # Calculate the percentage of completed questions
                             percent_complete_float = float(completed_questions) / total_questions
                             percent_complete = "{0:.2%}".format(percent_complete_float)
@@ -1164,7 +1175,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 values = ["{0:.2%}".format(avg_percent_complete), "{0:.2%}".format(avg_percent_correct), str(int(avg_number_of_attempts)), avg_percent_student_completed]
                 average = {'name': 'Average', 'values': values}
                 aggregation.append(average)
-                data = {'rows': rows, 'aggregation': aggregation}
+            data = {'rows': rows, 'aggregation': aggregation}
         response_object = construct_response(code, title, message, data)
         
         return response_object
