@@ -40,7 +40,7 @@
                 });
 
                 var unblockresultobj = createRequestObject(unblockresult);
-                ajaxrequest('./unblock', unblockresultobj, removeallrows('unblockchk'));
+                ajaxrequest('./api/user/unblock', unblockresultobj, removeallrows('unblockchk'));
             });
 
             function parseTable(row, text) {
