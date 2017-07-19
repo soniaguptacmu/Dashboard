@@ -29,8 +29,8 @@
             $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>')
             $("#checkBoxesInnerdiv").hide();
             for(i=0;i<institutedata.length;i++) {
-                        $('#InstitutesSelect').append('<option id="' + institutedata[i].id + '">' + institutedata[i].name + '</option>')
-                    }
+                $('#InstitutesSelect').append('<option id="' + institutedata[i].id + '">' + institutedata[i].name + '</option>')
+            }
 
             // 2. initialize classes drop down with respect to first value of school
             for (j = 0; j < institutedata[0]['classes'].length; j++) {
@@ -58,17 +58,22 @@
                     $("#InstitutesSelecDiv").show();
                     $("#checkBoxesInnerdiv").remove();
                     $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>');
-                    $('#checkBoxesInnerdiv').append('<label >Classes</label></br>');
 
                     var optionSelected = $('#InstitutesSelect').find("option:selected");
                     var valueSelected = optionSelected.val();
 
                     for (i = 0; i < institutedata.length; i++) {
+
                         if (institutedata[i]['name'] == valueSelected) {
-                            for (j = 0; j < institutedata[i]['classes'].length; j++) {
-                                $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]"  value="' + institutedata[0]['classes'][j]['id'] + '"/> ' + institutedata[0]['classes'][j]['name'] + '<br />');
+
+                            if(institutedata[i]['classes'].length>0) {
+
+                                $('#checkBoxesInnerdiv').append('<label >Classes</label></br>');
+                                for (j = 0; j < institutedata[i]['classes'].length; j++) {
+                                    $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]"  value="' + institutedata[0]['classes'][j]['id'] + '"/> ' + institutedata[0]['classes'][j]['name'] + '<br />');
+                                }
+                                $("#checkBoxesInnerdiv").show();
                             }
-                            $("#checkBoxesInnerdiv").show();
                             break;
 
                         }
@@ -135,7 +140,7 @@
                     object.classes = classes;
                 }
 
-                ajaxrequest('/nalanda/register', object);
+                ajaxrequest('./register', object);
             }
 
             function ajaxrequest(url, dataObject) {
