@@ -26,8 +26,8 @@
                 var approveresultobj = createRequestObject(approveresult);
                 var disapproveresultobj = createRequestObject(disapproveresult);
 
-                ajaxrequest('./approve', approveresultobj, removeallrows('appchk'));
-                ajaxrequest('./disapprove', disapproveresultobj, removeallrows('disappchk'));
+                ajaxrequest('./api/user/approve', approveresultobj, removeallrows('appchk'));
+                ajaxrequest('./api/user/disapprove', disapproveresultobj, removeallrows('disappchk'));
 
             });
 
