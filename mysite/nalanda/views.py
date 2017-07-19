@@ -25,7 +25,7 @@ def construct_response(code, title, message, data):
 
 # This function implements the logic for login 
 def login_post(username, password):
-    try:
+    #try:
         is_success = False
         code = 0
         role = -1
@@ -45,7 +45,7 @@ def login_post(username, password):
                 user = Users.objects.filter(username=username)
                 # If the role_id is not 4 (which means that the user is an admin), increase the number of failed attempts
                 # If the user has wrongfully input the password for 4 times, block the user
-                if user and user.role_id != 4:
+                if user and user[0].role_id != 4:
                     user[0].number_of_failed_attempts += 1
                     if user[0].number_of_failed_attempts >= 4:
                         user[0].is_active = False
@@ -53,27 +53,31 @@ def login_post(username, password):
             # If the combination exists, check if the user has been blocked
             else:
             	# If the user has wrongfully input password for 4 or more than 4 times 
-                if result[0].number_of_failed_attempts >= 4:
-                    # Notify the user that he has been blocked
-                    code = 1002
-                    title = 'Sorry, you have been blocked'
-                    message = 'The user has been blocked'
-                    data = {'username': username} 
-                # If the user has not been blocked
-                else:
-                    mappings = UserRoleCollectionMapping.filter(user_id = result[0]).filter(is_approved=True)
-                    if mappings:
-                    	result[0].number_of_failed_attempts = 0
-                    	result[0].last_login_time = timezone.now()
-                    	result[0].save()
-                    	role = result[0].role_id
-                    	is_success = True  
-                    else:
-                        code = 1004
-                        title = 'Sorry, you have not been approved'
-                        message = 'Sorry, you have not been approved'
+                if result[0].role_id != 4:
+                    if result[0].number_of_failed_attempts >= 4:
+                        # Notify the user that he has been blocked
+                        code = 1002
+                        title = 'Sorry, you have been blocked'
+                        message = 'The user has been blocked'
                         data = {'username': username} 
-                        is_success = False
+                    # If the user has not been blocked
+                    else:
+                        mappings = UserRoleCollectionMapping.objects.filter(user_id = result[0]).filter(is_approved=True)
+                        if mappings:
+                        	result[0].number_of_failed_attempts = 0
+                        	result[0].last_login_time = timezone.now()
+                        	result[0].save()
+                        	role = result[0].role_id
+                        	is_success = True  
+                        else:
+                            code = 1004
+                            title = 'Sorry, you have not been approved yet'
+                            message = 'Sorry, you have not been approved yet' 
+                            data = {'username': username} 
+                            is_success = False
+                else:
+                    role = 4
+                    is_success = True
 
         # If either the username/password is empty
         else:
@@ -86,6 +90,7 @@ def login_post(username, password):
         response_object = construct_response(code, title, message, data)
         return response_object, is_success, role
     # If exception occurred, construct corresponding error info to the user
+'''
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -110,6 +115,7 @@ def login_post(username, password):
         is_success = False
         response_object = construct_response(code, title, message, data)
         return response_object, is_success, role
+'''
     
 
 
@@ -136,9 +142,8 @@ def login_view(request):
             response.set_cookie('role', role)
         # If login fails, return HttpResponse in JSON format
         else:    
-            #response = render(request, 'login.html', response_object) 
-            response_text = json.dumps(response_object,ensure_ascii=False)
-            response = HttpResponse(response_text)
+            response = render(request, 'login.html', response_object) 
+            
             response.delete_cookie('role')
         response.delete_cookie('username')
         return response
@@ -169,7 +174,8 @@ def logout_view(request):
             data = {} 
             response_object = construct_response(code, title, message, data)
             response_text = json.dumps(response_object,ensure_ascii=False)
-            return HttpResponse(response_text,content_type='application/json')
+            return render(request, 'login.html', response_object)
+            #return HttpResponse(response_text,content_type='application/json')
     else:
         return HttpResponse()
 
@@ -369,7 +375,7 @@ def admin_approve_pending_users_post(users):
                         mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
                         if mapping:
                             mapping[0].is_approved = True
-                            mapping[0].approver_id = 1
+                            
                             mapping[0].save()
                     # If the user is a teacher, multiple mappings to the classrooms exist
                     elif result[0].role_id == 3:
@@ -380,7 +386,7 @@ def admin_approve_pending_users_post(users):
                                 mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0]).filter(class_id=approve_class[0])
                                 if mapping:
                                     mapping[0].is_approved = True
-                                    mapping[0].approver_id = 1
+                                   
                                     mapping[0].save()
         response_object = construct_response(code, title, message, data) 
        
@@ -427,7 +433,8 @@ def admin_approve_pending_users_view(request):
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
-            users = data.get('users',[])       
+            users = data.get('users',[])
+            print(users)       
             response_object = admin_approve_pending_users_post(users)
             print(response_object)
 
@@ -512,6 +519,7 @@ def admin_disapprove_pending_users_view(request):
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             users = data.get('users',[])       
+            print(users)
             response_object = admin_disapprove_pending_users_post(users)
             print(response_object)
         response_text = json.dumps(response_object,ensure_ascii=False)
