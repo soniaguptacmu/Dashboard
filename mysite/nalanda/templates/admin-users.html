@@ -150,7 +150,7 @@
                 <td>Approve</td>
                 <td>Disapprove</td>
                 </thead>
-                {% for r in pendingUsers%}
+                {% for r in data.pendingUsers%}
                 <tr>
                     <td>{{r.username}}</td>
                     <td>{{r.email}}</td>
@@ -177,7 +177,7 @@
                 <td>Class name</td>
                 <td>Unblock</td>
                 </thead>
-                {% for r in blockedUsers%}
+                {% for r in data.blockedUsers%}
                 <tr>
                     <td>{{r.username}}</td>
                     <td>{{r.email}}</td>
