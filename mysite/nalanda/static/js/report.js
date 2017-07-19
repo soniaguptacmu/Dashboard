@@ -55,16 +55,46 @@ var updatePageContent = function() {
 	        parentId: parentId
 	    }, function(response) {
 		    data2 = response.data;
-		    checkDataConsistancy(data1, data2);
             setTableData(response.data);
+            checkTableDataConsistancy(data1, data2);
 	    });
     });
     
     dismissTrendChart();
 };
 
-var checkDataConsistancy = function(data1, data2) {
-	
+var checkTableDataConsistancy = function(data1, data2) {
+	if (!debug) {
+		return;
+	}
+	if (!data1.rows) {
+		console.error('Data Error: `get-page-meta` does not return valid rows data.');
+		return;
+	}
+	if (!data1.metrics) {
+		console.error('Data Error: `get-page-data` does not return valid metrics data.');
+		return;
+	}
+	if (!data1.breadcrumb) {
+		console.error('Data Error: `get-page-data` does not return valid breadcrumb data.');
+		return;
+	}
+	if (!data2.rows) {
+		console.error('Data Error: `get-page-data` does not return valid rows data.');
+		return;
+	}
+	if (!data2.aggregation) {
+		console.error('Data Error: `get-page-data` does not return valid aggregation data.');
+		return;
+	}
+	if (data1.rows.length != data2.rows.length) {
+		console.error('Data Inconsistency Error: `get-page-meta` returns ' + data1.rows.length + ' records while `get-page-data` returns ' + data2.rows.length + ' records.');
+		return;
+	}
+	if (data2.rows.length > 0 && data1.metrics.length != data2.rows[0].values.length) {
+		console.error('Data Inconsistency Error: `get-page-meta` returns ' + data1.metrics.length + ' metrics while `get-page-data` returns ' + data2.rows[0].values.length + ' values.');
+		return;
+	}
 };
 
 // Fetch topics by calling API and update the dropdown menu
@@ -91,8 +121,52 @@ var getTrendData = function(itemId, callback) {
         level: parentLevel + 1,
         itemId: itemId
     }, function(response) {
+	    verifyTrendResponse(response);
         callback(processTrendData(response.data));
     });            
+};
+
+var verifyTrendResponse = function(response) {
+	if (!debug) {
+		return;
+	}
+	if (!response || !response.data) {
+		console.error('Data Error: `get-trend` did not return valid data.');
+		return;
+	}
+	var data = response.data;
+	
+	if (!data.series) {
+		console.error('Data Error: `get-trend` did not return valid series data.');
+		return;
+	}
+	if (!data.points) {
+		console.error('Data Error: `get-trend` did not return valid points data.');
+		return;
+	}
+	if (data.series.length == 0) {
+		console.error('Data Error: `get-trend` returned 0 series.');
+		return;
+	}
+	if (data.points.length == 0) {
+		return;
+	}
+	if (!data.series[0].name) {
+		console.error('Data Error: `get-trend` did not return valid name data for series.');
+		return;
+	}
+	if (!data.series[0].isPercentage) {
+		console.error('Data Error: `get-trend` did not return valid isPercentage data for series.');
+		return;
+	}
+	
+	var nSeries = data.series.length;
+	var pointSize = data.points[0].length;
+	
+	if (pointSize != nSeries + 1) {
+		console.error('Data Inconsistency Error: There are ' + nSeries + ' series but ' + pointSize + 'values per point.');
+		return;
+	}	
 };
 
 // Instantiate date range picker
@@ -1038,12 +1112,13 @@ var tableDataData = function() {
 
 var topicsData = function() {
     return {
-        "topic": [{
+        "topics": [{
             "contentId": "bb",
             "channelId": "aa",
             "name": "Channel 1",
             "children": [{
-                "id": 10,
+                "contentId": "bb",
+				"channelId": "aa",
                 "name": "Physics",
                 "children": null
             }]
@@ -1052,7 +1127,8 @@ var topicsData = function() {
             "channelId": "adsa",
             "name": "Channel 2",
             "children": [{
-                "id": 24,
+                "contentId": "bb",
+				"channelId": "aa",
                 "name": "Algorithms",
                 "children": null
             }]
