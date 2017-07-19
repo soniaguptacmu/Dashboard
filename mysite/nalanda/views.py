@@ -951,7 +951,6 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                         number_of_attempts = 0
                         students_completed = 0
                         number_of_content = 0
-                        #total_questions = 0 
                         total_students = 0 
 
 
@@ -1027,7 +1026,6 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             number_of_attempts = 0
                             students_completed = 0
                             number_of_content = 0
-                            total_questions = 0 
                             total_students = 0 
 
 
@@ -1097,8 +1095,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             completed_questions = 0
                             correct_questions = 0
                             number_of_attempts = 0
-                            number_of_content = 0
-                            total_questions = 0 
+                            number_of_content = 0 
                             completed = True
                             number_of_content = 0
                             total_questions = 0
@@ -1175,8 +1172,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 values = ["{0:.2%}".format(avg_percent_complete), "{0:.2%}".format(avg_percent_correct), str(int(avg_number_of_attempts)), avg_percent_student_completed]
                 average = {'name': 'Average', 'values': values}
                 aggregation.append(average)
-                data = {'rows': rows, 'aggregation': aggregation}
-                print(rows)
+            data = {'rows': rows, 'aggregation': aggregation}
+            print(rows)
         response_object = construct_response(code, title, message, data)
         
         return response_object
