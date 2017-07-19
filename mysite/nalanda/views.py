@@ -244,17 +244,17 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
             new_user = Users(username=username, password=password, first_name=first_name, last_name=last_name, email=email, number_of_failed_attempts=number_of_failed_attempts, create_date=create_date, role_id=role_id)
             new_user.save()
             # If the user is board member
-            if role_id == '1':
+            if role_id == 1:
                 user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user)
                 user_role_collection_mapping.save()
            	# If the user is a school leader, add school into the user mapping 
-            elif role_id == '2':
+            elif role_id == 2:
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if school:
                     user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0])
                     user_role_collection_mapping.save()
             # If the user is a teacher, add school and classes into the user mapping 
-            elif role_id == '3':
+            elif role_id == 3:
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if school:
                     for i in range(0, len(classes)):
@@ -444,7 +444,9 @@ def admin_disapprove_pending_users_post(users):
                     if result[0].role_id == 1 or result[0].role_id == 2:
                         mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
                         if mapping:
+                            print("yes")
                             mapping[0].delete()
+                            mapping[0].save()
                     # If the user is a teacher, multiple mappings to the classrooms exist. Delete all the mappings       
                     elif result[0].role_id == 3:
                         classes = users[i]["classes"]
@@ -453,7 +455,9 @@ def admin_disapprove_pending_users_post(users):
                             if approve_class:
                                 mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0]).filter(class_id=approve_class[0])
                                 if mapping:
-                                    mapping[0].delete()               
+                                    print("yes1")
+                                    mapping[0].delete() 
+                                    mapping[0].save()              
         response_object = construct_response(code, title, message, data) 
         return response_object
     # If exception occurred, construct corresponding error info to the user
@@ -1097,7 +1101,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             # Get class id and name
                             student_id = str(student.student_id)
                             # Get student id and name
-                            #student_id = student.student_id
+                        
                             student_name = student.student_name
                             completed_questions = 0
                             correct_questions = 0
