@@ -126,60 +126,60 @@
 </header>
 <div id="main" class="site-main">
     <div class="content-area">
-<div class="site-content">
-    <h1 class="section-title"> User registration approval </h1>
-    <table id="approvetable" class="table table-hover table-bordered">
-        <thead class="thead-default">
-        <td>Username</td>
-        <td>Email</td>
-        <td>Role</td>
-        <td>Institute Name</td>
-        <td>Class name</td>
-        <td>Approve</td>
-        <td>Disapprove</td>
-        </thead>
-        {% for r in pendingUsers%}
-        <tr>
-            <td>{{r.username}}</td>
-            <td>{{r.email}}</td>
-            <td>{{r.role}}</td>
-            <td>{{r.instituteName}}</td>
-            <td id={{r.classId}}>{{r.className}}</td>
-            <td><input class="checkbox checkbox-success" name="appchk" id={{r.classId}} type="checkbox"/></td>
-            <td><input name="disappchk" id={{r.classId}} type="checkbox"/></td>
-        </tr>
-        {% endfor %}
-    </table>
-    <div style="text-align: center">
-        <input type="submit" class="btn btn-success" id="approvebutton" value="Submit">
-    </div>
+        <div class="site-content">
+            <h1 class="section-title"> User registration approval </h1>
+            <table id="approvetable" class="table table-hover table-bordered">
+                <thead class="thead-default">
+                <td>Username</td>
+                <td>Email</td>
+                <td>Role</td>
+                <td>Institute Name</td>
+                <td>Class name</td>
+                <td>Approve</td>
+                <td>Disapprove</td>
+                </thead>
+                {% for r in pendingUsers%}
+                <tr>
+                    <td>{{r.username}}</td>
+                    <td>{{r.email}}</td>
+                    <td>{{r.role}}</td>
+                    <td>{{r.instituteName}}</td>
+                    <td id={{r.classId}}>{{r.className}}</td>
+                    <td><input class="checkbox checkbox-success" name="appchk" id={{r.classId}} type="checkbox"/></td>
+                    <td><input name="disappchk" id={{r.classId}} type="checkbox"/></td>
+                </tr>
+                {% endfor %}
+            </table>
+            <div style="text-align: center">
+                <input type="submit" class="btn btn-success" id="approvebutton" value="Submit">
+            </div>
 
-    <hr/>
-    <h1 class="section-title"> User unblock </h1>
-    <table id="unblocktable" class="table  table-hover table-bordered">
-        <thead class="thead-default">
-        <td>Username</td>
-        <td>Email</td>
-        <td>Role</td>
-        <td>Institute Name</td>
-        <td>Class name</td>
-        <td>Unblock</td>
-        </thead>
-        {% for r in blockedUsers%}
-        <tr>
-            <td>{{r.username}}</td>
-            <td>{{r.email}}</td>
-            <td>{{r.role}}</td>
-            <td>{{r.instituteName}}</td>
-            <td id={{r.classId}}>{{r.className}}</td>
-            <td><input name="unblockchk" type="checkbox"/></td>
-        </tr>
-        {% endfor %}
-    </table>
-    <div style="text-align: center">
-        <input id="unblock" type="submit" class="btn btn-success" value="Submit">
-    </div>
-</div>
+            <hr/>
+            <h1 class="section-title"> User unblock </h1>
+            <table id="unblocktable" class="table  table-hover table-bordered">
+                <thead class="thead-default">
+                <td>Username</td>
+                <td>Email</td>
+                <td>Role</td>
+                <td>Institute Name</td>
+                <td>Class name</td>
+                <td>Unblock</td>
+                </thead>
+                {% for r in blockedUsers%}
+                <tr>
+                    <td>{{r.username}}</td>
+                    <td>{{r.email}}</td>
+                    <td>{{r.role}}</td>
+                    <td>{{r.instituteName}}</td>
+                    <td id={{r.classId}}>{{r.className}}</td>
+                    <td><input name="unblockchk" type="checkbox"/></td>
+                </tr>
+                {% endfor %}
+            </table>
+            <div style="text-align: center">
+                <input id="unblock" type="submit" class="btn btn-success" value="Submit">
+            </div>
+        </div>
     </div>
     <div id="secondary" class="site-sidebar">
         <ul class="site-navigation">
