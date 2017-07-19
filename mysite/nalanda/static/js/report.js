@@ -878,7 +878,7 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
         dataType: 'json',
         success: function(response, textStatus, jqXHR) {
             if (debug) {
-                console.log('Response: ' + JSON.stringify(response));
+                console.log('Response (From `' + url + '`): ' + JSON.stringify(response));
             }
             if (response.code) {
                 toastr.error(response.info.message, response.info.title);
@@ -899,9 +899,9 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
                 errorThrown = 'Unknown error';
             }
             if (debug) {
-                console.log('Request failed with status: ' + textStatus + '. Error Thrown: ' + errorThrown);
+                console.log('Request (from `' + url + '`) failed with status: ' + textStatus + '. Error Thrown: ' + errorThrown);
             }
-            toastr.error('Request failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
+            toastr.error('Request (from `' + url + '`) failed: ' + textStatus + ': ' + errorThrown, 'Connection Error');
             pendingRequests--;
             updateLoadingInfo();
         }
