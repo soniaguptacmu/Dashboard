@@ -295,7 +295,8 @@ def register_view(request):
         print(response_object)
         
         if is_success:
-            response = redirect(reverse('login'))
+            response_text = json.dumps(response_object,ensure_ascii=False)
+            response = HttpResponse(response_text)
         else:
             response_text = json.dumps(response_object,ensure_ascii=False)
             response = HttpResponse(response_text)
@@ -748,7 +749,7 @@ def get_page_meta(parent_id, parent_level):
 
                 # Return all the classrooms inside a school
 
-                    classes = UserInfoClass.objects.filter(parent = school[0])
+                    classes = UserInfoClass.objects.filter(parent = parent_id)
                     if classes:
                         for curr_class in classes:
                             temp = {
@@ -765,7 +766,7 @@ def get_page_meta(parent_id, parent_level):
                     class_name = curr_class[0].class_name
                    
                 #Add higher level school to the breadcrumb
-                    school = curr_class[0].parent
+                    school = UserInfoSchool.objects.filter(school_id = curr_class[0].parent).first()
                     if school:
                         school_id = school.school_id
                         school_name = school.school_name
@@ -773,7 +774,7 @@ def get_page_meta(parent_id, parent_level):
                         breadcrumb.append(construct_breadcrumb(class_name, 2, parent_id))
 
                     # Return all students inside a classroom
-                students = UserInfoStudent.objects.filter(parent = curr_class[0])
+                students = UserInfoStudent.objects.filter(parent = parent_id)
                 if students:
                     for student in students:
                         temp = {
@@ -826,7 +827,7 @@ def get_page_meta_view(request):
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             parent_level = data.get('parentLevel', -2)
-            parent_id = data.get('parentId', -1)
+            parent_id = int(data.get('parentId', '').strip())
             response_object= get_page_meta(parent_id, parent_level) 
             response_text = json.dumps(response_object,ensure_ascii=False)
             return HttpResponse(response_text,content_type='application/json')
@@ -1020,7 +1021,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 curr_class = UserInfoClass.objects.filter(class_id = parent_id)
                 # Return all the classrooms inside a school
                 if curr_class:
-                    students = UserInfoStudent.objects.filter(parent = curr_class[0])
+                    students = UserInfoStudent.objects.filter(parent = parent_id)
                     if students:
                         for student in students:
                             # Get class id and name
@@ -1030,6 +1031,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             correct_questions = 0
                             number_of_attempts = 0
                             completed = True
+                            number_of_content = 0
+                            total_questions = 0
 
 
                             # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
@@ -1052,9 +1055,6 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     number_of_attempts = mastery_student[0].attempt_questions
                                     completed = mastery_student[0].completed
                                     number_of_content = 1
-                               
-
-
                  
                             if total_questions == 0 or number_of_content == 0:
                                 continue
@@ -1156,7 +1156,7 @@ def get_page_data_view(request):
             end_timestamp = data.get('endTimestamp', 0)
             topic_id = data.get('contentId', '').strip()
             parent_level = data.get('parentLevel', -1)
-            parent_id = float(data.get('parentId', '').strip())
+            parent_id = int(data.get('parentId', '').strip())
             channel_id = data.get('channelId', '').strip()
             response_object= get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timestamp, channel_id) 
             response_text = json.dumps(response_object,ensure_ascii=False)

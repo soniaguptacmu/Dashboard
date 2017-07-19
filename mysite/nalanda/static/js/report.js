@@ -12,7 +12,7 @@ var endTimestamp = 1596948693; // default: from server
 var contentId = '-1'; // default: everything
 var channelId = '-1'; // default: everything
 var parentLevel = 0; // default: parent-of-root-level
-var parentId = -1; // default: none (at root level already, no parent)
+var parentId = '-1'; // default: none (at root level already, no parent)
 var compareMetricIndex = 0; // current metric index of the compare table
 var performanceMetricIndex = 0; // current metric index of the performance table
 var performanceCompareToValueName = 'average'; // name of the type of currently used compared values
@@ -618,7 +618,7 @@ var appendBreadcrumbItem = function(name, level, id, isLast) {
     if (isLast) {
         html = '<span class="breadcrumb-text">' + name + '</span>';
     } else {
-        html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', ' + id + ')">' + name + '</a>';
+        html = '<a class="breadcrumb-link" href="#" onclick="clickBreadcrumbLink(' + level + ', \'' + id + '\')">' + name + '</a>';
         if (!isLast) {
             html += ' > ';
         }
@@ -656,7 +656,7 @@ var drilldownColumnHTML = function(name, id) {
     if (parentLevel + 1 === maxItemLevel) {
         return '<span>' + name + '</span>';
     } else {
-        return '<a href="#" class="drilldown-link" onclick="performDrilldown(' + id + ')">' + name + '</a>';
+        return '<a href="#" class="drilldown-link" onclick="performDrilldown(\'' + id + '\')">' + name + '</a>';
     }
 };
 
@@ -802,9 +802,6 @@ var sendPOSTRequest_real = function(url, dataObject, callback) {
                 toastr.error('There is an error communicating with the server. Please try again later.');
                 console.error('Invalid response: A valid `data` field is not found.');
             } else {
-                if (response.info) {
-                    toastr.info(response.info.message, response.info.title);
-                }
                 callback(response);
             }
             pendingRequests--;
@@ -871,11 +868,11 @@ var tableMetaData = function() {
         breadcrumb: [{
             parentName: "All Regions",
             parentLevel: 0,
-            parentId: 0
+            parentId: '0'
         }, {
             parentName: "East Sector",
             parentLevel: 1,
-            parentId: 10
+            parentId: '10'
         }],
         metrics: [{
             displayName: "% exercise completed",
@@ -891,34 +888,34 @@ var tableMetaData = function() {
             toolTip: "help text goes here"
         }],
         rows: [{
-            id: 1,
+            id: "1",
             name: "Allegheny K-5"
         }, {
-            id: 2,
+            id: "2",
             name: "Arsenal Elementary School"
         }, {
-            id: 3,
+            id: "3",
             name: "Banksville Elementary School"
         }, {
-            id: 4,
+            id: "4",
             name: "Beechwood Elementary School"
         }, {
-            id: 5,
+            id: "5",
             name: "Concord Elementary School"
         }, {
-            id: 6,
+            id: "6",
             name: "Dilworth Traditional Academy"
         }, {
-            id: 7,
+            id: "7",
             name: "Grandview Elementary School"
         }, {
-            id: 8,
+            id: "8",
             name: "Brookline School"
         }, {
-            id: 9,
+            id: "9",
             name: "Manchester School"
         }, {
-            id: 10,
+            id: "10",
             name: "Westwood School"
         }]
     };
@@ -927,7 +924,7 @@ var tableMetaData = function() {
 var tableDataData = function() {
     return {
         rows: [{
-            id: 1,
+            id: "1",
             name: "Allegheny K-5",
             values: [
                 "30%",
@@ -936,7 +933,7 @@ var tableDataData = function() {
                 "9%"
             ]
         }, {
-            id: 2,
+            id: "2",
             name: "Arsenal Elementary School",
             values: [
                 "20%",
@@ -945,7 +942,7 @@ var tableDataData = function() {
                 "59%"
             ]
         }, {
-            id: 3,
+            id: "3",
             name: "Banksville Elementary School",
             values: [
                 "80%",
@@ -954,7 +951,7 @@ var tableDataData = function() {
                 "16%"
             ]
         }, {
-            id: 4,
+            id: "4",
             name: "Beechwood Elementary School",
             values: [
                 "15%",
@@ -963,7 +960,7 @@ var tableDataData = function() {
                 "44%"
             ]
         }, {
-            id: 5,
+            id: "5",
             name: "Concord Elementary School",
             values: [
                 "34%",
@@ -972,7 +969,7 @@ var tableDataData = function() {
                 "8%"
             ]
         }, {
-            id: 6,
+            id: "6",
             name: "Dilworth Traditional Academy",
             values: [
                 "21%",
@@ -981,7 +978,7 @@ var tableDataData = function() {
                 "25%"
             ]
         }, {
-            id: 7,
+            id: "7",
             name: "Grandview Elementary School",
             values: [
                 "58%",
@@ -990,7 +987,7 @@ var tableDataData = function() {
                 "33%"
             ]
         }, {
-            id: 8,
+            id: "8",
             name: "Brookline School",
             values: [
                 "98%",
@@ -999,7 +996,7 @@ var tableDataData = function() {
                 "88%"
             ]
         }, {
-            id: 9,
+            id: "9",
             name: "Manchester School",
             values: [
                 "14%",
@@ -1008,7 +1005,7 @@ var tableDataData = function() {
                 "3%"
             ]
         }, {
-            id: 10,
+            id: "10",
             name: "Westwood School",
             values: [
                 "45%",
@@ -1080,9 +1077,6 @@ var sendPOSTRequest_test = function(url, dataObject, callback) {
             toastr.error('There is an error communicating with the server. Please try again later.');
             console.error('Invalid response: A valid `data` field is not found.');
         } else {
-            if (response.info) {
-                toastr.info(response.info.message, response.info.title);
-            }
             callback(response);
         }
         
