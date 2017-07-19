@@ -60,6 +60,7 @@ def login_post(username, password):
                     message = 'The user has been blocked'
                     data = {'username': username} 
                 # If the user has not been blocked
+                
                 else:
                 	result[0].number_of_failed_attempts = 0
                 	result[0].last_login_time = timezone.now()
@@ -414,12 +415,15 @@ def admin_approve_pending_users_view(request):
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
+            print(response_object)
         # If the user is an admin, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             users = data.get('users',[])       
             response_object = admin_approve_pending_users_post(users)
+            print(response_object)
+
         response_text = json.dumps(response_object,ensure_ascii=False)
         return HttpResponse(response_text)
     else:
@@ -444,9 +448,9 @@ def admin_disapprove_pending_users_post(users):
                     if result[0].role_id == 1 or result[0].role_id == 2:
                         mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
                         if mapping:
-                            print("yes")
+                           
                             mapping[0].delete()
-                            mapping[0].save()
+                            
                     # If the user is a teacher, multiple mappings to the classrooms exist. Delete all the mappings       
                     elif result[0].role_id == 3:
                         classes = users[i]["classes"]
@@ -455,9 +459,9 @@ def admin_disapprove_pending_users_post(users):
                             if approve_class:
                                 mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0]).filter(class_id=approve_class[0])
                                 if mapping:
-                                    print("yes1")
+                                  
                                     mapping[0].delete() 
-                                    mapping[0].save()              
+                                                  
         response_object = construct_response(code, title, message, data) 
         return response_object
     # If exception occurred, construct corresponding error info to the user
@@ -495,13 +499,16 @@ def admin_disapprove_pending_users_view(request):
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
+            print(response_object)
         # If the user is an admin, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             users = data.get('users',[])       
             response_object = admin_disapprove_pending_users_post(users)
+            print(response_object)
         response_text = json.dumps(response_object,ensure_ascii=False)
+
         return HttpResponse(response_text)
     else:
         return HttpResponse()
@@ -514,12 +521,14 @@ def admin_unblock_users_post(usernames):
     data = {}
     try:
         if usernames:
+            print("Yes1")
             for i in range(len(usernames)):
             	# Check if the username exists
                 username = usernames[i]
                 result = Users.objects.filter(username=username)
                 # If exists, change is_active to True, and clear the number_of_failed_attempts
                 if result:
+                    print("Yes")
                     result[0].is_active = True;
                     result[0].number_of_failed_attempts = 0;
                     result[0].update_date = timezone.now()
@@ -564,12 +573,14 @@ def admin_unblock_users_view(request):
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
+
         # If the user is an admin, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             usernames = data.get('usernames',[])
             response_object = admin_unblock_users_post(usernames)
+        print(response_object)
         response_text = json.dumps(response_object,ensure_ascii=False)
         return HttpResponse(response_text)
     else:
@@ -1109,7 +1120,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             number_of_content = 0 
                             completed = True
                             number_of_content = 0
-                            total_questions = 0
+                           
 
 
                             # Filter mastery level belongs to a certain student within certain time range
