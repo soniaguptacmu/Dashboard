@@ -26,8 +26,8 @@
                 var approveresultobj = createRequestObject(approveresult);
                 var disapproveresultobj = createRequestObject(disapproveresult);
 
-                ajaxrequest('/api/user/approve', approveresultobj, removeallrows('appchk'));
-                ajaxrequest('/api/user/disapprove', disapproveresultobj, removeallrows('disappchk'));
+                ajaxrequest('./approve', approveresultobj, removeallrows('appchk'));
+                ajaxrequest('./disapprove', disapproveresultobj, removeallrows('disappchk'));
 
             });
 
@@ -40,7 +40,7 @@
                 });
 
                 var unblockresultobj = createRequestObject(unblockresult);
-                ajaxrequest('/api/user/unblock', unblockresultobj, removeallrows('unblockchk'));
+                ajaxrequest('./unblock', unblockresultobj, removeallrows('unblockchk'));
             });
 
             function parseTable(row, text) {
