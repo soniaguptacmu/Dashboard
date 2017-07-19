@@ -684,7 +684,7 @@ var performDrilldown = function(itemId) {
 var clickBreadcrumbLink = function(level, id) {
     parentId = id;
     parentLevel = level;
-    updatePageContent();  
+    updatePageContent();
 };
 
 // Dismiss trend diagram
