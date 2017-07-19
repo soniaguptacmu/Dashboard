@@ -2,6 +2,7 @@
 <head>
     <script type="text/javascript" src="../static/node_modules/jquery/dist/jquery.min.js"></script>
     <link rel="stylesheet" href="../static/node_modules/bootstrap/dist/css/bootstrap.min.css" media="all">
+    <script type="text/javascript" src="../static/js/common.js"></script>
 
     <link rel="stylesheet" href="../static/css/main.css" media="all">
     <script>
@@ -115,10 +116,19 @@
         });
     </script>
 </head>
-<body>
+<body class="report mastery">
+<header id="masthead" class="site-header">
+    <div class="inner">
+        <h1 class="site-title"><a class="site-title-link" href="./">Kolibri Visualizer</a></h1>
+        <!--<span style="color:#ffffff">Current User: {{ "current_user" }}</span>-->
+        <a href="./logout" class="log-out" title="Log Out"><i class="glyphicon glyphicon-log-out"></i> Log Out</a>
+    </div>
+</header>
+<div id="main" class="site-main">
+    <div class="content-area">
 <div class="site-content">
-    <h1 class="site-title"> User registration approval </h1>
-    <table id="approvetable" class="table table-hover">
+    <h1 class="section-title"> User registration approval </h1>
+    <table id="approvetable" class="table table-hover table-bordered">
         <thead class="thead-default">
         <td>Username</td>
         <td>Email</td>
@@ -141,12 +151,12 @@
         {% endfor %}
     </table>
     <div style="text-align: center">
-        <input type="submit" class="btn-success" id="approvebutton" value="Submit">
+        <input type="submit" class="btn btn-success" id="approvebutton" value="Submit">
     </div>
 
     <hr/>
-    <h1 class="site-title"> User unblock </h1>
-    <table id="unblocktable" class="table  table-hover">
+    <h1 class="section-title"> User unblock </h1>
+    <table id="unblocktable" class="table  table-hover table-bordered">
         <thead class="thead-default">
         <td>Username</td>
         <td>Email</td>
@@ -167,7 +177,17 @@
         {% endfor %}
     </table>
     <div style="text-align: center">
-        <input id="unblock" type="submit" class="btn-success" value="Submit">
+        <input id="unblock" type="submit" class="btn btn-success" value="Submit">
+    </div>
+</div>
+    </div>
+    <div id="secondary" class="site-sidebar">
+        <ul class="site-navigation">
+            <li class="heading">Admin</li>
+            <li class="navigation-item current"><a href="./admin-users"><i class="glyphicon glyphicon-user"></i>&nbsp; Users</a></li>
+            <li class="heading">Reports</li>
+            <li class="navigation-item"><a href="./report-mastery">Mastery</a></li>
+        </ul>
     </div>
 </div>
 </body>
