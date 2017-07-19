@@ -60,13 +60,20 @@ def login_post(username, password):
                     message = 'The user has been blocked'
                     data = {'username': username} 
                 # If the user has not been blocked
-                
                 else:
-                	result[0].number_of_failed_attempts = 0
-                	result[0].last_login_time = timezone.now()
-                	result[0].save()
-                	role = result[0].role_id
-                	is_success = True  
+                    mappings = UserRoleCollectionMapping.filter(user_id = result[0]).filter(is_approved=True)
+                    if mappings:
+                    	result[0].number_of_failed_attempts = 0
+                    	result[0].last_login_time = timezone.now()
+                    	result[0].save()
+                    	role = result[0].role_id
+                    	is_success = True  
+                    else:
+                        code = 1004
+                        title = 'Sorry, you have not been approved'
+                        message = 'Sorry, you have not been approved'
+                        data = {'username': username} 
+                        is_success = False
 
         # If either the username/password is empty
         else:
