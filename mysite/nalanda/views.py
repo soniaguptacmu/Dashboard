@@ -822,9 +822,9 @@ def get_page_meta(parent_id, parent_level):
                 #Add higher level school to the breadcrumb
                     school = UserInfoSchool.objects.filter(school_id = curr_class[0].parent).first()
                     if school:
-                        school_id = school.school_id
+                        school_id = str(school.school_id)
                         school_name = school.school_name
-                        breadcrumb.append(construct_breadcrumb(school_name, 2, school_id))
+                        breadcrumb.append(construct_breadcrumb(school_name, 1, school_id))
                         breadcrumb.append(construct_breadcrumb(class_name, 2, parent_id))
                     # Return all students inside a classroom
                 students = UserInfoStudent.objects.filter(parent = parent_id)
@@ -977,6 +977,9 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                         total_students = school.total_students
                         if total_questions == 0 or total_students == 0 or number_of_content == 0:
+                            values = ["0.00%", "0.00%", 0, "0.00%"]
+                            row = {'id': school_id, 'name': school_name, 'values': values}
+                            rows.append(row)
                             continue
                         
 
@@ -1052,7 +1055,11 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                             total_students = curr_class.total_students
                             if total_questions == 0 or total_students == 0 or number_of_content == 0:
+                                values = ["0.00%", "0.00%", 0, "0.00%"]
+                                row = {'id': class_id, 'name': class_name, 'values': values}
+                                rows.append(row)
                                 continue
+
                             # Calculate the percentage of completed questions
                             percent_complete_float = float(completed_questions) / (total_questions * total_students)
                             percent_complete = "{0:.2%}".format(percent_complete_float)
@@ -1123,7 +1130,11 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     number_of_content = 1
                  
                             if total_questions == 0 or number_of_content == 0:
+                                values = ["0.00%", "0.00%", 0, "0.00%"]
+                                row = {'id': student_id, 'name': student_name, 'values': values}
+                                rows.append(row)
                                 continue
+                                
                             # Calculate the percentage of completed questions
                             percent_complete_float = float(completed_questions) / total_questions
                             percent_complete = "{0:.2%}".format(percent_complete_float)
@@ -1173,7 +1184,6 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 average = {'name': 'Average', 'values': values}
                 aggregation.append(average)
             data = {'rows': rows, 'aggregation': aggregation}
-            print(rows)
         response_object = construct_response(code, title, message, data)
         
         return response_object
@@ -1264,14 +1274,19 @@ def get_trend(request):
         level =params.get('level')
         item_id = params.get('itemId')
         data = None
+        print(start)
+        print(end)
         if level == -1 or level == 0:
             pass
         elif level == 1:
-            data = MasteryLevelSchool.objects.filter(school_id=item_id, content_id=topic_id, channel_id=channel_id,\
-                date__gt=start_timestamp,date__lt=end_timestamp).order_by('date')
+            if topic_id == "-1":
+                data = MasteryLevelSchool.objects.filter(school_id=item_id, date__gt=start,date__lt=end).order_by('date')
+            else:
+                data = MasteryLevelSchool.objects.filter(school_id=item_id, content_id=topic_id, channel_id=channel_id,\
+                    date__gt=start,date__lt=end).order_by('date')
         elif level == 2:
             data = MasteryLevelClass.objects.filter(class_id=item_id, content_id=topic_id, channel_id=channel_id,\
-                date__gt=start_timestamp,date__lt=end_timestamp).order_by('date')
+                date__gt=start,date__lt=end).order_by('date')
         elif level == 3:
             data = MasteryLevelStudent.objects.filter(student_id=item_id, content_id=topic_id, channel_id=channel_id,\
                 date__gt=start,date__lt=end).order_by('date')
