@@ -26,8 +26,8 @@
                 var approveresultobj = createRequestObject(approveresult);
                 var disapproveresultobj = createRequestObject(disapproveresult);
 
-                ajaxrequest('./api/user/approve', approveresultobj, removeallrows('appchk'));
-                ajaxrequest('./api/user/disapprove', disapproveresultobj, removeallrows('disappchk'));
+                ajaxrequest('./approve', approveresultobj, removeallrows('appchk'));
+                ajaxrequest('./disapprove', disapproveresultobj, removeallrows('disappchk'));
 
             });
 
@@ -39,8 +39,8 @@
                     unblockresult = parseTable(row, 'unblockchk');
                 });
 
-                var unblockresultobj = createRequestObject(unblockresult);
-                ajaxrequest('./api/user/unblock', unblockresultobj, removeallrows('unblockchk'));
+                var unblockresultobj = createRequestObjectBlockedUsers(unblockresult);
+                ajaxrequest('./unblock', unblockresultobj, removeallrowsUnBlock('unblockchk'));
             });
 
             function parseTable(row, text) {
@@ -61,7 +61,6 @@
                     }
                 }
                 return approveresult;
-
             }
 
             function createRequestObject(approveresult) {
@@ -77,9 +76,31 @@
                 return approveresultobj;
             }
 
+            function createRequestObjectBlockedUsers(approveresult) {
+                var finalresult = {};
+                finalresult.usernames=[];
+                for (obj in approveresult) {
+                    finalresult.usernames.push(obj);
+                }
+                return finalresult;
+            }
+
             function removeallrows(text) {
                 $('#approvetable').find('tr').each(function () {
                     $('#approvetable').find('tr').each(function () {
+                        var row = $(this);
+
+                        if (row.find('input[name=' + text + ']').is(':checked')) {
+                            row.remove();
+                        }
+                    });
+
+                });
+            }
+
+            function removeallrowsUnBlock(text) {
+                $('#unblocktable').find('tr').each(function () {
+                    $('#unblocktable').find('tr').each(function () {
                         var row = $(this);
 
                         if (row.find('input[name=' + text + ']').is(':checked')) {
