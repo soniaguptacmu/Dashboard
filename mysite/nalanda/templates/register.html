@@ -20,6 +20,7 @@
         alljsondata = alldata.replace(new RegExp('\'','g'),'"');
         var institutedata = JSON.parse(alljsondata)['data']['institutes'];
 
+
         $(document).ready(function () {
 
             // on page load follloiwng actions should be taken
@@ -27,6 +28,9 @@
             $("#InstitutesSelecDiv").hide();
             $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>')
             $("#checkBoxesInnerdiv").hide();
+            for(i=0;i<institutedata.length;i++) {
+                $('#InstitutesSelect').append('<option id="' + institutedata[i].id + '">' + institutedata[i].name + '</option>')
+            }
 
             // 2. initialize classes drop down with respect to first value of school
             for (j = 0; j < institutedata[0]['classes'].length; j++) {
@@ -48,30 +52,28 @@
                     $("#InstitutesSelecDiv").show();
                     $("#checkBoxesInnerdiv").hide();
 
-                    for(i=0;i<institutedata.length;i++) {
-                        $('#InstitutesSelect').append('<option id="' + institutedata[i].id + '">' + institutedata[i].name + '</option>')
-                    }
 
                 }
                 else if (idselected == "Teacher") {
                     $("#InstitutesSelecDiv").show();
                     $("#checkBoxesInnerdiv").remove();
                     $('#checkBoxesOuterdiv').append('<div id="checkBoxesInnerdiv"/>');
-                    $('#checkBoxesInnerdiv').append('<label >Classes</label></br>');
-
-                    for(i=0;i<institutedata.length;i++) {
-                        $('#InstitutesSelect').append('<option id="' + institutedata[i].id + '">' + institutedata[i].name + '</option>')
-                    }
 
                     var optionSelected = $('#InstitutesSelect').find("option:selected");
                     var valueSelected = optionSelected.val();
 
                     for (i = 0; i < institutedata.length; i++) {
+
                         if (institutedata[i]['name'] == valueSelected) {
-                            for (j = 0; j < institutedata[i]['classes'].length; j++) {
-                                $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]"  value="' + institutedata[0]['classes'][j]['id'] + '"/> ' + institutedata[0]['classes'][j]['name'] + '<br />');
+
+                            if(institutedata[i]['classes'].length>0) {
+
+                                $('#checkBoxesInnerdiv').append('<label >Classes</label></br>');
+                                for (j = 0; j < institutedata[i]['classes'].length; j++) {
+                                    $('#checkBoxesInnerdiv').append('<input type="checkbox" name="checks[]"  value="' + institutedata[0]['classes'][j]['id'] + '"/> ' + institutedata[0]['classes'][j]['name'] + '<br />');
+                                }
+                                $("#checkBoxesInnerdiv").show();
                             }
-                            $("#checkBoxesInnerdiv").show();
                             break;
 
                         }
@@ -138,7 +140,7 @@
                     object.classes = classes;
                 }
 
-                ajaxrequest('/nalanda/register', object);
+                ajaxrequest('./register', object);
             }
 
             function ajaxrequest(url, dataObject) {
@@ -218,7 +220,7 @@
         </div>
     </form>
     <div class="alternate-option">
-        Already has an account? <a href="/login">Click to login</a>
+        Already has an account? <a href="./login">Click to login</a>
     </div>
 </div>
 </body>

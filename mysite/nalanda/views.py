@@ -26,7 +26,7 @@ def construct_response(code, title, message, data):
 
 # This function implements the logic for login 
 def login_post(username, password):
-    try:
+    #try:
         is_success = False
         code = 0
         role = -1
@@ -46,7 +46,7 @@ def login_post(username, password):
                 user = Users.objects.filter(username=username)
                 # If the role_id is not 4 (which means that the user is an admin), increase the number of failed attempts
                 # If the user has wrongfully input the password for 4 times, block the user
-                if user and user.role_id != 4:
+                if user and user[0].role_id != 4:
                     user[0].number_of_failed_attempts += 1
                     if user[0].number_of_failed_attempts >= 4:
                         user[0].is_active = False
@@ -54,19 +54,31 @@ def login_post(username, password):
             # If the combination exists, check if the user has been blocked
             else:
             	# If the user has wrongfully input password for 4 or more than 4 times 
-                if result[0].number_of_failed_attempts >= 4:
-                    # Notify the user that he has been blocked
-                    code = 1002
-                    title = 'Sorry, you have been blocked'
-                    message = 'The user has been blocked'
-                    data = {'username': username} 
-                # If the user has not been blocked
+                if result[0].role_id != 4:
+                    if result[0].number_of_failed_attempts >= 4:
+                        # Notify the user that he has been blocked
+                        code = 1002
+                        title = 'Sorry, you have been blocked'
+                        message = 'The user has been blocked'
+                        data = {'username': username} 
+                    # If the user has not been blocked
+                    else:
+                        mappings = UserRoleCollectionMapping.objects.filter(user_id = result[0]).filter(is_approved=True)
+                        if mappings:
+                        	result[0].number_of_failed_attempts = 0
+                        	result[0].last_login_time = timezone.now()
+                        	result[0].save()
+                        	role = result[0].role_id
+                        	is_success = True  
+                        else:
+                            code = 1004
+                            title = 'Sorry, you have not been approved yet'
+                            message = 'Sorry, you have not been approved yet' 
+                            data = {'username': username} 
+                            is_success = False
                 else:
-                	result[0].number_of_failed_attempts = 0
-                	result[0].last_login_time = timezone.now()
-                	result[0].save()
-                	role = result[0].role_id
-                	is_success = True  
+                    role = 4
+                    is_success = True
 
         # If either the username/password is empty
         else:
@@ -79,6 +91,7 @@ def login_post(username, password):
         response_object = construct_response(code, title, message, data)
         return response_object, is_success, role
     # If exception occurred, construct corresponding error info to the user
+'''
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -103,6 +116,7 @@ def login_post(username, password):
         is_success = False
         response_object = construct_response(code, title, message, data)
         return response_object, is_success, role
+'''
     
 
 
@@ -129,9 +143,8 @@ def login_view(request):
             response.set_cookie('role', role)
         # If login fails, return HttpResponse in JSON format
         else:    
-            #response = render(request, 'login.html', response_object) 
-            response_text = json.dumps(response_object,ensure_ascii=False)
-            response = HttpResponse(response_text)
+            response = render(request, 'login.html', response_object) 
+            
             response.delete_cookie('role')
         response.delete_cookie('username')
         return response
@@ -162,7 +175,8 @@ def logout_view(request):
             data = {} 
             response_object = construct_response(code, title, message, data)
             response_text = json.dumps(response_object,ensure_ascii=False)
-            return HttpResponse(response_text,content_type='application/json')
+            return render(request, 'login.html', response_object)
+            #return HttpResponse(response_text,content_type='application/json')
     else:
         return HttpResponse()
 
@@ -245,17 +259,17 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
             new_user = Users(username=username, password=password, first_name=first_name, last_name=last_name, email=email, number_of_failed_attempts=number_of_failed_attempts, create_date=create_date, role_id=role_id)
             new_user.save()
             # If the user is board member
-            if role_id == '1':
+            if role_id == 1:
                 user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user)
                 user_role_collection_mapping.save()
            	# If the user is a school leader, add school into the user mapping 
-            elif role_id == '2':
+            elif role_id == 2:
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if school:
                     user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0])
                     user_role_collection_mapping.save()
             # If the user is a teacher, add school and classes into the user mapping 
-            elif role_id == '3':
+            elif role_id == 3:
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if school:
                     for i in range(0, len(classes)):
@@ -362,7 +376,7 @@ def admin_approve_pending_users_post(users):
                         mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
                         if mapping:
                             mapping[0].is_approved = True
-                            mapping[0].approver_id = 1
+                            
                             mapping[0].save()
                     # If the user is a teacher, multiple mappings to the classrooms exist
                     elif result[0].role_id == 3:
@@ -373,7 +387,7 @@ def admin_approve_pending_users_post(users):
                                 mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0]).filter(class_id=approve_class[0])
                                 if mapping:
                                     mapping[0].is_approved = True
-                                    mapping[0].approver_id = 1
+                                   
                                     mapping[0].save()
         response_object = construct_response(code, title, message, data) 
        
@@ -415,12 +429,15 @@ def admin_approve_pending_users_view(request):
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
+            print(response_object)
         # If the user is an admin, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
-            users = data.get('users',[])       
+            users = data.get('users',[])      
             response_object = admin_approve_pending_users_post(users)
+            print(response_object)
+
         response_text = json.dumps(response_object,ensure_ascii=False)
         return HttpResponse(response_text)
     else:
@@ -445,7 +462,9 @@ def admin_disapprove_pending_users_post(users):
                     if result[0].role_id == 1 or result[0].role_id == 2:
                         mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0])
                         if mapping:
+                           
                             mapping[0].delete()
+                            
                     # If the user is a teacher, multiple mappings to the classrooms exist. Delete all the mappings       
                     elif result[0].role_id == 3:
                         classes = users[i]["classes"]
@@ -454,7 +473,9 @@ def admin_disapprove_pending_users_post(users):
                             if approve_class:
                                 mapping = UserRoleCollectionMapping.objects.filter(user_id=result[0]).filter(class_id=approve_class[0])
                                 if mapping:
-                                    mapping[0].delete()               
+                                  
+                                    mapping[0].delete() 
+                                                  
         response_object = construct_response(code, title, message, data) 
         return response_object
     # If exception occurred, construct corresponding error info to the user
@@ -492,13 +513,17 @@ def admin_disapprove_pending_users_view(request):
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
+            print(response_object)
         # If the user is an admin, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             users = data.get('users',[])       
+            print("users = ", users)
             response_object = admin_disapprove_pending_users_post(users)
+            print(response_object)
         response_text = json.dumps(response_object,ensure_ascii=False)
+
         return HttpResponse(response_text)
     else:
         return HttpResponse()
@@ -561,12 +586,14 @@ def admin_unblock_users_view(request):
             message = 'Sorry, you have to be admin to perform this action'
             data = {} 
             response_object = construct_response(code, title, message, data)
+
         # If the user is an admin, process the request
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             usernames = data.get('usernames',[])
             response_object = admin_unblock_users_post(usernames)
+        print(response_object)
         response_text = json.dumps(response_object,ensure_ascii=False)
         return HttpResponse(response_text)
     else:
@@ -967,12 +994,13 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                 number_of_content = len(mastery_schools)
                         # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
                         else:
-                            mastery_school = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
-                            if mastery_school:
-                                completed_questions = mastery_school[0].completed_questions
-                                correct_questions = mastery_school[0].correct_questions
-                                number_of_attempts = mastery_school[0].attempt_questions
-                                students_completed = mastery_school[0].students_completed
+                            mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                            if mastery_schools:
+                                for mastery_school in mastery_schools:
+                                    completed_questions += mastery_school.completed_questions
+                                    correct_questions += mastery_school.correct_questions
+                                    number_of_attempts += mastery_school.attempt_questions
+                                    students_completed += mastery_school.students_completed
                                 number_of_content = 1
 
 
@@ -1045,12 +1073,13 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     number_of_content = len(mastery_classes)
                             # Filter mastery level belongs to a certain class with certain topic id, and within certain time range
                             else:
-                                mastery_class = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
-                                if mastery_class:
-                                    completed_questions = mastery_class[0].completed_questions
-                                    correct_questions = mastery_class[0].correct_questions
-                                    number_of_attempts = mastery_class[0].attempt_questions
-                                    students_completed = mastery_class[0].students_completed
+                                mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                if mastery_classes:
+                                    for mastery_class in mastery_classes:
+                                        completed_questions += mastery_class.completed_questions
+                                        correct_questions += mastery_class.correct_questions
+                                        number_of_attempts += mastery_class.attempt_questions
+                                        students_completed += mastery_class.students_completed
                                     number_of_content = 1
 
 
@@ -1098,7 +1127,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             # Get class id and name
                             student_id = str(student.student_id)
                             # Get student id and name
-                            #student_id = student.student_id
+                        
                             student_name = student.student_name
                             completed_questions = 0
                             correct_questions = 0
@@ -1106,7 +1135,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             number_of_content = 0 
                             completed = True
                             number_of_content = 0
-                            total_questions = 0
+                           
 
 
                             # Filter mastery level belongs to a certain student within certain time range
@@ -1122,13 +1151,14 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     number_of_content = len(mastery_students)
                             # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
                             else:
-                                mastery_student = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
-                                if mastery_student:
-                                    completed_questions = mastery_student[0].completed_questions
-                                    correct_questions = mastery_student[0].correct_questions
-                                    number_of_attempts = mastery_student[0].attempt_questions
-                                    completed = mastery_student[0].completed
-                                    number_of_content = 1
+                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                for mastery_student in mastery_students:
+                                    if mastery_student:
+                                        completed_questions += mastery_student.completed_questions
+                                        correct_questions += mastery_student.correct_questions
+                                        number_of_attempts += mastery_student.attempt_questions
+                                        completed += mastery_student.completed
+                                        number_of_content = 1
                  
                             if total_questions == 0 or number_of_content == 0:
                                 values = ["0.00%", "0.00%", 0, "0.00%"]
