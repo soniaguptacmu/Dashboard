@@ -12,7 +12,7 @@ class Users(models.Model):
     username = models.CharField(max_length=60)
     password = models.CharField(max_length=60)
     email = models.CharField(max_length=60)
-    is_active = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     number_of_failed_attempts = models.IntegerField()
     last_login_time = models.DateTimeField(null=True)
     create_date = models.DateTimeField()
