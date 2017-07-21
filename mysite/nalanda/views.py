@@ -1139,7 +1139,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                    
                             # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
                             else:
-                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(topic_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
                                 for mastery_student in mastery_students:
                                     if mastery_student:
                                         completed_questions += mastery_student.completed_questions
