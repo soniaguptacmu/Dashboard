@@ -21,7 +21,7 @@ var compareMaxValues = [];
 var pendingRequests = 0; // number of requests that are sent but not received yet
 var maxItemLevel = 3; // students (read-only)
 var debug = true; // whether to print debug outputs to console
-var selfServe = false;
+var selfServe = true;
 
 /** Pragma Mark - Starting Points **/
 
@@ -177,7 +177,7 @@ var setupDateRangePicker = function() {
         endDate: new Date(endTimestamp * 1000)
     }, function(start, end, label) {
         startTimestamp = new Date(start.format('YYYY-MM-DD')).getTime() / 1000;
-        endTimestamp = new Date(start.format('YYYY-MM-DD')).getTime() / 1000;
+        endTimestamp = new Date(end.format('YYYY-MM-DD')).getTime() / 1000;
         updatePageContent();
     });
 };
