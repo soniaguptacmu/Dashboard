@@ -1132,7 +1132,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     correct_questions += mastery_student.correct_questions
                                     number_of_attempts += mastery_student.attempt_questions
                                     if completed:
-                                    completed = mastery_student.completed and completed
+                                        completed = mastery_student.completed and completed
                          
                  
                             if total_questions == 0:
