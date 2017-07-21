@@ -197,10 +197,10 @@ def get_school_and_classes():
             classes_in_school = UserInfoClass.objects.filter(parent=school_id)
             if classes_in_school:
                 for i in range(0, len(classes_in_school)):
-                    current_class = {'name': classes_in_school[i].class_name, 'id': classes_in_school[i].class_id}
+                    current_class = {'name': classes_in_school[i].class_name, 'id': str(classes_in_school[i].class_id)}
                     classes_array.append(current_class)
             # Construct the response object
-            school_info = {'name': school_name, 'id': school_id, 'classes': classes_array}
+            school_info = {'name': school_name, 'id': str(school_id), 'classes': classes_array}
             institutes.append(school_info)
     return institutes
  
@@ -272,7 +272,7 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if school:
                     for i in range(0, len(classes)):
-                        current_class = UserInfoClass.objects.filter(class_id=classes[i])
+                        current_class = UserInfoClass.objects.filter(class_id=int(classes[i]))
                         if current_class:
                             user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user, institute_id=school[0], class_id = current_class[0])
                             user_role_collection_mapping.save()         
