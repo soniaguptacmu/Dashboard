@@ -10,6 +10,7 @@ from django.db.utils import DatabaseError, Error, OperationalError
 from django.core.urlresolvers import reverse
 from django.core import serializers
 from django.db import models
+from django.db.models import Sum
 import json
 import datetime
 import time
@@ -1274,39 +1275,83 @@ def get_trend(request):
         level =params.get('level')
         item_id = params.get('itemId')
         data = None
-        print(start)
-        print(end)
+        content = None
+        if topic_id=="-1":
+            content = Content.objects.filter(content_id='').first()
+        else:
+            content = Content.objects.filter(content_id=topic_id,channel_id=channel_id).first()
+        total_questions = content.total_questions
+        print(total_questions)
+        total_students = 1.0
         if level == -1 or level == 0:
             pass
         elif level == 1:
+            school = UserInfoSchool.objects.filter(school_id=item_id).first()
+            total_students = school.total_students
             if topic_id == "-1":
-                data = MasteryLevelSchool.objects.filter(school_id=item_id, date__gt=start,date__lt=end).order_by('date')
+                '''data = MasteryLevelSchool.objects.filter(school_id=item_id).filter(date__gt=start).filter(date__lt=end).values('channel_id')\
+                .annotate(Sum('completed_questions'),Sum('correct_questions'),Sum('attempt_questions'),Sum('students_completed')).order_by('date')
+                print(data)'''
+                data = MasteryLevelSchool.objects.filter(school_id=item_id, content_id="", date__gt=start,date__lt=end).order_by('date')
             else:
-                data = MasteryLevelSchool.objects.filter(school_id=item_id, content_id=topic_id, channel_id=channel_id,\
+                data = MasteryLevelSchool.objects.filter(school_id=item_id,content_id=topic_id, channel_id=channel_id,\
                     date__gt=start,date__lt=end).order_by('date')
         elif level == 2:
-            data = MasteryLevelClass.objects.filter(class_id=item_id, content_id=topic_id, channel_id=channel_id,\
-                date__gt=start,date__lt=end).order_by('date')
+            classroom = UserInfoClass.objects.filter(class_id=item_id).first()
+            total_students = classroom.total_students
+            if topic_id == "-1":
+                data = MasteryLevelClass.objects.filter(class_id=item_id, date__gt=start,date__lt=end).values('date','class_id')\
+                .annotate(Sum('completed_questions'),Sum('correct_questions'),Sum('attempt_questions'),Sum('students_completed')).order_by('date')
+            else:
+                data = MasteryLevelClass.objects.filter(class_id=item_id, content_id=topic_id, channel_id=channel_id,\
+                    date__gt=start,date__lt=end).order_by('date')
         elif level == 3:
-            data = MasteryLevelStudent.objects.filter(student_id=item_id, content_id=topic_id, channel_id=channel_id,\
-                date__gt=start,date__lt=end).order_by('date')
+            if topic_id == "-1":
+                data = MasteryLevelStudent.objects.filter(student_id=item_id, date__gt=start,date__lt=end).values('date','student_id')\
+                .annotate(Sum('completed_questions'),Sum('correct_questions'),Sum('attempt_questions'),Sum('completed')).order_by('date')
+            else:
+                data = MasteryLevelStudent.objects.filter(student_id=item_id, content_id=topic_id, channel_id=channel_id,\
+                    date__gt=start,date__lt=end).order_by('date')
         res = {}
         series = []
-        series.append({'name':'percentage of exercise completed','isPercentage':True})
-        series.append({'name':'percentage of exercise correct','isPercentage':True})
+        series.append({'name':'% exercise completed','isPercentage':True})
+        series.append({'name':'% exercise correct','isPercentage':True})
         series.append({'name':'# attemps','isPercentage':False})
-        series.append({'name':'completed students','isPercentage':False})
+        series.append({'name':'% students completed topic','isPercentage':True})
         points = []
+        completed_questions_sum = 0
+        correct_questions_sum = 0
+        attempt_questions_sum = 0
+        completed_sum = 0
         for ele in data:
             temp = []
+            '''if topic_id=="-1":
+                completed_questions_sum += ele['completed_questions__sum']
+                correct_questions_sum += ele['correct_questions__sum']
+                attempt_questions_sum += ele['attempt_questions__sum']
+                temp.append(time.mktime(ele['date'].timetuple()))
+                temp.append(100.0*completed_questions_sum/(total_students*total_questions))
+                temp.append(100.0*correct_questions_sum/(total_students*total_questions))
+                temp.append(attempt_questions_sum)
+                if level == 3:
+                    completed_sum += ele['completed__sum']
+                else:
+                    completed_sum += ele['students_completed__sum']
+                temp.append(100.0*completed_sum/total_students)
+            else:'''
+            completed_questions_sum += ele.completed_questions
+            correct_questions_sum += ele.correct_questions
+            attempt_questions_sum += ele.attempt_questions
             temp.append(time.mktime(ele.date.timetuple()))
-            temp.append(ele.completed_questions)
-            temp.append(ele.correct_questions)
-            temp.append(ele.attempt_questions)
+            temp.append(100.0*completed_questions_sum/(total_students*total_questions))
+            temp.append(100.0*correct_questions_sum/(total_students*total_questions))
+            temp.append(attempt_questions_sum)
             if level == 3:
-                temp.append(ele.completed)
+                completed_sum += ele.completed
+                temp.append(completed_sum)
             else:
-                temp.append(ele.students_completed)
+                completed_sum += ele.students_completed
+                temp.append(completed_sum)
             points.append(temp)
         res['series'] = series
         res['points'] = points
