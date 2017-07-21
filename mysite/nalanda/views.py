@@ -1310,10 +1310,11 @@ def get_trend(request):
                 '''data = MasteryLevelSchool.objects.filter(school_id=item_id).filter(date__gt=start).filter(date__lt=end).values('channel_id')\
                 .annotate(Sum('completed_questions'),Sum('correct_questions'),Sum('attempt_questions'),Sum('students_completed')).order_by('date')
                 print(data)'''
-                data = MasteryLevelSchool.objects.filter(school_id=item_id, content_id="", date__gt=start,date__lt=end).order_by('date')
+                data = MasteryLevelSchool.objects.filter(school_id=item_id,content_id="",date__gt=start,date__lt=end).order_by('date')
             else:
                 data = MasteryLevelSchool.objects.filter(school_id=item_id,content_id=topic_id, channel_id=channel_id,\
                     date__gt=start,date__lt=end).order_by('date')
+                print(data)
         elif level == 2:
             classroom = UserInfoClass.objects.filter(class_id=item_id).first()
             total_students = classroom.total_students
