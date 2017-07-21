@@ -12,15 +12,13 @@
 
             $("#approvebutton").click(function () {
 
-                var approveresult;
-                var disapproveresult;
+                var approveresult={};
+                var disapproveresult={};
 
                 $('#approvetable').find('tr').each(function () {
                     var row = $(this);
-
-                    approveresult = parseTable(row, 'appchk');
-                    disapproveresult = parseTable(row, 'disappchk');
-
+                    approveresult = parseTable(row, 'appchk',approveresult);
+                    disapproveresult = parseTable(row, 'disappchk',disapproveresult);
                 });
 
                 var approveresultobj = createRequestObject(approveresult);
@@ -33,18 +31,18 @@
 
             $('#unblock').click(function () {
 
-                var unblockresult;
+                var unblockresult={};
                 $('#unblocktable').find('tr').each(function () {
                     var row = $(this);
-                    unblockresult = parseTable(row, 'unblockchk');
+                    unblockresult = parseTable(row, 'unblockchk',unblockresult);
                 });
 
                 var unblockresultobj = createRequestObjectBlockedUsers(unblockresult);
                 ajaxrequest('./unblock', unblockresultobj, removeallrowsUnBlock('unblockchk'));
             });
 
-            function parseTable(row, text) {
-                var approveresult = {};
+            function parseTable(row, text,approveresult) {
+
                 if (row.find('input[name="' + text + '"]').is(':checked')) {
                     var rowapprove = {};
 
