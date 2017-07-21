@@ -229,8 +229,8 @@ var buildTopicsDropdown = function(data) {
 
     // wrap "everything"
     content = [{
-        title: "Everything", 
-        key: 1000, 
+        title: 'Everything', 
+        key: '-1,-1', 
         folder: true, 
         children: content,
         expanded: true
@@ -718,7 +718,7 @@ var _setTopics = function(toArray, dataArray) {
         var dict = dataArray[idx];
         var newDict = {
             title: dict.name,
-            key: dict.channelId + ',' + dict.contentId,
+            key: dict.channelId + ',' + dict.id,
             folder: dict.children !== null && dict.children.length > 0
         };
         if (dict.children !== null) {
@@ -1113,21 +1113,21 @@ var tableDataData = function() {
 var topicsData = function() {
     return {
         "topics": [{
-            "contentId": "bb",
+            "id": "bb",
             "channelId": "aa",
             "name": "Channel 1",
             "children": [{
-                "contentId": "bb",
+                "id": "bb",
 				"channelId": "aa",
                 "name": "Physics",
                 "children": null
             }]
         },{
-            "contentId": "bdb",
+            "id": "bdb",
             "channelId": "adsa",
             "name": "Channel 2",
             "children": [{
-                "contentId": "bb",
+                "id": "bb",
 				"channelId": "aa",
                 "name": "Algorithms",
                 "children": null
