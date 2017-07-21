@@ -922,7 +922,7 @@ def get_page_meta_view(request):
         
 # This function implements the logic for get page data        
 def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timestamp, channel_id):
-    try:
+    #try:
         code = 0
         title = ''
         message = ''
@@ -1052,11 +1052,12 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             else:
                                  mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
 
-                            if mastery_class:
-                                completed_questions += mastery_class.completed_questions
-                                correct_questions += mastery_class.correct_questions
-                                number_of_attempts += mastery_class.attempt_questions
-                                students_completed += mastery_class.students_completed
+                            if mastery_classes:
+                                for mastery_class in mastery_classes:
+                                    completed_questions += mastery_class.completed_questions
+                                    correct_questions += mastery_class.correct_questions
+                                    number_of_attempts += mastery_class.attempt_questions
+                                    students_completed += mastery_class.students_completed
                                     
                             # Filter mastery level belongs to a certain class with certain topic id, and within certain time range
                             
@@ -1125,9 +1126,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                    
                             # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
                             
-                                
-                            for mastery_student in mastery_students:
-                                if mastery_student:
+                            if mastery_students:    
+                                for mastery_student in mastery_students:
                                     completed_questions += mastery_student.completed_questions
                                     correct_questions += mastery_student.correct_questions
                                     number_of_attempts += mastery_student.attempt_questions
@@ -1158,10 +1158,12 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                             # Calculate the percentage of students completed the topic
                             
-                            
-                            percent_student_completed_array.append(completed)
+                            if completed:
+                                percent_student_completed_array.append("100%")
+                            else:
+                                percent_student_completed_array.append("0%")
 
-                            values = [percent_complete, percent_correct, number_of_attempts, completed]
+                            values = [percent_complete, percent_correct, number_of_attempts, percent_complete_array]
                             row = {'id': student_id, 'name': student_name, 'values': values}
                             rows.append(row)
             avg_percent_complete = 0
@@ -1177,7 +1179,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                     avg_percent_complete +=  percent_complete_array[i]
                     avg_percent_correct += percent_correct_array[i]
                     avg_number_of_attempts += number_of_attempts_array[i]
-                    avg_percent_student_completed += percent_student_completed_array[i]
+                    if parent_level != 2:
+                        avg_percent_student_completed += percent_student_completed_array[i]
                 avg_percent_complete /= length
                 avg_percent_correct /= length
                 avg_number_of_attempts /= length
@@ -1194,6 +1197,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
         
         return response_object
     # If exception occurred, construct corresponding error info to the user
+'''
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -1215,6 +1219,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
         data = {} 
         response_object = construct_response(code, title, message, data)
         return response_object
+'''
         
 
 
