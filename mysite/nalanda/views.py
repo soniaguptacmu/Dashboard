@@ -951,16 +951,13 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
             end_timestamp = datetime.date.fromtimestamp(int(end_timestamp)).strftime('%Y-%m-%d')
             # If the user wants to view everything
             if topic_id == '-1' and channel_id == '-1':
-                topics = Content.objects.filter()
-                if topics:
-                    for topic in topics:
-                        total_questions += topic.total_questions
-
+                topic = Content.objects.filter(content_id = "").first()  
             # If the user has specified content_id and channel_id
             else:
-                topic = Content.objects.filter(content_id=topic_id).filter(channel_id = channel_id)
-                if topic:
-                    total_questions = topic[0].total_questions
+                topic = Content.objects.filter(content_id=topic_id).filter(channel_id = channel_id).first()
+
+            if topic:
+                total_questions = topic.total_questions
 
             # If the current level is root
             if parent_level == 0:
@@ -969,8 +966,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 # For each school, calculate
                 if schools:
                     for school in schools:
-                        print("school_id")
-                        print(school.school_id)
+                        
                         # Get school id and name
                         school_id = str(school.school_id)
                         school_name = school.school_name
