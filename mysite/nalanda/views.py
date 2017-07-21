@@ -1163,7 +1163,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             else:
                                 percent_student_completed_array.append("0%")
 
-                            values = [percent_complete, percent_correct, number_of_attempts, percent_complete_array]
+                            values = [percent_complete, percent_correct, number_of_attempts, percent_student_completed_array]
                             row = {'id': student_id, 'name': student_name, 'values': values}
                             rows.append(row)
             avg_percent_complete = 0
@@ -1185,6 +1185,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 avg_percent_correct /= length
                 avg_number_of_attempts /= length
                 if parent_level == 2:
+                    print("Yes")
                     avg_percent_student_completed = ""
                 else:
                      avg_percent_student_completed /= length
