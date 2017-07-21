@@ -954,10 +954,16 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 topic = Content.objects.filter(content_id = "").first()  
             # If the user has specified content_id and channel_id
             else:
+<<<<<<< HEAD
                 topic = Content.objects.filter(content_id=topic_id).filter(channel_id = channel_id).first()
 
             if topic:
                 total_questions = topic.total_questions
+=======
+                topic = Content.objects.filter(topic_id=topic_id).filter(channel_id = channel_id)
+                if topic:
+                    total_questions = topic[0].total_questions
+>>>>>>> ab7b3081da9c93db7bb69209789aa89679cda996
 
             # If the current level is root
             if parent_level == 0:
@@ -1069,7 +1075,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     number_of_content = len(mastery_classes)
                             # Filter mastery level belongs to a certain class with certain topic id, and within certain time range
                             else:
-                                mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(topic_id=topic).filter(date__range=(start_timestamp, end_timestamp))
                                 if mastery_classes:
                                     for mastery_class in mastery_classes:
                                         completed_questions += mastery_class.completed_questions
@@ -1147,7 +1153,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     number_of_content = len(mastery_students)
                             # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
                             else:
-                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(topic_id=topic).filter(date__range=(start_timestamp, end_timestamp))
                                 for mastery_student in mastery_students:
                                     if mastery_student:
                                         completed_questions += mastery_student.completed_questions
@@ -1303,9 +1309,9 @@ def get_trend(request):
         data = None
         content = None
         if topic_id=="-1":
-            content = Content.objects.filter(content_id='').first()
+            content = Content.objects.filter(topic_id='').first()
         else:
-            content = Content.objects.filter(content_id=topic_id,channel_id=channel_id).first()
+            content = Content.objects.filter(topic_id=topic_id,channel_id=channel_id).first()
         total_questions = content.total_questions
         print(total_questions)
         total_students = 1.0
