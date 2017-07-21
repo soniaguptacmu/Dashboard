@@ -21,7 +21,7 @@ var compareMaxValues = [];
 var pendingRequests = 0; // number of requests that are sent but not received yet
 var maxItemLevel = 3; // students (read-only)
 var debug = true; // whether to print debug outputs to console
-var selfServe = true;
+var selfServe = false;
 
 /** Pragma Mark - Starting Points **/
 
