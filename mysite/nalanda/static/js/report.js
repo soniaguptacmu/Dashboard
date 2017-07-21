@@ -229,8 +229,8 @@ var buildTopicsDropdown = function(data) {
 
     // wrap "everything"
     content = [{
-        title: "Everything", 
-        key: 1000, 
+        title: 'Everything', 
+        key: '-1,-1', 
         folder: true, 
         children: content,
         expanded: true
