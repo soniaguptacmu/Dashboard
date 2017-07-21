@@ -3,7 +3,7 @@
     <script type="text/javascript" src="../static/node_modules/jquery/dist/jquery.min.js"></script>
     <link rel="stylesheet" href="../static/node_modules/bootstrap/dist/css/bootstrap.min.css" media="all">
     <script type="text/javascript" src="../static/js/common.js"></script>
-	<!-- toastr -->
+    <!-- toastr -->
     <script type="text/javascript" src="../static/node_modules/toastr/build/toastr.min.js"></script>
     <link rel="stylesheet" href="../static/node_modules/toastr/build/toastr.min.css" media="all">
     <link rel="stylesheet" href="../static/css/main.css" media="all">
@@ -134,18 +134,18 @@
                 }
             });
 
-	        {% if code != 0 %}
-			{% if info.title %}
-			toastr.error('{{ info.message }}', '{{ info.title }}');
-			{% endif %}
-			{% if not info.title %}
-			toastr.error('{{ info.message }}');
-			{% endif %}
-			{% endif %}
+            {% if code != 0 %}
+            {% if info.title %}
+            toastr.error('{{ info.message }}', '{{ info.title }}');
+            {% endif %}
+            {% if not info.title %}
+            toastr.error('{{ info.message }}');
+            {% endif %}
+            {% endif %}
 
         });
     </script>
-    
+
 </head>
 <body class="report mastery">
 <header id="masthead" class="site-header">
