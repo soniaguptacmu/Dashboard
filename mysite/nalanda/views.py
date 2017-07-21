@@ -35,7 +35,7 @@ def login_post(username, password):
         data = {}
         # If both username and password are not null or empty
         if username and password:     
-        	# Find if user with corresponding username and password exists
+            # Find if user with corresponding username and password exists
             result = Users.objects.filter(username=username).filter(password=password)
             # If not, note that the combination is not found 
             if not result:
@@ -53,7 +53,7 @@ def login_post(username, password):
                     user[0].save()
             # If the combination exists, check if the user has been blocked
             else:
-            	# If the user has wrongfully input password for 4 or more than 4 times 
+                # If the user has wrongfully input password for 4 or more than 4 times 
                 if result[0].role_id != 4:
                     if result[0].number_of_failed_attempts >= 4:
                         # Notify the user that he has been blocked
@@ -65,11 +65,11 @@ def login_post(username, password):
                     else:
                         mappings = UserRoleCollectionMapping.objects.filter(user_id = result[0]).filter(is_approved=True)
                         if mappings:
-                        	result[0].number_of_failed_attempts = 0
-                        	result[0].last_login_time = timezone.now()
-                        	result[0].save()
-                        	role = result[0].role_id
-                        	is_success = True  
+                            result[0].number_of_failed_attempts = 0
+                            result[0].last_login_time = timezone.now()
+                            result[0].save()
+                            role = result[0].role_id
+                            is_success = True  
                         else:
                             code = 1004
                             title = 'Sorry, you have not been approved yet'
@@ -82,7 +82,7 @@ def login_post(username, password):
 
         # If either the username/password is empty
         else:
-        	# Notify the user that the input info is not complete
+            # Notify the user that the input info is not complete
             code = 1003
             title = 'The username/password are required'
             message = 'The username/password are required'
@@ -123,7 +123,7 @@ def login_post(username, password):
 # This function implements the request receiving and response sending for login 
 @csrf_exempt
 def login_view(request):
-	# If GET request is received, render the login page 
+    # If GET request is received, render the login page 
     if request.method == 'GET':
         code = 0
         title = ""
@@ -155,7 +155,7 @@ def login_view(request):
 # This function implements the request receiving and response sending for logout
 @csrf_exempt
 def logout_view(request):
-	# If GET request is received, render the index page 
+    # If GET request is received, render the index page 
     if request.method == 'GET':
         try:
             logout(request)
@@ -190,7 +190,7 @@ def get_school_and_classes():
     # Get all the schools, if schools exist
     if school:
         for i in range(0, len(school)):
-        	# For each school, get the id and name
+            # For each school, get the id and name
             school_id = school[i].school_id
             school_name = school[i].school_name
             classes_array = []
@@ -262,7 +262,7 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
             if role_id == 1:
                 user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user)
                 user_role_collection_mapping.save()
-           	# If the user is a school leader, add school into the user mapping 
+            # If the user is a school leader, add school into the user mapping 
             elif role_id == 2:
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if school:
@@ -313,7 +313,7 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
 # This function implements the request receiving and response sending for register
 @csrf_exempt
 def register_view(request):
-	# If GET request is received, render the register page, return the school and class info
+    # If GET request is received, render the register page, return the school and class info
     if request.method == 'GET':
         institutes = get_school_and_classes()
         data = {'institutes': institutes}   
@@ -367,7 +367,7 @@ def admin_approve_pending_users_post(users):
                 username = users[i]["username"]
                 result = Users.objects.filter(username=username)
                 if result:
-                	# Mark the user as active
+                    # Mark the user as active
                     result[0].is_active = True
                     result[0].update_date = timezone.now()
                     result[0].save()
@@ -451,7 +451,7 @@ def admin_disapprove_pending_users_post(users):
     data = {}
     try:
         if users:
-        	# If the users to be disapproved is not empty
+            # If the users to be disapproved is not empty
             for i in range(len(users)):
                 username = users[i]['username']
                 result = Users.objects.filter(username=username)
@@ -537,7 +537,7 @@ def admin_unblock_users_post(usernames):
     try:
         if usernames:
             for i in range(len(usernames)):
-            	# Check if the username exists
+                # Check if the username exists
                 username = usernames[i]
                 result = Users.objects.filter(username=username)
                 # If exists, change is_active to True, and clear the number_of_failed_attempts
@@ -611,7 +611,7 @@ def admin_get_post():
         pendings = UserRoleCollectionMapping.objects.filter(is_approved = False)
         if pendings:
             for pending in pendings:
-            	# Find the user according to user_id
+                # Find the user according to user_id
                 user = pending.user_id
                 if not user:
                     continue
