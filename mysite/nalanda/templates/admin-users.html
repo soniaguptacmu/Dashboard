@@ -47,13 +47,13 @@
                     var rowapprove = {};
 
                     if (approveresult[row[0].children[0].innerHTML] != null) {
-                        if (row[0].children[4].id) {
+                        if (row[0].children[4].id && parseInt(row[0].children[4].id)>0) {
                             approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
                         }
                     }
                     else {
                         approveresult[row[0].children[0].innerHTML] = [];
-                        if (row[0].children[4].id) {
+                        if (row[0].children[4].id && parseInt(row[0].children[4].id)>0) {
                             approveresult[row[0].children[0].innerHTML].push(parseInt(row[0].children[4].id));
                         }
                     }
