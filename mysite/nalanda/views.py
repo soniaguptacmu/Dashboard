@@ -433,8 +433,7 @@ def admin_approve_pending_users_view(request):
         else:
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
-            users = data.get('users',[])
-            print(users)       
+            users = data.get('users',[])      
             response_object = admin_approve_pending_users_post(users)
             print(response_object)
 
@@ -519,7 +518,7 @@ def admin_disapprove_pending_users_view(request):
             body_unicode = request.body.decode('utf-8')
             data = json.loads(body_unicode)
             users = data.get('users',[])       
-            print(users)
+            print("users = ", users)
             response_object = admin_disapprove_pending_users_post(users)
             print(response_object)
         response_text = json.dumps(response_object,ensure_ascii=False)
@@ -536,14 +535,12 @@ def admin_unblock_users_post(usernames):
     data = {}
     try:
         if usernames:
-            print("Yes1")
             for i in range(len(usernames)):
             	# Check if the username exists
                 username = usernames[i]
                 result = Users.objects.filter(username=username)
                 # If exists, change is_active to True, and clear the number_of_failed_attempts
                 if result:
-                    print("Yes")
                     result[0].is_active = True;
                     result[0].number_of_failed_attempts = 0;
                     result[0].update_date = timezone.now()
@@ -996,12 +993,13 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                 number_of_content = len(mastery_schools)
                         # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
                         else:
-                            mastery_school = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
-                            if mastery_school:
-                                completed_questions = mastery_school[0].completed_questions
-                                correct_questions = mastery_school[0].correct_questions
-                                number_of_attempts = mastery_school[0].attempt_questions
-                                students_completed = mastery_school[0].students_completed
+                            mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                            if mastery_schools:
+                                for mastery_school in mastery_schools:
+                                    completed_questions += mastery_school.completed_questions
+                                    correct_questions += mastery_school.correct_questions
+                                    number_of_attempts += mastery_school.attempt_questions
+                                    students_completed += mastery_school.students_completed
                                 number_of_content = 1
 
 
@@ -1074,12 +1072,13 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     number_of_content = len(mastery_classes)
                             # Filter mastery level belongs to a certain class with certain topic id, and within certain time range
                             else:
-                                mastery_class = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
-                                if mastery_class:
-                                    completed_questions = mastery_class[0].completed_questions
-                                    correct_questions = mastery_class[0].correct_questions
-                                    number_of_attempts = mastery_class[0].attempt_questions
-                                    students_completed = mastery_class[0].students_completed
+                                mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                if mastery_classes:
+                                    for mastery_class in mastery_classes:
+                                        completed_questions += mastery_class.completed_questions
+                                        correct_questions += mastery_class.correct_questions
+                                        number_of_attempts += mastery_class.attempt_questions
+                                        students_completed += mastery_class.students_completed
                                     number_of_content = 1
 
 
@@ -1151,13 +1150,14 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                     number_of_content = len(mastery_students)
                             # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
                             else:
-                                mastery_student = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
-                                if mastery_student:
-                                    completed_questions = mastery_student[0].completed_questions
-                                    correct_questions = mastery_student[0].correct_questions
-                                    number_of_attempts = mastery_student[0].attempt_questions
-                                    completed = mastery_student[0].completed
-                                    number_of_content = 1
+                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                for mastery_student in mastery_students:
+                                    if mastery_student:
+                                        completed_questions += mastery_student.completed_questions
+                                        correct_questions += mastery_student.correct_questions
+                                        number_of_attempts += mastery_student.attempt_questions
+                                        completed += mastery_student.completed
+                                        number_of_content = 1
                  
                             if total_questions == 0 or number_of_content == 0:
                                 values = ["0.00%", "0.00%", 0, "0.00%"]
