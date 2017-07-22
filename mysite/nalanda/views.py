@@ -960,6 +960,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 total_questions = topic.total_questions
 
 
+
+
             # If the current level is root
             if parent_level == 0:
                 # Return all the schools 
@@ -981,8 +983,9 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                         if topic_id == '-1':
                             mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(content_id="").filter(date__range=(start_timestamp, end_timestamp))
                         else:
-                             mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                             mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic_id).filter(date__range=(start_timestamp, end_timestamp))
                         if mastery_schools:
+                           
                             for mastery_school in mastery_schools:
                                 completed_questions += mastery_school.completed_questions
                                 correct_questions += mastery_school.correct_questions
@@ -1000,7 +1003,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             rows.append(row)
                             continue
                         
-
+                      
                         # Calculate the percentage of completed questions
                         percent_complete_float = float(completed_questions) / (total_questions * total_students)
                         percent_complete = "{0:.2%}".format(percent_complete_float)
@@ -1050,7 +1053,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             if topic_id == '-1':
                                 mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(content_id="").filter(date__range=(start_timestamp, end_timestamp))
                             else:
-                                 mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                 mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic_id).filter(date__range=(start_timestamp, end_timestamp))
 
                             if mastery_classes:
                                 for mastery_class in mastery_classes:
@@ -1121,7 +1124,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             if topic_id == '-1':
                                 mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(content_id="").filter(date__range=(start_timestamp, end_timestamp))
                             else:
-                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic_id).filter(date__range=(start_timestamp, end_timestamp))
                                 
                                    
                             # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
@@ -1135,7 +1138,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                                         completed = mastery_student.completed and completed
                          
                  
-                            if total_questions == 0:
+                            if len(mastery_students) == 0:
                                 values = ["0.00%", "0.00%", 0, "0.00%"]
                                 row = {'id': student_id, 'name': student_name, 'values': values}
                                 rows.append(row)
@@ -1158,12 +1161,14 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                             # Calculate the percentage of students completed the topic
                             
-                        if completed:
-                            percent_student_completed_array.append("100%")
-                        else:
-                            percent_student_completed_array.append("0%")
+                            if completed:
+                                completed = "100.00%"
+                                percent_student_completed_array.append("100%")
+                            else:
+                                completed = "0.00%"
+                                percent_student_completed_array.append("0%")
 
-                            values = [percent_complete, percent_correct, number_of_attempts, percent_student_completed_array]
+                            values = [percent_complete, percent_correct, number_of_attempts, completed]
                             row = {'id': student_id, 'name': student_name, 'values': values}
                             rows.append(row)
             avg_percent_complete = 0
@@ -1185,7 +1190,6 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 avg_percent_correct /= length
                 avg_number_of_attempts /= length
                 if parent_level == 2:
-                    print("Yes")
                     avg_percent_student_completed = ""
                 else:
                      avg_percent_student_completed /= length
