@@ -784,8 +784,8 @@ def construct_breadcrumb(parentName, parentLevel, parentId):
 # Construct the metrics format 
 def construct_metrics():
     metrics = [
-        {'displayName': '% exerciese completed', 'toolTip': ''},
-        {'displayName': '% exerciese correct', 'toolTip': ''},
+        {'displayName': '% exercise completed', 'toolTip': ''},
+        {'displayName': '% exercise correct', 'toolTip': ''},
         {'displayName': '# attempts completed', 'toolTip': ''},
         {'displayName': '% students completed the topic', 'toolTip': ''},
     ]
@@ -1330,7 +1330,7 @@ def get_trend(request):
         series = []
         series.append({'name':'% exercise completed','isPercentage':True})
         series.append({'name':'% exercise correct','isPercentage':True})
-        series.append({'name':'# attemps','isPercentage':False})
+        series.append({'name':'# attempts','isPercentage':False})
         series.append({'name':'% students completed topic','isPercentage':True})
         points = []
         completed_questions_sum = 0
