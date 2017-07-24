@@ -723,13 +723,14 @@ def report_homepage_view(request):
         role = request.COOKIES.get('role')
         # If the user has not logged in
         if not role:
-            code = 2031
-            title = 'Sorry, you have to login to perform this action'
-            message = 'Sorry, you have to login to perform this action'
-            data = {} 
+            code = 0
+            title = ''
+            message = ''
+            data = {}
+
+            #response_text = json.dumps(response_object,ensure_ascii=False)
             response_object = construct_response(code, title, message, data)
-            response_text = json.dumps(response_object,ensure_ascii=False)
-            return HttpResponse(response_text,content_type='application/json')
+            return render(request, 'login.html', response_object)
 
         # If the user has logged in, render the index page
         else:
