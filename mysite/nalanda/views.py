@@ -35,7 +35,7 @@ def login_post(username, password):
         data = {}
         # If both username and password are not null or empty
         if username and password:     
-        	# Find if user with corresponding username and password exists
+            # Find if user with corresponding username and password exists
             result = Users.objects.filter(username=username).filter(password=password)
             # If not, note that the combination is not found 
             if not result:
@@ -53,7 +53,7 @@ def login_post(username, password):
                     user[0].save()
             # If the combination exists, check if the user has been blocked
             else:
-            	# If the user has wrongfully input password for 4 or more than 4 times 
+                # If the user has wrongfully input password for 4 or more than 4 times 
                 if result[0].role_id != 4:
                     if result[0].number_of_failed_attempts >= 4:
                         # Notify the user that he has been blocked
@@ -65,11 +65,11 @@ def login_post(username, password):
                     else:
                         mappings = UserRoleCollectionMapping.objects.filter(user_id = result[0]).filter(is_approved=True)
                         if mappings:
-                        	result[0].number_of_failed_attempts = 0
-                        	result[0].last_login_time = timezone.now()
-                        	result[0].save()
-                        	role = result[0].role_id
-                        	is_success = True  
+                            result[0].number_of_failed_attempts = 0
+                            result[0].last_login_time = timezone.now()
+                            result[0].save()
+                            role = result[0].role_id
+                            is_success = True  
                         else:
                             code = 1004
                             title = 'Sorry, you have not been approved yet'
@@ -82,7 +82,7 @@ def login_post(username, password):
 
         # If either the username/password is empty
         else:
-        	# Notify the user that the input info is not complete
+            # Notify the user that the input info is not complete
             code = 1003
             title = 'The username/password are required'
             message = 'The username/password are required'
@@ -123,7 +123,7 @@ def login_post(username, password):
 # This function implements the request receiving and response sending for login 
 @csrf_exempt
 def login_view(request):
-	# If GET request is received, render the login page 
+    # If GET request is received, render the login page 
     if request.method == 'GET':
         code = 0
         title = ""
@@ -155,7 +155,7 @@ def login_view(request):
 # This function implements the request receiving and response sending for logout
 @csrf_exempt
 def logout_view(request):
-	# If GET request is received, render the index page 
+    # If GET request is received, render the index page 
     if request.method == 'GET':
         try:
             logout(request)
@@ -190,7 +190,7 @@ def get_school_and_classes():
     # Get all the schools, if schools exist
     if school:
         for i in range(0, len(school)):
-        	# For each school, get the id and name
+            # For each school, get the id and name
             school_id = school[i].school_id
             school_name = school[i].school_name
             classes_array = []
@@ -262,7 +262,7 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
             if role_id == 1:
                 user_role_collection_mapping = UserRoleCollectionMapping(user_id=new_user)
                 user_role_collection_mapping.save()
-           	# If the user is a school leader, add school into the user mapping 
+            # If the user is a school leader, add school into the user mapping 
             elif role_id == 2:
                 school = UserInfoSchool.objects.filter(school_id=int(institute_id))
                 if school:
@@ -313,7 +313,7 @@ def register_post(username, password, first_name, last_name, email, role_id, ins
 # This function implements the request receiving and response sending for register
 @csrf_exempt
 def register_view(request):
-	# If GET request is received, render the register page, return the school and class info
+    # If GET request is received, render the register page, return the school and class info
     if request.method == 'GET':
         institutes = get_school_and_classes()
         data = {'institutes': institutes}   
@@ -367,7 +367,7 @@ def admin_approve_pending_users_post(users):
                 username = users[i]["username"]
                 result = Users.objects.filter(username=username)
                 if result:
-                	# Mark the user as active
+                    # Mark the user as active
                     result[0].is_active = True
                     result[0].update_date = timezone.now()
                     result[0].save()
@@ -451,7 +451,7 @@ def admin_disapprove_pending_users_post(users):
     data = {}
     try:
         if users:
-        	# If the users to be disapproved is not empty
+            # If the users to be disapproved is not empty
             for i in range(len(users)):
                 username = users[i]['username']
                 result = Users.objects.filter(username=username)
@@ -537,7 +537,7 @@ def admin_unblock_users_post(usernames):
     try:
         if usernames:
             for i in range(len(usernames)):
-            	# Check if the username exists
+                # Check if the username exists
                 username = usernames[i]
                 result = Users.objects.filter(username=username)
                 # If exists, change is_active to True, and clear the number_of_failed_attempts
@@ -611,7 +611,7 @@ def admin_get_post():
         pendings = UserRoleCollectionMapping.objects.filter(is_approved = False)
         if pendings:
             for pending in pendings:
-            	# Find the user according to user_id
+                # Find the user according to user_id
                 user = pending.user_id
                 if not user:
                     continue
@@ -922,7 +922,7 @@ def get_page_meta_view(request):
         
 # This function implements the logic for get page data        
 def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timestamp, channel_id):
-    try:
+    #try:
         code = 0
         title = ''
         message = ''
@@ -951,16 +951,16 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
             end_timestamp = datetime.date.fromtimestamp(int(end_timestamp)).strftime('%Y-%m-%d')
             # If the user wants to view everything
             if topic_id == '-1' and channel_id == '-1':
-                topics = Content.objects.filter()
-                if topics:
-                    for topic in topics:
-                        total_questions += topic.total_questions
-
+                topic = Content.objects.filter(topic_id = "").first()  
             # If the user has specified content_id and channel_id
             else:
-                topic = Content.objects.filter(content_id=topic_id).filter(channel_id = channel_id)
-                if topic:
-                    total_questions = topic[0].total_questions
+                topic = Content.objects.filter(topic_id=topic_id).filter(channel_id = channel_id).first()
+
+            if topic:
+                total_questions = topic.total_questions
+
+
+
 
             # If the current level is root
             if parent_level == 0:
@@ -968,9 +968,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                 schools = UserInfoSchool.objects.all()
                 # For each school, calculate
                 if schools:
-                    for school in schools:
-                        print("school_id")
-                        print(school.school_id)
+                    for school in schools:  
                         # Get school id and name
                         school_id = str(school.school_id)
                         school_name = school.school_name
@@ -978,40 +976,34 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                         correct_questions = 0
                         number_of_attempts = 0
                         students_completed = 0
-                        number_of_content = 0
                         total_students = 0 
 
 
                         # Filter all mastery level logs belong to a certain school within certain time range
                         if topic_id == '-1':
-                            mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(date__range=(start_timestamp, end_timestamp))
-                            if mastery_schools:
-                                for mastery_school in mastery_schools:
-                                    completed_questions += mastery_school.completed_questions
-                                    correct_questions += mastery_school.correct_questions
-                                    number_of_attempts += mastery_school.attempt_questions
-                                    students_completed += mastery_school.students_completed
-                                number_of_content = len(mastery_schools)
-                        # Filter mastery level belongs to a certain school with certain topic id, and within certain time range
+                            mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(content_id="").filter(date__range=(start_timestamp, end_timestamp))
                         else:
-                            mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
-                            if mastery_schools:
-                                for mastery_school in mastery_schools:
-                                    completed_questions += mastery_school.completed_questions
-                                    correct_questions += mastery_school.correct_questions
-                                    number_of_attempts += mastery_school.attempt_questions
-                                    students_completed += mastery_school.students_completed
-                                number_of_content = 1
+                             mastery_schools = MasteryLevelSchool.objects.filter(school_id=school).filter(channel_id=channel_id).filter(content_id=topic_id).filter(date__range=(start_timestamp, end_timestamp))
+                        if mastery_schools:
+                           
+                            for mastery_school in mastery_schools:
+                                completed_questions += mastery_school.completed_questions
+                                correct_questions += mastery_school.correct_questions
+                                number_of_attempts += mastery_school.attempt_questions
+                                students_completed += mastery_school.students_completed
+                                
+                       
+                                
 
 
                         total_students = school.total_students
-                        if total_questions == 0 or total_students == 0 or number_of_content == 0:
+                        if total_questions == 0 or total_students == 0:
                             values = ["0.00%", "0.00%", 0, "0.00%"]
                             row = {'id': school_id, 'name': school_name, 'values': values}
                             rows.append(row)
                             continue
                         
-
+                      
                         # Calculate the percentage of completed questions
                         percent_complete_float = float(completed_questions) / (total_questions * total_students)
                         percent_complete = "{0:.2%}".format(percent_complete_float)
@@ -1029,7 +1021,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                         # Calculate the percentage of students completed the topic
                         
-                        percent_student_completed_float = float(students_completed) / (total_students * number_of_content)
+                        percent_student_completed_float = float(students_completed) / (total_students * total_questions)
                         percent_student_completed = "{0:.2%}".format(percent_student_completed_float)
                         percent_student_completed_array.append(percent_student_completed_float)
 
@@ -1041,15 +1033,12 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
             elif parent_level == 1:
                 # Find the current school
                 school = UserInfoSchool.objects.filter(school_id = parent_id)
-                print("parent_id")
-                print(parent_id)
+               
                 # Return all the classrooms inside a school
                 if school:
                     classes = UserInfoClass.objects.filter(parent = parent_id)
                     if classes:
                         for curr_class in classes:
-                            print("class")
-                            print(curr_class)
                             # Get class id and name
                             class_id = str(curr_class.class_id)
                             class_name = curr_class.class_name
@@ -1057,34 +1046,27 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             correct_questions = 0
                             number_of_attempts = 0
                             students_completed = 0
-                            number_of_content = 0
                             total_students = 0 
 
 
                             # Filter all mastery level logs belongs to a certain class within certain time range
                             if topic_id == '-1':
-                                mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(date__range=(start_timestamp, end_timestamp))
-                                if mastery_classes:
-                                    for mastery_class in mastery_classes:
-                                        completed_questions += mastery_class.completed_questions
-                                        correct_questions += mastery_class.correct_questions
-                                        number_of_attempts += mastery_class.attempt_questions
-                                        students_completed += mastery_class.students_completed
-                                    number_of_content = len(mastery_classes)
-                            # Filter mastery level belongs to a certain class with certain topic id, and within certain time range
+                                mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(content_id="").filter(date__range=(start_timestamp, end_timestamp))
                             else:
-                                mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
-                                if mastery_classes:
-                                    for mastery_class in mastery_classes:
-                                        completed_questions += mastery_class.completed_questions
-                                        correct_questions += mastery_class.correct_questions
-                                        number_of_attempts += mastery_class.attempt_questions
-                                        students_completed += mastery_class.students_completed
-                                    number_of_content = 1
+                                 mastery_classes = MasteryLevelClass.objects.filter(class_id=curr_class).filter(channel_id=channel_id).filter(content_id=topic_id).filter(date__range=(start_timestamp, end_timestamp))
 
+                            if mastery_classes:
+                                for mastery_class in mastery_classes:
+                                    completed_questions += mastery_class.completed_questions
+                                    correct_questions += mastery_class.correct_questions
+                                    number_of_attempts += mastery_class.attempt_questions
+                                    students_completed += mastery_class.students_completed
+                                    
+                            # Filter mastery level belongs to a certain class with certain topic id, and within certain time range
+                            
 
                             total_students = curr_class.total_students
-                            if total_questions == 0 or total_students == 0 or number_of_content == 0:
+                            if total_questions == 0 or total_students == 0:
                                 values = ["0.00%", "0.00%", 0, "0.00%"]
                                 row = {'id': class_id, 'name': class_name, 'values': values}
                                 rows.append(row)
@@ -1107,7 +1089,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                             # Calculate the percentage of students completed the topic
                             
-                            percent_student_completed_float = float(students_completed) / (total_students * number_of_content)
+                            percent_student_completed_float = float(students_completed) / (total_students * total_questions)
                             percent_student_completed = "{0:.2%}".format(percent_student_completed_float)
                             percent_student_completed_array.append(percent_student_completed_float)
 
@@ -1134,33 +1116,29 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                             number_of_attempts = 0
                             number_of_content = 0 
                             completed = True
-                            number_of_content = 0
+                     
                            
 
 
                             # Filter mastery level belongs to a certain student within certain time range
                             if topic_id == '-1':
-                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(date__range=(start_timestamp, end_timestamp))
-                                if mastery_students:
-                                    for mastery_student in mastery_students:
-                                        completed_questions += mastery_student.completed_questions
-                                        correct_questions += mastery_student.correct_questions
-                                        number_of_attempts += mastery_student.attempt_questions
-                                        if completed:
-                                            completed = mastery_student.completed and completed
-                                    number_of_content = len(mastery_students)
-                            # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
+                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(content_id="").filter(date__range=(start_timestamp, end_timestamp))
                             else:
-                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic).filter(date__range=(start_timestamp, end_timestamp))
+                                mastery_students = MasteryLevelStudent.objects.filter(student_id=student).filter(channel_id=channel_id).filter(content_id=topic_id).filter(date__range=(start_timestamp, end_timestamp))
+                                
+                                   
+                            # Filter mastery level belongs to a certain student with certain topic id, and within certain time range
+                            
+                            if mastery_students:    
                                 for mastery_student in mastery_students:
-                                    if mastery_student:
-                                        completed_questions += mastery_student.completed_questions
-                                        correct_questions += mastery_student.correct_questions
-                                        number_of_attempts += mastery_student.attempt_questions
-                                        completed += mastery_student.completed
-                                        number_of_content = 1
+                                    completed_questions += mastery_student.completed_questions
+                                    correct_questions += mastery_student.correct_questions
+                                    number_of_attempts += mastery_student.attempt_questions
+                                    if completed:
+                                        completed = mastery_student.completed and completed
+                         
                  
-                            if total_questions == 0 or number_of_content == 0:
+                            if len(mastery_students) == 0:
                                 values = ["0.00%", "0.00%", 0, "0.00%"]
                                 row = {'id': student_id, 'name': student_name, 'values': values}
                                 rows.append(row)
@@ -1183,8 +1161,12 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
 
                             # Calculate the percentage of students completed the topic
                             
-                            
-                            percent_student_completed_array.append(completed)
+                            if completed:
+                                completed = "100.00%"
+                                percent_student_completed_array.append("100%")
+                            else:
+                                completed = "0.00%"
+                                percent_student_completed_array.append("0%")
 
                             values = [percent_complete, percent_correct, number_of_attempts, completed]
                             row = {'id': student_id, 'name': student_name, 'values': values}
@@ -1202,7 +1184,8 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
                     avg_percent_complete +=  percent_complete_array[i]
                     avg_percent_correct += percent_correct_array[i]
                     avg_number_of_attempts += number_of_attempts_array[i]
-                    avg_percent_student_completed += percent_student_completed_array[i]
+                    if parent_level != 2:
+                        avg_percent_student_completed += percent_student_completed_array[i]
                 avg_percent_complete /= length
                 avg_percent_correct /= length
                 avg_number_of_attempts /= length
@@ -1219,6 +1202,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
         
         return response_object
     # If exception occurred, construct corresponding error info to the user
+'''
     except DatabaseError:
         code = 2001
         title = 'Sorry, error occurred in database operations'
@@ -1240,6 +1224,7 @@ def get_page_data(parent_id, parent_level, topic_id, end_timestamp, start_timest
         data = {} 
         response_object = construct_response(code, title, message, data)
         return response_object
+'''
         
 
 
@@ -1307,9 +1292,9 @@ def get_trend(request):
         data = None
         content = None
         if topic_id=="-1":
-            content = Content.objects.filter(content_id='').first()
+            content = Content.objects.filter(topic_id='').first()
         else:
-            content = Content.objects.filter(content_id=topic_id,channel_id=channel_id).first()
+            content = Content.objects.filter(topic_id=topic_id,channel_id=channel_id).first()
         total_questions = content.total_questions
         print(total_questions)
         total_students = 1.0
@@ -1322,26 +1307,25 @@ def get_trend(request):
                 '''data = MasteryLevelSchool.objects.filter(school_id=item_id).filter(date__gt=start).filter(date__lt=end).values('channel_id')\
                 .annotate(Sum('completed_questions'),Sum('correct_questions'),Sum('attempt_questions'),Sum('students_completed')).order_by('date')
                 print(data)'''
-                data = MasteryLevelSchool.objects.filter(school_id=item_id, content_id="", date__gt=start,date__lt=end).order_by('date')
+                data = MasteryLevelSchool.objects.filter(school_id=item_id,content_id="",date__gte=start,date__lte=end).order_by('date')
             else:
                 data = MasteryLevelSchool.objects.filter(school_id=item_id,content_id=topic_id, channel_id=channel_id,\
-                    date__gt=start,date__lt=end).order_by('date')
+                    date__gte=start,date__lte=end).order_by('date')
+                print(data)
         elif level == 2:
             classroom = UserInfoClass.objects.filter(class_id=item_id).first()
             total_students = classroom.total_students
             if topic_id == "-1":
-                data = MasteryLevelClass.objects.filter(class_id=item_id, date__gt=start,date__lt=end).values('date','class_id')\
-                .annotate(Sum('completed_questions'),Sum('correct_questions'),Sum('attempt_questions'),Sum('students_completed')).order_by('date')
+                data = MasteryLevelClass.objects.filter(class_id=item_id,content_id="",date__gte=start,date__lte=end).order_by('date')
             else:
                 data = MasteryLevelClass.objects.filter(class_id=item_id, content_id=topic_id, channel_id=channel_id,\
-                    date__gt=start,date__lt=end).order_by('date')
+                    date__gte=start,date__lte=end).order_by('date')
         elif level == 3:
             if topic_id == "-1":
-                data = MasteryLevelStudent.objects.filter(student_id=item_id, date__gt=start,date__lt=end).values('date','student_id')\
-                .annotate(Sum('completed_questions'),Sum('correct_questions'),Sum('attempt_questions'),Sum('completed')).order_by('date')
+                data = MasteryLevelStudent.objects.filter(student_id=item_id,content_id="",date__gte=start,date__lte=end).order_by('date')
             else:
                 data = MasteryLevelStudent.objects.filter(student_id=item_id, content_id=topic_id, channel_id=channel_id,\
-                    date__gt=start,date__lt=end).order_by('date')
+                    date__gte=start,date__lte=end).order_by('date')
         res = {}
         series = []
         series.append({'name':'% exercise completed','isPercentage':True})
