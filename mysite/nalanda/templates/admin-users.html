@@ -7,6 +7,9 @@
     <script type="text/javascript" src="../static/node_modules/toastr/build/toastr.min.js"></script>
     <link rel="stylesheet" href="../static/node_modules/toastr/build/toastr.min.css" media="all">
     <link rel="stylesheet" href="../static/css/main.css" media="all">
+
+    {% if code != 2031 %}
+
     <script>
         $(document).ready(function () {
 
@@ -146,6 +149,7 @@
         });
     </script>
 
+    {% endif %}
 </head>
 <body class="report mastery">
 <header id="masthead" class="site-header">
@@ -158,6 +162,7 @@
 <div id="main" class="site-main">
     <div class="content-area">
         <div class="site-content">
+            {% if code != 2031 %}
             <h1 class="section-title"> User registration approval </h1>
             <table id="approvetable" class="table table-hover table-bordered">
                 <thead class="thead-default">
@@ -210,6 +215,10 @@
             <div style="text-align: center">
                 <input id="unblock" type="submit" class="btn btn-success" value="Submit">
             </div>
+            {% endif %}
+            {% if code == 2031 %}
+            <div class="alert alert-danger">{{ info.message }}</div>
+            {% endif %}
         </div>
     </div>
     <div id="secondary" class="site-sidebar">
