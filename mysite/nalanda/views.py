@@ -164,7 +164,7 @@ def logout_view(request):
             message = ""
             data = {}
             response_object = construct_response(code, title, message, data)
-            response = render(request, 'index.html', response_object)
+            response = render(request, 'login.html', response_object)
             # Clear the cookie
             response.delete_cookie('role')
             return response
