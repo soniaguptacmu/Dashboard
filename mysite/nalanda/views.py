@@ -164,7 +164,7 @@ def logout_view(request):
             message = ""
             data = {}
             response_object = construct_response(code, title, message, data)
-            response = render(request, 'index.html', response_object)
+            response = render(request, 'login.html', response_object)
             # Clear the cookie
             response.delete_cookie('role')
             return response
@@ -723,13 +723,14 @@ def report_homepage_view(request):
         role = request.COOKIES.get('role')
         # If the user has not logged in
         if not role:
-            code = 2031
-            title = 'Sorry, you have to login to perform this action'
-            message = 'Sorry, you have to login to perform this action'
-            data = {} 
+            code = 0
+            title = ''
+            message = ''
+            data = {}
+
+            #response_text = json.dumps(response_object,ensure_ascii=False)
             response_object = construct_response(code, title, message, data)
-            response_text = json.dumps(response_object,ensure_ascii=False)
-            return HttpResponse(response_text,content_type='application/json')
+            return render(request, 'login.html', response_object)
 
         # If the user has logged in, render the index page
         else:
@@ -784,8 +785,8 @@ def construct_breadcrumb(parentName, parentLevel, parentId):
 # Construct the metrics format 
 def construct_metrics():
     metrics = [
-        {'displayName': '% exerciese completed', 'toolTip': ''},
-        {'displayName': '% exerciese correct', 'toolTip': ''},
+        {'displayName': '% exercise completed', 'toolTip': ''},
+        {'displayName': '% exercise correct', 'toolTip': ''},
         {'displayName': '# attempts completed', 'toolTip': ''},
         {'displayName': '% students completed the topic', 'toolTip': ''},
     ]
@@ -1330,7 +1331,7 @@ def get_trend(request):
         series = []
         series.append({'name':'% exercise completed','isPercentage':True})
         series.append({'name':'% exercise correct','isPercentage':True})
-        series.append({'name':'# attemps','isPercentage':False})
+        series.append({'name':'# attempts','isPercentage':False})
         series.append({'name':'% students completed topic','isPercentage':True})
         points = []
         completed_questions_sum = 0
